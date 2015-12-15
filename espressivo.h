@@ -65,10 +65,10 @@ typedef struct _espressivo_forge_t	espressivo_forge_t;
 typedef struct _espressivo_dict_t		espressivo_dict_t;
 
 enum _espressivo_state_t {
-	ESPRESSIVO_STATE_ON		= 1,
-	ESPRESSIVO_STATE_SET	= 2,
-	ESPRESSIVO_STATE_OFF	= 4,
-	ESPRESSIVO_STATE_IDLE	= 8
+	ESPRESSIVO_STATE_ON		= (1 << 1),
+	ESPRESSIVO_STATE_SET	= (1 << 2),
+	ESPRESSIVO_STATE_OFF	= (1 << 3),
+	ESPRESSIVO_STATE_IDLE	= (1 << 4),
 };
 
 struct _espressivo_event_t {
@@ -243,7 +243,7 @@ espressivo_event_deforge(const espressivo_forge_t *cforge, const LV2_Atom *atom,
 		ev->state = ESPRESSIVO_STATE_SET;
 	else if(otype == cforge->uris.off)
 		ev->state = ESPRESSIVO_STATE_OFF;
-	else if(otype == cforge->uris.idle)
+	else
 		ev->state = ESPRESSIVO_STATE_IDLE;
 
 	ev->sid = pack->sid.body;

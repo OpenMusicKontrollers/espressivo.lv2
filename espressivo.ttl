@@ -58,8 +58,8 @@ proj:espressivo
 
 # MPE Output Plugin
 esp:mpe_out
-	a lv2:Plugin,
-		lv2:ConverterPlugin;
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
 	doap:name "Espressivo MPE Out" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
@@ -130,12 +130,12 @@ esp:mpe_out
 
 # TUIO2 Input Plugin
 esp:tuio2_in
-	a lv2:Plugin,
-		lv2:ConverterPlugin;
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
 	doap:name "Espressivo TUIO2 In" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable ;
 	lv2:requiredFeature urid:map ;
 
 	lv2:port [

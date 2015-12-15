@@ -65,11 +65,6 @@ struct _handle_t {
 	int64_t rel;
 
 	struct {
-		espressivo_dict_t dict [ESPRESSIVO_DICT_SIZE];
-		dummy_ref_t ref [ESPRESSIVO_DICT_SIZE];
-	} dummy;
-
-	struct {
 		espressivo_dict_t dict [2][ESPRESSIVO_DICT_SIZE];
 		tuio2_ref_t ref [2][ESPRESSIVO_DICT_SIZE];
 		int pos;
@@ -302,18 +297,19 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 
 	for(int i=0; i<n; i++)
 	{
-		ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&sid);
-
-		// already registered in this step?
-		dst = espressivo_dict_ref(handle->tuio2.dict[handle->tuio2.pos], sid);
-		if(!dst)
+		if((ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&sid)))
 		{
-			// register in this step
-			dst = espressivo_dict_add(handle->tuio2.dict[handle->tuio2.pos], sid);
-			// clone from previous step
-			src = espressivo_dict_ref(handle->tuio2.dict[!handle->tuio2.pos], sid);
-			if(dst && src)
-				memcpy(dst, src, sizeof(tuio2_ref_t));
+			// already registered in this step?
+			dst = espressivo_dict_ref(handle->tuio2.dict[handle->tuio2.pos], sid);
+			if(!dst)
+			{
+				// register in this step
+				dst = espressivo_dict_add(handle->tuio2.dict[handle->tuio2.pos], sid);
+				// clone from previous step
+				src = espressivo_dict_ref(handle->tuio2.dict[!handle->tuio2.pos], sid);
+				if(dst && src)
+					memcpy(dst, src, sizeof(tuio2_ref_t));
+			}
 		}
 	}
 
@@ -408,7 +404,6 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	espressivo_forge_init(&handle->cforge, handle->map);
 	osc_forge_init(&handle->oforge, handle->map);
-	ESPRESSIVO_DICT_INIT(handle->dummy.dict, handle->dummy.ref);
 	ESPRESSIVO_DICT_INIT(handle->tuio2.dict[0], handle->tuio2.ref[0]);
 	ESPRESSIVO_DICT_INIT(handle->tuio2.dict[1], handle->tuio2.ref[1]);
 
