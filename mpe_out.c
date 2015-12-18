@@ -401,7 +401,6 @@ _full_update(handle_t *handle, int64_t frames)
 			fref = _master_range_update(handle, frames, z);
 		if(fref)
 			fref = _voice_range_update(handle, frames, z);
-
 	}
 
 	return fref;
@@ -793,7 +792,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 	return props_restore(handle->props, &handle->cforge.forge, retrieve, state, flags, features);
 }
 
-LV2_State_Interface state_iface = {
+static const LV2_State_Interface state_iface = {
 	.save = _state_save,
 	.restore = _state_restore
 };

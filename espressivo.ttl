@@ -201,6 +201,7 @@ esp:mpe_out
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:Interface ;
 
 	lv2:port [
 	# input event port
@@ -268,6 +269,40 @@ esp:mpe_out
 		esp:mpe_voice_range_8 48 ;	
 	] .
 
+esp:tuio2_deviceWidth
+	a lv2:Parameter ;
+	rdfs:label "Device width" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 1 ;
+	lv2:maximum 65535 .
+
+esp:tuio2_deviceHeight
+	a lv2:Parameter ;
+	rdfs:label "Device height" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 1 ;
+	lv2:maximum 65535 .
+
+esp:tuio2_deviceName
+	a lv2:Parameter ;
+	rdfs:label "Device name" ;
+	rdfs:range atom:String .
+
+esp:tuio2_octave
+	a lv2:Parameter ;
+	rdfs:label "Octave" ;
+	rdfs:range atom:Int ;
+	units:unit units:oct ;
+	lv2:minimum 0 ;
+	lv2:maximum 8 .
+
+esp:tuio2_sensorsPerSemitone
+	a lv2:Parameter ;
+	rdfs:label "Sensors per Semitone" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 1 ;
+	lv2:maximum 160 .
+
 # TUIO2 Input Plugin
 esp:tuio2_in
 	a lv2:Plugin ,
@@ -276,7 +311,8 @@ esp:tuio2_in
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log ;
-	lv2:requiredFeature urid:map ;
+	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:Interface ;
 
 	lv2:port [
 	# input event port
@@ -285,6 +321,7 @@ esp:tuio2_in
 		atom:bufferType atom:Sequence ;
 		atom:supports atom:Object ;
 		atom:supports osc:Event ;
+		atom:supports patch:Message ;
 		lv2:index 0 ;
 		lv2:symbol "osc_in" ;
 		lv2:name "OSC Input" ;
@@ -295,8 +332,21 @@ esp:tuio2_in
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
 		atom:supports atom:Object ;
+		atom:supports patch:Message ;
 		lv2:index 1 ;
 		lv2:symbol "event_out" ;
 		lv2:name "Event Output" ;
 		lv2:designation lv2:control ;
+	] ;
+
+	patch:readable esp:tuio2_deviceWidth ;
+	patch:readable esp:tuio2_deviceHeight ;
+	patch:readable esp:tuio2_deviceName ;
+
+	patch:writable esp:tuio2_octave ;
+	patch:writable esp:tuio2_sensorsPerSemitone ;
+	
+	state:state [
+		esp:tuio2_octave 2 ;
+		esp:tuio2_sensorsPerSemitone 3 ;	
 	] .

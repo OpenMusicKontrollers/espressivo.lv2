@@ -17,9 +17,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <espressivo.h>
 #include <lv2_osc.h>
+#include <props.h>
 
 typedef struct _pos_t pos_t;
 typedef struct _tuio2_ref_t tuio2_ref_t;
@@ -88,6 +90,50 @@ struct _handle_t {
 	LV2_Atom_Sequence *event_out;
 
 	LV2_Atom_Forge_Ref ref;
+	
+	struct {
+		int32_t device_width;
+		int32_t device_height;
+		char device_name [128];
+		int32_t octave;
+		int32_t sensors_per_semitone;
+	} stat;
+	props_t *props;
+};
+
+static const props_def_t stat_tuio2_deviceWidth = {
+	.property = ESPRESSIVO_URI"#tuio2_deviceWidth",
+	.access = LV2_PATCH__readable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC
+};
+
+static const props_def_t stat_tuio2_deviceHeight = {
+	.property = ESPRESSIVO_URI"#tuio2_deviceHeight",
+	.access = LV2_PATCH__readable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC
+};
+
+static const props_def_t stat_tuio2_deviceName = {
+	.property = ESPRESSIVO_URI"#tuio2_deviceName",
+	.access = LV2_PATCH__readable,
+	.type = LV2_ATOM__String,
+	.mode = PROP_MODE_STATIC
+};
+
+static const props_def_t stat_tuio2_octave = {
+	.property = ESPRESSIVO_URI"#tuio2_octave",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC
+};
+
+static const props_def_t stat_tuio2_sensorsPerSemitone = {
+	.property = ESPRESSIVO_URI"#tuio2_sensorsPerSemitone",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC
 };
 
 // rt
@@ -235,7 +281,7 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		}
 
 		uint32_t dim;
-		//const char *source;
+		const char *source;
 
 		handle->tuio2.fid = fid;
 		handle->tuio2.last = last;
@@ -245,13 +291,25 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		{
 			handle->tuio2.width = dim >> 16;
 			handle->tuio2.height = dim & 0xffff;
+
+			if(handle->stat.device_width != handle->tuio2.width)
+				handle->stat.device_width = handle->tuio2.width; //TODO update
+			if(handle->stat.device_height != handle->tuio2.height)
+				handle->stat.device_height = handle->tuio2.height; //TODO update
 			
-			handle->ran = handle->tuio2.width / 3.f;
-			const int oct = 2;
-			handle->bot = oct*12.f - 0.5 - (handle->tuio2.width % 18 / 6.f);
+			const int n = handle->tuio2.width;
+			const float oct = handle->stat.octave;
+			const int sps = handle->stat.sensors_per_semitone; 
+
+			handle->ran = (float)n / sps;
+			handle->bot = oct*12.f - 0.5 - (n % (6*sps) / (2.f*sps));
 		}
 		
-		//ptr = osc_deforge_string(oforge, forge, ptr, &source);
+		ptr = osc_deforge_string(oforge, forge, ptr, &source);
+		if(ptr && strcmp(handle->stat.device_name, source))
+		{
+			strcpy(handle->stat.device_name, source); //TODO update
+		}
 
 		handle->tuio2.pos ^= 1; // toggle pos
 		espressivo_dict_clear(handle->tuio2.dict[handle->tuio2.pos]);
@@ -473,6 +531,23 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	if(handle->log)
 		lv2_log_logger_init(&handle->logger, handle->map, handle->log);
 
+	handle->props = props_new(5, descriptor->URI, handle->map, handle);
+	if(!handle->props)
+	{
+		fprintf(stderr, "failed to allocate property structure\n");
+		free(handle);
+		return NULL;
+	}
+
+	props_register(handle->props, &stat_tuio2_deviceWidth, NULL, &handle->stat.device_width);
+	props_register(handle->props, &stat_tuio2_deviceHeight, NULL, &handle->stat.device_height);
+	props_register(handle->props, &stat_tuio2_deviceName, NULL, &handle->stat.device_name);
+
+	props_register(handle->props, &stat_tuio2_octave, NULL, &handle->stat.octave);
+	props_register(handle->props, &stat_tuio2_sensorsPerSemitone, NULL, &handle->stat.sensors_per_semitone);
+
+	props_sort(handle->props);
+
 	return handle;
 }
 
@@ -500,6 +575,10 @@ activate(LV2_Handle instance)
 	handle_t *handle = (handle_t *)instance;
 
 	handle->stamp = 0;
+
+	handle->stat.device_width = 1;
+	handle->stat.device_height = 1;
+	handle->stat.device_name[0] = '\0';
 }
 
 typedef int (*osc_method_func_t)(const char *path, const char *fmt,
@@ -556,7 +635,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
 
-		osc_atom_event_unroll(&handle->oforge, obj, NULL, NULL, _message_cb, handle);
+		if(!props_advance(handle->props, forge, ev->time.frames, obj, &handle->ref))
+			osc_atom_event_unroll(&handle->oforge, obj, NULL, NULL, _message_cb, handle);
 	}
 
 	if(handle->ref)
@@ -570,7 +650,41 @@ cleanup(LV2_Handle instance)
 {
 	handle_t *handle = (handle_t *)instance;
 
+	props_free(handle->props);
 	free(handle);
+}
+
+static LV2_State_Status
+_state_save(LV2_Handle instance, LV2_State_Store_Function store,
+	LV2_State_Handle state, uint32_t flags,
+	const LV2_Feature *const *features)
+{
+	handle_t *handle = instance;
+
+	return props_save(handle->props, &handle->cforge.forge, store, state, flags, features);
+}
+
+static LV2_State_Status
+_state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
+	LV2_State_Handle state, uint32_t flags,
+	const LV2_Feature *const *features)
+{
+	handle_t *handle = instance;
+
+	return props_restore(handle->props, &handle->cforge.forge, retrieve, state, flags, features);
+}
+
+static const LV2_State_Interface state_iface = {
+	.save = _state_save,
+	.restore = _state_restore
+};
+
+static const void *
+extension_data(const char *uri)
+{
+	if(!strcmp(uri, LV2_STATE__interface))
+		return &state_iface;
+	return NULL;
 }
 
 const LV2_Descriptor tuio2_in = {
@@ -581,5 +695,5 @@ const LV2_Descriptor tuio2_in = {
 	.run						= run,
 	.deactivate			= NULL,
 	.cleanup				= cleanup,
-	.extension_data	= NULL
+	.extension_data	= extension_data
 };
