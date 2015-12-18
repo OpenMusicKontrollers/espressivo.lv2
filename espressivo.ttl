@@ -64,59 +64,131 @@ esp:mpe_zones
 	lv2:minimum 1 ;
 	lv2:maximum 8 .
 
-esp:mpe_range_1
+esp:mpe_master_range_1
 	a lv2:Parameter ;
-	rdfs:label "Bend Range Zone 1" ;
+	rdfs:label "Master Bend Range 1" ;
 	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
 
-esp:mpe_range_2
+esp:mpe_master_range_2
 	a lv2:Parameter ;
-	rdfs:label "Bend Range Zone 2" ;
+	rdfs:label "Master Bend Range 2" ;
 	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
 
-esp:mpe_range_3
+esp:mpe_master_range_3
 	a lv2:Parameter ;
-	rdfs:label "Bend Range Zone 3" ;
+	rdfs:label "Master Bend Range 3" ;
 	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
 
-esp:mpe_range_4
+esp:mpe_master_range_4
 	a lv2:Parameter ;
-	rdfs:label "Bend Range Zone 4" ;
+	rdfs:label "Master Bend Range 4" ;
 	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
 
-esp:mpe_range_5
+esp:mpe_master_range_5
 	a lv2:Parameter ;
-	rdfs:label "Bend Range Zone 5" ;
+	rdfs:label "Master Bend Range 5" ;
 	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
 
-esp:mpe_range_6
+esp:mpe_master_range_6
 	a lv2:Parameter ;
-	rdfs:label "Bend Range Zone 6" ;
+	rdfs:label "Master Bend Range 6" ;
 	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
 
-esp:mpe_range_7
+esp:mpe_master_range_7
 	a lv2:Parameter ;
-	rdfs:label "Bend Range Zone 7" ;
+	rdfs:label "Master Bend Range 7" ;
 	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
 
-esp:mpe_range_8
+esp:mpe_master_range_8
 	a lv2:Parameter ;
-	rdfs:label "Bend Range Zone 8" ;
+	rdfs:label "Master Bend Range 8" ;
 	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
+	lv2:minimum 1 ;
+	lv2:maximum 96 .
+
+esp:mpe_voice_range_1
+	a lv2:Parameter ;
+	rdfs:label "Voice Bend Range 1" ;
+	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
+	lv2:minimum 1 ;
+	lv2:maximum 96 .
+
+esp:mpe_voice_range_2
+	a lv2:Parameter ;
+	rdfs:label "Voice Bend Range 2" ;
+	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
+	lv2:minimum 1 ;
+	lv2:maximum 96 .
+
+esp:mpe_voice_range_3
+	a lv2:Parameter ;
+	rdfs:label "Voice Bend Range 3" ;
+	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
+	lv2:minimum 1 ;
+	lv2:maximum 96 .
+
+esp:mpe_voice_range_4
+	a lv2:Parameter ;
+	rdfs:label "Voice Bend Range 4" ;
+	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
+	lv2:minimum 1 ;
+	lv2:maximum 96 .
+
+esp:mpe_voice_range_5
+	a lv2:Parameter ;
+	rdfs:label "Voice Bend Range 5" ;
+	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
+	lv2:minimum 1 ;
+	lv2:maximum 96 .
+
+esp:mpe_voice_range_6
+	a lv2:Parameter ;
+	rdfs:label "Voice Bend Range 6" ;
+	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
+	lv2:minimum 1 ;
+	lv2:maximum 96 .
+
+esp:mpe_voice_range_7
+	a lv2:Parameter ;
+	rdfs:label "Voice Bend Range 7" ;
+	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
+	lv2:minimum 1 ;
+	lv2:maximum 96 .
+
+esp:mpe_voice_range_8
+	a lv2:Parameter ;
+	rdfs:label "Voice Bend Range 8" ;
+	rdfs:range atom:Int ;
+	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
 
@@ -155,25 +227,45 @@ esp:mpe_out
 	] ;
 
 	patch:writable esp:mpe_zones ;
-	patch:writable esp:mpe_range_1 ;
-	patch:writable esp:mpe_range_2 ;
-	patch:writable esp:mpe_range_3 ;
-	patch:writable esp:mpe_range_4 ;
-	patch:writable esp:mpe_range_5 ;
-	patch:writable esp:mpe_range_6 ;
-	patch:writable esp:mpe_range_7 ;
-	patch:writable esp:mpe_range_8 ;
+
+	patch:writable esp:mpe_master_range_1 ;
+	patch:writable esp:mpe_master_range_2 ;
+	patch:writable esp:mpe_master_range_3 ;
+	patch:writable esp:mpe_master_range_4 ;
+	patch:writable esp:mpe_master_range_5 ;
+	patch:writable esp:mpe_master_range_6 ;
+	patch:writable esp:mpe_master_range_7 ;
+	patch:writable esp:mpe_master_range_8 ;
+
+	patch:writable esp:mpe_voice_range_1 ;
+	patch:writable esp:mpe_voice_range_2 ;
+	patch:writable esp:mpe_voice_range_3 ;
+	patch:writable esp:mpe_voice_range_4 ;
+	patch:writable esp:mpe_voice_range_5 ;
+	patch:writable esp:mpe_voice_range_6 ;
+	patch:writable esp:mpe_voice_range_7 ;
+	patch:writable esp:mpe_voice_range_8 ;
 	
 	state:state [
 		esp:mpe_zones 1 ;
-		esp:mpe_range_1 48 ;	
-		esp:mpe_range_2 48 ;	
-		esp:mpe_range_3 48 ;	
-		esp:mpe_range_4 48 ;	
-		esp:mpe_range_5 48 ;	
-		esp:mpe_range_6 48 ;	
-		esp:mpe_range_7 48 ;	
-		esp:mpe_range_8 48 ;	
+
+		esp:mpe_master_range_1 2 ;	
+		esp:mpe_master_range_2 2 ;	
+		esp:mpe_master_range_3 2 ;	
+		esp:mpe_master_range_4 2 ;	
+		esp:mpe_master_range_5 2 ;	
+		esp:mpe_master_range_6 2 ;	
+		esp:mpe_master_range_7 2 ;	
+		esp:mpe_master_range_8 2 ;	
+
+		esp:mpe_voice_range_1 48 ;	
+		esp:mpe_voice_range_2 48 ;	
+		esp:mpe_voice_range_3 48 ;	
+		esp:mpe_voice_range_4 48 ;	
+		esp:mpe_voice_range_5 48 ;	
+		esp:mpe_voice_range_6 48 ;	
+		esp:mpe_voice_range_7 48 ;	
+		esp:mpe_voice_range_8 48 ;	
 	] .
 
 # TUIO2 Input Plugin

@@ -39,7 +39,8 @@ struct _zone_t {
 	uint8_t base;
 	uint8_t span;
 	uint8_t ref;
-	uint8_t range;
+	uint8_t master_range;
+	uint8_t voice_range;
 };
 
 struct _mpe_t {
@@ -63,7 +64,8 @@ struct _handle_t {
 	
 	struct {
 		int32_t zones;
-		int32_t range [ZONE_MAX];
+		int32_t master_range [ZONE_MAX];
+		int32_t voice_range [ZONE_MAX];
 	} stat;
 
 	mpe_t mpe;
@@ -78,51 +80,102 @@ static const props_def_t stat_mpe_zones = {
 	.mode = PROP_MODE_STATIC
 };
 
-static const props_def_t stat_mpe_range [ZONE_MAX] = {
+static const props_def_t stat_mpe_master_range [ZONE_MAX] = {
 	[0] = {
-		.property = ESPRESSIVO_URI"#mpe_range_1",
+		.property = ESPRESSIVO_URI"#mpe_master_range_1",
 		.access = LV2_PATCH__writable,
 		.type = LV2_ATOM__Int,
 		.mode = PROP_MODE_STATIC
 	},
 	[1] = {
-		.property = ESPRESSIVO_URI"#mpe_range_2",
+		.property = ESPRESSIVO_URI"#mpe_master_range_2",
 		.access = LV2_PATCH__writable,
 		.type = LV2_ATOM__Int,
 		.mode = PROP_MODE_STATIC
 	},
 	[2] = {
-		.property = ESPRESSIVO_URI"#mpe_range_3",
+		.property = ESPRESSIVO_URI"#mpe_master_range_3",
 		.access = LV2_PATCH__writable,
 		.type = LV2_ATOM__Int,
 		.mode = PROP_MODE_STATIC
 	},
 	[3] = {
-		.property = ESPRESSIVO_URI"#mpe_range_4",
+		.property = ESPRESSIVO_URI"#mpe_master_range_4",
 		.access = LV2_PATCH__writable,
 		.type = LV2_ATOM__Int,
 		.mode = PROP_MODE_STATIC
 	},
 	[4] = {
-		.property = ESPRESSIVO_URI"#mpe_range_5",
+		.property = ESPRESSIVO_URI"#mpe_master_range_5",
 		.access = LV2_PATCH__writable,
 		.type = LV2_ATOM__Int,
 		.mode = PROP_MODE_STATIC
 	},
 	[5] = {
-		.property = ESPRESSIVO_URI"#mpe_range_6",
+		.property = ESPRESSIVO_URI"#mpe_master_range_6",
 		.access = LV2_PATCH__writable,
 		.type = LV2_ATOM__Int,
 		.mode = PROP_MODE_STATIC
 	},
 	[6] = {
-		.property = ESPRESSIVO_URI"#mpe_range_7",
+		.property = ESPRESSIVO_URI"#mpe_master_range_7",
 		.access = LV2_PATCH__writable,
 		.type = LV2_ATOM__Int,
 		.mode = PROP_MODE_STATIC
 	},
 	[7] = {
-		.property = ESPRESSIVO_URI"#mpe_range_8",
+		.property = ESPRESSIVO_URI"#mpe_master_range_8",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+};
+
+static const props_def_t stat_mpe_voice_range [ZONE_MAX] = {
+	[0] = {
+		.property = ESPRESSIVO_URI"#mpe_voice_range_1",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[1] = {
+		.property = ESPRESSIVO_URI"#mpe_voice_range_2",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[2] = {
+		.property = ESPRESSIVO_URI"#mpe_voice_range_3",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[3] = {
+		.property = ESPRESSIVO_URI"#mpe_voice_range_4",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[4] = {
+		.property = ESPRESSIVO_URI"#mpe_voice_range_5",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[5] = {
+		.property = ESPRESSIVO_URI"#mpe_voice_range_6",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[6] = {
+		.property = ESPRESSIVO_URI"#mpe_voice_range_7",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[7] = {
+		.property = ESPRESSIVO_URI"#mpe_voice_range_8",
 		.access = LV2_PATCH__writable,
 		.type = LV2_ATOM__Int,
 		.mode = PROP_MODE_STATIC
@@ -151,7 +204,8 @@ mpe_populate(mpe_t *mpe, uint8_t n_zones)
 		zones[i].span = span;
 		if(rem > 0)
 			zones[i].span += 1;
-		zones[i].range = 48;
+		zones[i].master_range = 2;
+		zones[i].voice_range = 48;
 	}
 
 	for(uint8_t i=0; i<CHAN_MAX; i++)
@@ -193,7 +247,7 @@ mpe_range_1(mpe_t *mpe, uint8_t zone_idx)
 {
 	zone_idx %= mpe->n_zones; // wrap around if zone_idx > n_zones
 	zone_t *zone = &mpe->zones[zone_idx];
-	return 1.f / (float)zone->range;
+	return 1.f / (float)zone->voice_range;
 }
 
 static void
@@ -287,7 +341,7 @@ _master_range_update(handle_t *handle, int64_t frames, unsigned zone_idx)
 	const uint8_t dat [3] = {
 		LV2_MIDI_MSG_CONTROLLER | zone_ch,
 		LV2_MIDI_CTL_MSB_DATA_ENTRY,
-		2 //TODO make configurable
+		zone->master_range
 	};
 
 	fref = _midi_event(handle, frames, lsb, 3);
@@ -321,7 +375,7 @@ _voice_range_update(handle_t *handle, int64_t frames, unsigned zone_idx)
 	const uint8_t dat [3] = {
 		LV2_MIDI_MSG_CONTROLLER | voice_ch,
 		LV2_MIDI_CTL_MSB_DATA_ENTRY,
-		zone->range
+		zone->voice_range
 	};
 
 	fref = _midi_event(handle, frames, lsb, 3);
@@ -354,7 +408,7 @@ _full_update(handle_t *handle, int64_t frames)
 }
 
 static void
-_intercept(void *data, LV2_Atom_Forge *forge, int64_t frames,
+_intercept_zones(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	props_event_t event, props_impl_t *impl)
 {
 	handle_t *handle = data;
@@ -364,20 +418,62 @@ _intercept(void *data, LV2_Atom_Forge *forge, int64_t frames,
 		case PROP_EVENT_RESTORE:
 		case PROP_EVENT_SET:
 		{
-			if(impl->def == &stat_mpe_zones)
+			mpe_populate(&handle->mpe, handle->stat.zones);
+			if(handle->ref2)
+				handle->ref2 = _full_update(handle, frames);
+
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+
+static void
+_intercept_master(void *data, LV2_Atom_Forge *forge, int64_t frames,
+	props_event_t event, props_impl_t *impl)
+{
+	handle_t *handle = data;
+
+	switch(event)
+	{
+		case PROP_EVENT_RESTORE:
+		case PROP_EVENT_SET:
+		{
+			int zone_idx = impl->def - stat_mpe_master_range;
+			if(zone_idx < handle->stat.zones) // update active zones only
 			{
-				mpe_populate(&handle->mpe, handle->stat.zones);
-				if(handle->ref2)
-					handle->ref2 = _full_update(handle, frames);
+				handle->mpe.zones[zone_idx].master_range = handle->stat.master_range[zone_idx];
+				_master_range_update(handle, frames, zone_idx);
 			}
-			else
+
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+
+static void
+_intercept_voice(void *data, LV2_Atom_Forge *forge, int64_t frames,
+	props_event_t event, props_impl_t *impl)
+{
+	handle_t *handle = data;
+
+	switch(event)
+	{
+		case PROP_EVENT_RESTORE:
+		case PROP_EVENT_SET:
+		{
+			int zone_idx = impl->def - stat_mpe_voice_range;
+			if(zone_idx < handle->stat.zones) // update active zones only
 			{
-				int zone_idx = impl->def - stat_mpe_range;
-				if(zone_idx < handle->stat.zones) // update active zones only
-				{
-					handle->mpe.zones[zone_idx].range = handle->stat.range[zone_idx];
-					_voice_range_update(handle, frames, zone_idx);
-				}
+				handle->mpe.zones[zone_idx].voice_range = handle->stat.voice_range[zone_idx];
+				_voice_range_update(handle, frames, zone_idx);
 			}
 
 			break;
@@ -412,7 +508,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	espressivo_forge_init(&handle->cforge, handle->map);
 	ESPRESSIVO_DICT_INIT(handle->dict, handle->ref);
 
-	handle->props = props_new(1 + ZONE_MAX, descriptor->URI, handle->map, handle);
+	handle->props = props_new(1 + ZONE_MAX*2, descriptor->URI, handle->map, handle);
 	if(!handle->props)
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
@@ -420,9 +516,12 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	props_register(handle->props, &stat_mpe_zones, _intercept, &handle->stat.zones);
+	props_register(handle->props, &stat_mpe_zones, _intercept_zones, &handle->stat.zones);
 	for(unsigned z=0; z<ZONE_MAX; z++)
-		props_register(handle->props, &stat_mpe_range[z], _intercept, &handle->stat.range[z]);
+	{
+		props_register(handle->props, &stat_mpe_master_range[z], _intercept_master, &handle->stat.master_range[z]);
+		props_register(handle->props, &stat_mpe_voice_range[z], _intercept_voice, &handle->stat.voice_range[z]);
+	}
 
 	props_sort(handle->props);
 
