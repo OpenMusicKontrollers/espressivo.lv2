@@ -67,6 +67,9 @@ struct _handle_t {
 	
 	int64_t rel;
 
+	float bot;
+	float ran;
+
 	struct {
 		espressivo_dict_t dict [2][ESPRESSIVO_DICT_SIZE];
 		tuio2_ref_t ref [2][ESPRESSIVO_DICT_SIZE];
@@ -242,6 +245,10 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		{
 			handle->tuio2.width = dim >> 16;
 			handle->tuio2.height = dim & 0xffff;
+			
+			handle->ran = handle->tuio2.width / 3.f;
+			const int oct = 2;
+			handle->bot = oct*12.f - 0.5 - (handle->tuio2.width % 18 / 6.f);
 		}
 		
 		//ptr = osc_deforge_string(oforge, forge, ptr, &source);
@@ -380,11 +387,10 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 			cev.state = ESPRESSIVO_STATE_OFF;
 			cev.sid = sid;
 			cev.gid = src->gid;
-			cev.pid = src->tuid & 0xffff;
-			cev.x = src->pos.x;
-			cev.z = src->pos.z;
-			cev.X = src->pos.vx.f11;
-			cev.Z = src->pos.vz.f11;
+			cev.dim[0] = _midi2cps(src->pos.x * handle->ran + handle->bot);
+			cev.dim[1] = src->pos.z;
+			cev.dim[2] = src->pos.vx.f11;
+			cev.dim[3] = src->pos.vz.f11;
 
 			if(handle->ref)
 				handle->ref = _chim_event(handle, handle->rel, &cev);
@@ -396,11 +402,10 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	{
 		cev.sid = sid;
 		cev.gid = dst->gid;
-		cev.pid = dst->tuid & 0xffff;
-		cev.x = dst->pos.x;
-		cev.z = dst->pos.z;
-		cev.X = dst->pos.vx.f11;
-		cev.Z = dst->pos.vz.f11;
+		cev.dim[0] = _midi2cps(dst->pos.x * handle->ran + handle->bot);
+		cev.dim[1] = dst->pos.z;
+		cev.dim[2] = dst->pos.vx.f11;
+		cev.dim[3] = dst->pos.vz.f11;
 
 		// was it registered in previous step?
 		if(!espressivo_dict_ref(handle->tuio2.dict[!handle->tuio2.pos], sid))
@@ -418,11 +423,10 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		cev.state = ESPRESSIVO_STATE_IDLE;
 		cev.sid = 0;
 		cev.gid = 0;
-		cev.pid = 0;
-		cev.x = 0.f;
-		cev.z = 0.f;
-		cev.X = 0.f;
-		cev.Z = 0.f;
+		cev.dim[0] = 0.f;
+		cev.dim[1] = 0.f;
+		cev.dim[2] = 0.f;
+		cev.dim[3] = 0.f;
 
 		if(handle->ref)
 			handle->ref = _chim_event(handle, handle->rel, &cev);

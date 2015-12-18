@@ -38,6 +38,7 @@ struct _zone_t {
 	uint8_t base;
 	uint8_t span;
 	uint8_t ref;
+	uint8_t range;
 };
 
 struct _mpe_t {
@@ -55,26 +56,18 @@ struct _handle_t {
 
 	espressivo_dict_t dict [ESPRESSIVO_DICT_SIZE];
 	ref_t ref [ESPRESSIVO_DICT_SIZE];
-	float bot;
-	float ran;
-	float ran_1; // 1 / ran
-	int n;
-	int oct;
 
 	const LV2_Atom_Sequence *event_in;
-	const float *sensors;
-	const float *octave;
-	const float *zones;
 	LV2_Atom_Sequence *midi_out;
 
-	uint8_t zon;
 	mpe_t mpe;
 };
 
 static void
 mpe_populate(mpe_t *mpe, uint8_t n_zones)
 {
-	n_zones %= ZONE_MAX; // wrap around if n_zones > ZONE_MAX
+	assert(n_zones > 0);
+	n_zones %= ZONE_MAX + 1; // wrap around if n_zones > ZONE_MAX
 	int8_t rem = CHAN_MAX % n_zones;
 	const uint8_t span = (CHAN_MAX - rem) / n_zones - 1;
 	uint8_t ptr = 0;
@@ -92,6 +85,7 @@ mpe_populate(mpe_t *mpe, uint8_t n_zones)
 		zones[i].span = span;
 		if(rem > 0)
 			zones[i].span += 1;
+		zones[i].range = 48;
 	}
 
 	for(uint8_t i=0; i<CHAN_MAX; i++)
@@ -126,6 +120,14 @@ mpe_acquire(mpe_t *mpe, uint8_t zone_idx)
 	zone->ref = (pos + 1) % zone->span; // start next search from next channel
 
 	return ch;
+}
+
+static float
+mpe_range_1(mpe_t *mpe, uint8_t zone_idx)
+{
+	zone_idx %= mpe->n_zones; // wrap around if zone_idx > n_zones
+	zone_t *zone = &mpe->zones[zone_idx];
+	return 1.f / (float)zone->range;
 }
 
 static void
@@ -184,15 +186,6 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 		case 1:
 			handle->midi_out = (LV2_Atom_Sequence *)data;
 			break;
-		case 2:
-			handle->sensors = (const float *)data;
-			break;
-		case 3:
-			handle->octave = (const float *)data;
-			break;
-		case 4:
-			handle->zones = (const float *)data;
-			break;
 		default:
 			break;
 	}
@@ -203,7 +196,8 @@ activate(LV2_Handle instance)
 {
 	handle_t *handle = (handle_t *)instance;
 
-	handle->zon = UINT8_MAX;
+	const uint8_t n_zones = 1;
+	mpe_populate(&handle->mpe, n_zones);
 }
 
 static inline LV2_Atom_Forge_Ref
@@ -231,8 +225,8 @@ _midi_on(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
 		return 1;
 
 	LV2_Atom_Forge_Ref fref;	
-	
-	const float val = handle->bot + cev->x * handle->ran;
+
+	const float val = _cps2midi(cev->dim[0]);
 
 	const uint8_t chan = mpe_acquire(&handle->mpe, cev->gid);
 	const uint8_t key = floor(val);
@@ -285,13 +279,13 @@ _midi_set(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
 
 	LV2_Atom_Forge_Ref fref;
 
-	const float val = handle->bot + cev->x * handle->ran;
+	const float val = _cps2midi(cev->dim[0]);
 	
 	const uint8_t chan = ref->chan;
 	const uint8_t key = ref->key;
 
 	// bender
-	const uint16_t bnd = (val-key) * handle->ran_1 * 0x2000 + 0x1fff;
+	const uint16_t bnd = (val-key) * mpe_range_1(&handle->mpe, cev->gid) * 0x2000 + 0x1fff;
 	const uint8_t bnd_msb = bnd >> 7;
 	const uint8_t bnd_lsb = bnd & 0x7f;
 
@@ -303,7 +297,7 @@ _midi_set(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
 	fref = _midi_event(handle, frames, bend, 3);
 
 	// pressure
-	const uint16_t z = cev->z * 0x3fff;
+	const uint16_t z = cev->dim[1] * 0x3fff;
 	const uint8_t z_msb = z >> 7;
 	const uint8_t z_lsb = z & 0x7f;
 
@@ -325,7 +319,7 @@ _midi_set(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
 		fref = _midi_event(handle, frames, pressure_msb, 3);
 
 	// timbre
-	const uint16_t vx = (cev->X * 0x2000) + 0x1fff; //TODO limit
+	const uint16_t vx = (cev->dim[2] * 0x2000) + 0x1fff; //TODO limit
 	const uint8_t vx_msb = vx >> 7;
 	const uint8_t vx_lsb = vx & 0x7f;
 
@@ -347,7 +341,7 @@ _midi_set(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
 		fref = _midi_event(handle, frames, timbre_msb, 3);
 
 	// timbre
-	const uint16_t vz = (cev->Z * 0x2000) + 0x1fff; //TODO limit
+	const uint16_t vz = (cev->dim[3] * 0x2000) + 0x1fff; //TODO limit
 	const uint8_t vz_msb = vz >> 7;
 	const uint8_t vz_lsb = vz & 0x7f;
 
@@ -464,7 +458,7 @@ _midi_init(handle_t *handle, int64_t frames)
 			const uint8_t dat [3] = {
 				LV2_MIDI_MSG_CONTROLLER | voice_ch,
 				LV2_MIDI_CTL_MSB_DATA_ENTRY,
-				ceil(handle->ran)
+				zone->range
 			};
 
 			if(fref)
@@ -484,10 +478,6 @@ run(LV2_Handle instance, uint32_t nsamples)
 {
 	handle_t *handle = (handle_t *)instance;
 
-	int n = floor(*handle->sensors);
-	int oct = floor(*handle->octave);
-	uint8_t zones = floor(*handle->zones);
-
 	// prepare midi atom forge
 	const uint32_t capacity = handle->midi_out->atom.size;
 	LV2_Atom_Forge *forge = &handle->cforge.forge;
@@ -496,29 +486,6 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_Atom_Forge_Ref ref;
 	ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
-	if(n != handle->n)
-	{
-		handle->n = n;
-		handle->ran = (float)n / 3.f;
-		handle->ran_1 = 1.f / ceil(handle->ran); // MPE only allows integer ranges, thus the ceil
-
-		_midi_init(handle, 0);
-	}
-
-	if(oct != handle->oct)
-	{
-		handle->oct = oct;
-		handle->bot = oct*12.f - 0.5 - (n % 18 / 6.f);
-	}
-
-	if(zones != handle->zon)
-	{
-		handle->zon = zones;
-
-		mpe_populate(&handle->mpe, handle->zon);
-		_midi_init(handle, 0);
-	}
-	
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
 		if(espressivo_event_check_type(&handle->cforge, &ev->body) && ref)

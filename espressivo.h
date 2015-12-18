@@ -18,6 +18,8 @@
 #ifndef _ESPRESSIVO_LV2_H
 #define _ESPRESSIVO_LV2_H
 
+#include <math.h>
+
 #include <lv2/lv2plug.in/ns/lv2core/lv2.h>
 #include <lv2/lv2plug.in/ns/ext/atom/atom.h>
 #include <lv2/lv2plug.in/ns/ext/atom/forge.h>
@@ -76,12 +78,7 @@ struct _espressivo_event_t {
 	espressivo_state_t state;
 	uint32_t sid;
 	uint32_t gid;
-	uint32_t pid;
-	float x;
-	float z;
-	float X;
-	float Z;
-	float m; //TODO
+	float dim [4];
 };
 
 struct _espressivo_obj_t {
@@ -94,11 +91,10 @@ struct _espressivo_pack_t {
 
 	LV2_Atom_Int sid _ATOM_ALIGNED;
 	LV2_Atom_Int gid _ATOM_ALIGNED;
-	LV2_Atom_Int pid _ATOM_ALIGNED;
-	LV2_Atom_Float x _ATOM_ALIGNED;
-	LV2_Atom_Float z _ATOM_ALIGNED;
-	LV2_Atom_Float X _ATOM_ALIGNED;
-	LV2_Atom_Float Z _ATOM_ALIGNED;
+	LV2_Atom_Float dim0 _ATOM_ALIGNED;
+	LV2_Atom_Float dim1 _ATOM_ALIGNED;
+	LV2_Atom_Float dim2 _ATOM_ALIGNED;
+	LV2_Atom_Float dim3 _ATOM_ALIGNED;
 } _ATOM_ALIGNED;
 
 struct _espressivo_forge_t {
@@ -118,6 +114,18 @@ struct _espressivo_dict_t {
 	uint32_t sid;
 	void *ref;
 };
+
+static inline float
+_midi2cps(float pitch)
+{
+	return exp2f( (pitch - 69.f) / 12.f) * 440.f;
+}
+
+static inline float
+_cps2midi(float cps)
+{
+	return log2f(cps / 440.f) * 12.f + 69.f;
+}
 
 static inline void
 espressivo_forge_init(espressivo_forge_t *cforge, LV2_URID_Map *map)
@@ -174,7 +182,7 @@ espressivo_event_forge(espressivo_forge_t *cforge, const espressivo_event_t *ev)
 		},
 		.sid = {
 			.atom.size = sizeof(int32_t),
-			.atom.type = forge->Int,
+			.atom.type = forge->Float,
 			.body = ev->sid
 		},
 		.gid = {
@@ -182,30 +190,25 @@ espressivo_event_forge(espressivo_forge_t *cforge, const espressivo_event_t *ev)
 			.atom.type = forge->Int,
 			.body = ev->gid
 		},
-		.pid = {
-			.atom.size = sizeof(int32_t),
-			.atom.type = forge->Int,
-			.body = ev->pid
-		},
-		.x = {
+		.dim0 = {
 			.atom.size = sizeof(float),
 			.atom.type = forge->Float,
-			.body = ev->x
+			.body = ev->dim[0]
 		},
-		.z = {
+		.dim1 = {
 			.atom.size = sizeof(float),
 			.atom.type = forge->Float,
-			.body = ev->z
+			.body = ev->dim[1]
 		},
-		.X = {
+		.dim2 = {
 			.atom.size = sizeof(float),
 			.atom.type = forge->Float,
-			.body = ev->X
+			.body = ev->dim[2]
 		},
-		.Z = {
+		.dim3 = {
 			.atom.size = sizeof(float),
 			.atom.type = forge->Float,
-			.body = ev->Z
+			.body = ev->dim[3]
 		}
 	};
 
@@ -249,11 +252,10 @@ espressivo_event_deforge(const espressivo_forge_t *cforge, const LV2_Atom *atom,
 
 	ev->sid = pack->sid.body;
 	ev->gid = pack->gid.body;
-	ev->pid = pack->pid.body;
-	ev->x = pack->x.body;
-	ev->z = pack->z.body;
-	ev->X = pack->X.body;
-	ev->Z = pack->Z.body;
+	ev->dim[0] = pack->dim0.body;
+	ev->dim[1] = pack->dim1.body;
+	ev->dim[2] = pack->dim2.body;
+	ev->dim[3] = pack->dim3.body;
 }
 
 #if !defined(ESPRESSIVO_DICT_SIZE)
