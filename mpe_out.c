@@ -20,6 +20,7 @@
 #include <math.h>
 
 #include <espressivo.h>
+#include <props.h>
 
 #define CHAN_MAX 16
 #define ZONE_MAX (CHAN_MAX / 2)
@@ -59,8 +60,73 @@ struct _handle_t {
 
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *midi_out;
+	
+	struct {
+		int32_t zones;
+		int32_t range [ZONE_MAX];
+	} stat;
 
 	mpe_t mpe;
+	props_t *props;
+	LV2_Atom_Forge_Ref ref2;
+};
+
+static const props_def_t stat_mpe_zones = {
+	.property = ESPRESSIVO_URI"#mpe_zones",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC
+};
+
+static const props_def_t stat_mpe_range [ZONE_MAX] = {
+	[0] = {
+		.property = ESPRESSIVO_URI"#mpe_range_1",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[1] = {
+		.property = ESPRESSIVO_URI"#mpe_range_2",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[2] = {
+		.property = ESPRESSIVO_URI"#mpe_range_3",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[3] = {
+		.property = ESPRESSIVO_URI"#mpe_range_4",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[4] = {
+		.property = ESPRESSIVO_URI"#mpe_range_5",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[5] = {
+		.property = ESPRESSIVO_URI"#mpe_range_6",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[6] = {
+		.property = ESPRESSIVO_URI"#mpe_range_7",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[7] = {
+		.property = ESPRESSIVO_URI"#mpe_range_8",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
 };
 
 static void
@@ -147,6 +213,182 @@ mpe_release(mpe_t *mpe, uint8_t zone_idx, uint8_t ch)
 	}
 }
 
+static inline LV2_Atom_Forge_Ref
+_midi_event(handle_t *handle, int64_t frames, const uint8_t *m, size_t len)
+{
+	LV2_Atom_Forge *forge = &handle->cforge.forge;
+	LV2_Atom_Forge_Ref ref;
+		
+	ref = lv2_atom_forge_frame_time(forge, frames);
+	if(ref)
+		ref = lv2_atom_forge_atom(forge, len, handle->uris.midi_MidiEvent);
+	if(ref)
+		ref = lv2_atom_forge_raw(forge, m, len);
+	if(ref)
+		lv2_atom_forge_pad(forge, len);
+
+	return ref;
+}
+
+static inline LV2_Atom_Forge_Ref
+_zone_span_update(handle_t *handle, int64_t frames, unsigned zone_idx)
+{
+	LV2_Atom_Forge_Ref fref;
+	mpe_t *mpe = &handle->mpe;
+	zone_t *zone = &mpe->zones[zone_idx];
+	const uint8_t zone_ch = zone->base;
+
+	const uint8_t lsb [3] = {
+		LV2_MIDI_MSG_CONTROLLER | zone_ch,
+		LV2_MIDI_CTL_RPN_LSB,
+		0x6 // zone
+	};
+
+	const uint8_t msb [3] = {
+		LV2_MIDI_MSG_CONTROLLER | zone_ch,
+		LV2_MIDI_CTL_RPN_MSB,
+		0x0
+	};
+
+	const uint8_t dat [3] = {
+		LV2_MIDI_MSG_CONTROLLER | zone_ch,
+		LV2_MIDI_CTL_MSB_DATA_ENTRY,
+		zone->span
+	};
+
+	fref = _midi_event(handle, frames, lsb, 3);
+	if(fref)
+		fref = _midi_event(handle, frames, msb, 3);
+	if(fref)
+		fref = _midi_event(handle, frames, dat, 3);
+
+	return fref;
+}
+
+static inline LV2_Atom_Forge_Ref
+_master_range_update(handle_t *handle, int64_t frames, unsigned zone_idx)
+{
+	LV2_Atom_Forge_Ref fref;
+	mpe_t *mpe = &handle->mpe;
+	zone_t *zone = &mpe->zones[zone_idx];
+	const uint8_t zone_ch = zone->base;
+
+	const uint8_t lsb [3] = {
+		LV2_MIDI_MSG_CONTROLLER | zone_ch,
+		LV2_MIDI_CTL_RPN_LSB,
+		0x0, // bend range
+	};
+
+	const uint8_t msb [3] = {
+		LV2_MIDI_MSG_CONTROLLER | zone_ch,
+		LV2_MIDI_CTL_RPN_MSB,
+		0x0,
+	};
+	const uint8_t dat [3] = {
+		LV2_MIDI_MSG_CONTROLLER | zone_ch,
+		LV2_MIDI_CTL_MSB_DATA_ENTRY,
+		2 //TODO make configurable
+	};
+
+	fref = _midi_event(handle, frames, lsb, 3);
+	if(fref)
+		fref = _midi_event(handle, frames, msb, 3);
+	if(fref)
+		fref = _midi_event(handle, frames, dat, 3);
+
+	return fref;
+}
+
+static inline LV2_Atom_Forge_Ref
+_voice_range_update(handle_t *handle, int64_t frames, unsigned zone_idx)
+{
+	LV2_Atom_Forge_Ref fref;
+	mpe_t *mpe = &handle->mpe;
+	zone_t *zone = &mpe->zones[zone_idx];
+	const uint8_t voice_ch = zone->base + 1;
+
+	const uint8_t lsb [3] = {
+		LV2_MIDI_MSG_CONTROLLER | voice_ch,
+		LV2_MIDI_CTL_RPN_LSB,
+		0x0, // bend range
+	};
+
+	const uint8_t msb [3] = {
+		LV2_MIDI_MSG_CONTROLLER | voice_ch,
+		LV2_MIDI_CTL_RPN_MSB,
+		0x0,
+	};
+	const uint8_t dat [3] = {
+		LV2_MIDI_MSG_CONTROLLER | voice_ch,
+		LV2_MIDI_CTL_MSB_DATA_ENTRY,
+		zone->range
+	};
+
+	fref = _midi_event(handle, frames, lsb, 3);
+	if(fref)
+		fref = _midi_event(handle, frames, msb, 3);
+	if(fref)
+		fref = _midi_event(handle, frames, dat, 3);
+
+	return fref;
+}
+
+static inline LV2_Atom_Forge_Ref
+_full_update(handle_t *handle, int64_t frames)
+{
+	LV2_Atom_Forge_Ref fref = 1;
+	mpe_t *mpe = &handle->mpe;
+
+	for(unsigned z=0; z<mpe->n_zones; z++)
+	{
+		if(fref)
+			fref = _zone_span_update(handle, frames, z);
+		if(fref)
+			fref = _master_range_update(handle, frames, z);
+		if(fref)
+			fref = _voice_range_update(handle, frames, z);
+
+	}
+
+	return fref;
+}
+
+static void
+_intercept(void *data, LV2_Atom_Forge *forge, int64_t frames,
+	props_event_t event, props_impl_t *impl)
+{
+	handle_t *handle = data;
+
+	switch(event)
+	{
+		case PROP_EVENT_RESTORE:
+		case PROP_EVENT_SET:
+		{
+			if(impl->def == &stat_mpe_zones)
+			{
+				mpe_populate(&handle->mpe, handle->stat.zones);
+				if(handle->ref2)
+					handle->ref2 = _full_update(handle, frames);
+			}
+			else
+			{
+				int zone_idx = impl->def - stat_mpe_range;
+				if(zone_idx < handle->stat.zones) // update active zones only
+				{
+					handle->mpe.zones[zone_idx].range = handle->stat.range[zone_idx];
+					_voice_range_update(handle, frames, zone_idx);
+				}
+			}
+
+			break;
+		}
+		default:
+		{
+			break;
+		}
+	}
+}
+
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
@@ -170,13 +412,27 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	espressivo_forge_init(&handle->cforge, handle->map);
 	ESPRESSIVO_DICT_INIT(handle->dict, handle->ref);
 
+	handle->props = props_new(1 + ZONE_MAX, descriptor->URI, handle->map, handle);
+	if(!handle->props)
+	{
+		fprintf(stderr, "failed to allocate property structure\n");
+		free(handle);
+		return NULL;
+	}
+
+	props_register(handle->props, &stat_mpe_zones, _intercept, &handle->stat.zones);
+	for(unsigned z=0; z<ZONE_MAX; z++)
+		props_register(handle->props, &stat_mpe_range[z], _intercept, &handle->stat.range[z]);
+
+	props_sort(handle->props);
+
 	return handle;
 }
 
 static void
 connect_port(LV2_Handle instance, uint32_t port, void *data)
 {
-	handle_t *handle = (handle_t *)instance;
+	handle_t *handle = instance;
 
 	switch(port)
 	{
@@ -194,27 +450,10 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 static void
 activate(LV2_Handle instance)
 {
-	handle_t *handle = (handle_t *)instance;
+	handle_t *handle = instance;
 
 	const uint8_t n_zones = 1;
 	mpe_populate(&handle->mpe, n_zones);
-}
-
-static inline LV2_Atom_Forge_Ref
-_midi_event(handle_t *handle, int64_t frames, const uint8_t *m, size_t len)
-{
-	LV2_Atom_Forge *forge = &handle->cforge.forge;
-	LV2_Atom_Forge_Ref ref;
-		
-	ref = lv2_atom_forge_frame_time(forge, frames);
-	if(ref)
-		ref = lv2_atom_forge_atom(forge, len, handle->uris.midi_MidiEvent);
-	if(ref)
-		ref = lv2_atom_forge_raw(forge, m, len);
-	if(ref)
-		lv2_atom_forge_pad(forge, len);
-
-	return ref;
 }
 
 static inline LV2_Atom_Forge_Ref
@@ -375,120 +614,24 @@ _midi_idle(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
 	return fref;
 }
 
-static inline LV2_Atom_Forge_Ref
-_midi_init(handle_t *handle, int64_t frames)
-{
-	LV2_Atom_Forge_Ref fref = 1;
-	mpe_t *mpe = &handle->mpe;
-
-	for(unsigned z=0; z<mpe->n_zones; z++)
-	{
-		zone_t *zone = &mpe->zones[z];
-		const uint8_t zone_ch = zone->base;
-		const uint8_t voice_ch = zone->base + 1;
-
-		// define zone span
-		{
-			const uint8_t lsb [3] = {
-				LV2_MIDI_MSG_CONTROLLER | zone_ch,
-				LV2_MIDI_CTL_RPN_LSB,
-				0x6 // zone
-			};
-
-			const uint8_t msb [3] = {
-				LV2_MIDI_MSG_CONTROLLER | zone_ch,
-				LV2_MIDI_CTL_RPN_MSB,
-				0x0
-			};
-
-			const uint8_t dat [3] = {
-				LV2_MIDI_MSG_CONTROLLER | zone_ch,
-				LV2_MIDI_CTL_MSB_DATA_ENTRY,
-				zone->span
-			};
-
-			if(fref)
-				fref = _midi_event(handle, frames, lsb, 3);
-			if(fref)
-				fref = _midi_event(handle, frames, msb, 3);
-			if(fref)
-				fref = _midi_event(handle, frames, dat, 3);
-		}
-
-		// define zone bend range
-		{
-			const uint8_t lsb [3] = {
-				LV2_MIDI_MSG_CONTROLLER | zone_ch,
-				LV2_MIDI_CTL_RPN_LSB,
-				0x0, // bend range
-			};
-
-			const uint8_t msb [3] = {
-				LV2_MIDI_MSG_CONTROLLER | zone_ch,
-				LV2_MIDI_CTL_RPN_MSB,
-				0x0,
-			};
-			const uint8_t dat [3] = {
-				LV2_MIDI_MSG_CONTROLLER | zone_ch,
-				LV2_MIDI_CTL_MSB_DATA_ENTRY,
-				2 //TODO make configurable
-			};
-
-			if(fref)
-				fref = _midi_event(handle, frames, lsb, 3);
-			if(fref)
-				fref = _midi_event(handle, frames, msb, 3);
-			if(fref)
-				fref = _midi_event(handle, frames, dat, 3);
-		}
-
-		// define voice bend range
-		{
-			const uint8_t lsb [3] = {
-				LV2_MIDI_MSG_CONTROLLER | voice_ch,
-				LV2_MIDI_CTL_RPN_LSB,
-				0x0, // bend range
-			};
-
-			const uint8_t msb [3] = {
-				LV2_MIDI_MSG_CONTROLLER | voice_ch,
-				LV2_MIDI_CTL_RPN_MSB,
-				0x0,
-			};
-			const uint8_t dat [3] = {
-				LV2_MIDI_MSG_CONTROLLER | voice_ch,
-				LV2_MIDI_CTL_MSB_DATA_ENTRY,
-				zone->range
-			};
-
-			if(fref)
-				fref = _midi_event(handle, frames, lsb, 3);
-			if(fref)
-				fref = _midi_event(handle, frames, msb, 3);
-			if(fref)
-				fref = _midi_event(handle, frames, dat, 3);
-		}
-	}
-
-	return fref;
-}
-
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
-	handle_t *handle = (handle_t *)instance;
+	handle_t *handle = instance;
 
 	// prepare midi atom forge
 	const uint32_t capacity = handle->midi_out->atom.size;
 	LV2_Atom_Forge *forge = &handle->cforge.forge;
 	lv2_atom_forge_set_buffer(forge, (uint8_t *)handle->midi_out, capacity);
 	LV2_Atom_Forge_Frame frame;
-	LV2_Atom_Forge_Ref ref;
-	ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
+	handle->ref2 = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
-		if(espressivo_event_check_type(&handle->cforge, &ev->body) && ref)
+		if(!handle->ref2)
+			break;
+
+		if(espressivo_event_check_type(&handle->cforge, &ev->body))
 		{
 			const int64_t frames = ev->time.frames;
 			espressivo_event_t cev;
@@ -498,23 +641,25 @@ run(LV2_Handle instance, uint32_t nsamples)
 			switch(cev.state)
 			{
 				case ESPRESSIVO_STATE_ON:
-					ref = _midi_on(handle, frames, &cev);
+					handle->ref2 = _midi_on(handle, frames, &cev);
 					// fall-through
 				case ESPRESSIVO_STATE_SET:
-					if(ref)
-						ref = _midi_set(handle, frames, &cev);
+					if(handle->ref2)
+						handle->ref2 = _midi_set(handle, frames, &cev);
 					break;
 				case ESPRESSIVO_STATE_OFF:
-					ref = _midi_off(handle, frames, &cev);
+					handle->ref2 = _midi_off(handle, frames, &cev);
 					break;
 				case ESPRESSIVO_STATE_IDLE:
-					ref = _midi_idle(handle, frames, &cev);
+					handle->ref2 = _midi_idle(handle, frames, &cev);
 					break;
 			}
 		}
+		else
+			props_advance(handle->props, forge, ev->time.frames, (const LV2_Atom_Object *)&ev->body, &handle->ref2);
 	}
 
-	if(ref)
+	if(handle->ref2)
 		lv2_atom_forge_pop(forge, &frame);
 	else
 		lv2_atom_sequence_clear(handle->midi_out);
@@ -523,9 +668,43 @@ run(LV2_Handle instance, uint32_t nsamples)
 static void
 cleanup(LV2_Handle instance)
 {
-	handle_t *handle = (handle_t *)instance;
+	handle_t *handle = instance;
 
+	props_free(handle->props);
 	free(handle);
+}
+
+static LV2_State_Status
+_state_save(LV2_Handle instance, LV2_State_Store_Function store,
+	LV2_State_Handle state, uint32_t flags,
+	const LV2_Feature *const *features)
+{
+	handle_t *handle = instance;
+
+	return props_save(handle->props, &handle->cforge.forge, store, state, flags, features);
+}
+
+static LV2_State_Status
+_state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
+	LV2_State_Handle state, uint32_t flags,
+	const LV2_Feature *const *features)
+{
+	handle_t *handle = instance;
+
+	return props_restore(handle->props, &handle->cforge.forge, retrieve, state, flags, features);
+}
+
+LV2_State_Interface state_iface = {
+	.save = _state_save,
+	.restore = _state_restore
+};
+
+static const void *
+extension_data(const char *uri)
+{
+	if(!strcmp(uri, LV2_STATE__interface))
+		return &state_iface;
+	return NULL;
 }
 
 const LV2_Descriptor mpe_out = {
@@ -536,5 +715,5 @@ const LV2_Descriptor mpe_out = {
 	.run						= run,
 	.deactivate			= NULL,
 	.cleanup				= cleanup,
-	.extension_data	= NULL
+	.extension_data	= extension_data
 };

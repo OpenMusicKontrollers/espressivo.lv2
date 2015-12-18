@@ -127,8 +127,8 @@ esp:mpe_out
 	doap:name "Espressivo MPE Out" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, state:loadDefaultState ;
-	lv2:requiredFeature urid:map ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable ;
+	lv2:requiredFeature urid:map, state:loadDefaultState ;
 
 	lv2:port [
 	# input event port
@@ -136,6 +136,7 @@ esp:mpe_out
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
 		atom:supports atom:Object ;
+		atom:supports patch:Message ;
 		lv2:index 0 ;
 		lv2:symbol "event_in" ;
 		lv2:name "Event Input" ;
@@ -146,6 +147,7 @@ esp:mpe_out
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
 		atom:supports midi:MidiEvent ;
+		atom:supports patch:Message ;
 		lv2:index 1 ;
 		lv2:symbol "midi_out" ;
 		lv2:name "MIDI Output" ;
