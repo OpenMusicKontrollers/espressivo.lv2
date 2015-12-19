@@ -515,14 +515,24 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	props_register(handle->props, &stat_mpe_zones, _intercept_zones, &handle->stat.zones);
-	for(unsigned z=0; z<ZONE_MAX; z++)
+	LV2_URID urid = props_register(handle->props, &stat_mpe_zones, _intercept_zones, &handle->stat.zones);
+	for(unsigned z=0; (z<ZONE_MAX) && urid; z++)
 	{
-		props_register(handle->props, &stat_mpe_master_range[z], _intercept_master, &handle->stat.master_range[z]);
-		props_register(handle->props, &stat_mpe_voice_range[z], _intercept_voice, &handle->stat.voice_range[z]);
+		urid = props_register(handle->props, &stat_mpe_master_range[z], _intercept_master, &handle->stat.master_range[z]);
+		if(urid)
+			urid = props_register(handle->props, &stat_mpe_voice_range[z], _intercept_voice, &handle->stat.voice_range[z]);
 	}
 
-	props_sort(handle->props);
+	if(urid)
+	{
+		props_sort(handle->props);
+	}
+	else
+	{
+		props_free(handle->props);
+		free(handle);
+		return NULL;
+	}
 
 	return handle;
 }

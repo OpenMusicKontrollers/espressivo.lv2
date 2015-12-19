@@ -98,6 +98,13 @@ struct _handle_t {
 		int32_t octave;
 		int32_t sensors_per_semitone;
 	} stat;
+
+	struct {
+		LV2_URID device_width;
+		LV2_URID device_height;
+		LV2_URID device_name;
+	} urid;
+
 	props_t *props;
 };
 
@@ -293,9 +300,16 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 			handle->tuio2.height = dim & 0xffff;
 
 			if(handle->stat.device_width != handle->tuio2.width)
-				handle->stat.device_width = handle->tuio2.width; //TODO update
+			{
+				handle->stat.device_width = handle->tuio2.width;
+				props_set(handle->props, forge, handle->rel, handle->urid.device_width);
+			}
+
 			if(handle->stat.device_height != handle->tuio2.height)
-				handle->stat.device_height = handle->tuio2.height; //TODO update
+			{
+				handle->stat.device_height = handle->tuio2.height;
+				props_set(handle->props, forge, handle->rel, handle->urid.device_height);
+			}
 			
 			const int n = handle->tuio2.width;
 			const float oct = handle->stat.octave;
@@ -308,7 +322,8 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		ptr = osc_deforge_string(oforge, forge, ptr, &source);
 		if(ptr && strcmp(handle->stat.device_name, source))
 		{
-			strcpy(handle->stat.device_name, source); //TODO update
+			strcpy(handle->stat.device_name, source);
+			props_set(handle->props, forge, handle->rel, handle->urid.device_name);
 		}
 
 		handle->tuio2.pos ^= 1; // toggle pos
@@ -539,14 +554,24 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	props_register(handle->props, &stat_tuio2_deviceWidth, NULL, &handle->stat.device_width);
-	props_register(handle->props, &stat_tuio2_deviceHeight, NULL, &handle->stat.device_height);
-	props_register(handle->props, &stat_tuio2_deviceName, NULL, &handle->stat.device_name);
+	if(  (handle->urid.device_width = props_register(handle->props, &stat_tuio2_deviceWidth, NULL,
+				&handle->stat.device_width))
+		&& (handle->urid.device_height = props_register(handle->props, &stat_tuio2_deviceHeight, NULL,
+				&handle->stat.device_height))
+		&& (handle->urid.device_name = props_register(handle->props, &stat_tuio2_deviceName, NULL,
+				&handle->stat.device_name))
 
-	props_register(handle->props, &stat_tuio2_octave, NULL, &handle->stat.octave);
-	props_register(handle->props, &stat_tuio2_sensorsPerSemitone, NULL, &handle->stat.sensors_per_semitone);
-
-	props_sort(handle->props);
+		&& props_register(handle->props, &stat_tuio2_octave, NULL, &handle->stat.octave)
+		&& props_register(handle->props, &stat_tuio2_sensorsPerSemitone, NULL, &handle->stat.sensors_per_semitone) )
+	{
+		props_sort(handle->props);
+	}
+	else
+	{
+		props_free(handle->props);
+		free(handle);
+		return NULL;
+	}
 
 	return handle;
 }
