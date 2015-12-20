@@ -554,15 +554,15 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(  (handle->urid.device_width = props_register(handle->props, &stat_tuio2_deviceWidth, NULL,
+	if(  (handle->urid.device_width = props_register(handle->props, &stat_tuio2_deviceWidth, PROP_EVENT_NONE, NULL,
 				&handle->stat.device_width))
-		&& (handle->urid.device_height = props_register(handle->props, &stat_tuio2_deviceHeight, NULL,
+		&& (handle->urid.device_height = props_register(handle->props, &stat_tuio2_deviceHeight, PROP_EVENT_NONE, NULL,
 				&handle->stat.device_height))
-		&& (handle->urid.device_name = props_register(handle->props, &stat_tuio2_deviceName, NULL,
+		&& (handle->urid.device_name = props_register(handle->props, &stat_tuio2_deviceName, PROP_EVENT_NONE, NULL,
 				&handle->stat.device_name))
 
-		&& props_register(handle->props, &stat_tuio2_octave, NULL, &handle->stat.octave)
-		&& props_register(handle->props, &stat_tuio2_sensorsPerSemitone, NULL, &handle->stat.sensors_per_semitone) )
+		&& props_register(handle->props, &stat_tuio2_octave, PROP_EVENT_NONE, NULL, &handle->stat.octave)
+		&& props_register(handle->props, &stat_tuio2_sensorsPerSemitone, PROP_EVENT_NONE, NULL, &handle->stat.sensors_per_semitone) )
 	{
 		props_sort(handle->props);
 	}

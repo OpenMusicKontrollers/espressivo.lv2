@@ -412,22 +412,9 @@ _intercept_zones(void *data, LV2_Atom_Forge *forge, int64_t frames,
 {
 	handle_t *handle = data;
 
-	switch(event)
-	{
-		case PROP_EVENT_RESTORE:
-		case PROP_EVENT_SET:
-		{
-			mpe_populate(&handle->mpe, handle->stat.zones);
-			if(handle->ref2)
-				handle->ref2 = _full_update(handle, frames);
-
-			break;
-		}
-		default:
-		{
-			break;
-		}
-	}
+	mpe_populate(&handle->mpe, handle->stat.zones);
+	if(handle->ref2)
+		handle->ref2 = _full_update(handle, frames);
 }
 
 static void
@@ -436,24 +423,11 @@ _intercept_master(void *data, LV2_Atom_Forge *forge, int64_t frames,
 {
 	handle_t *handle = data;
 
-	switch(event)
+	int zone_idx = impl->def - stat_mpe_master_range;
+	if(zone_idx < handle->stat.zones) // update active zones only
 	{
-		case PROP_EVENT_RESTORE:
-		case PROP_EVENT_SET:
-		{
-			int zone_idx = impl->def - stat_mpe_master_range;
-			if(zone_idx < handle->stat.zones) // update active zones only
-			{
-				handle->mpe.zones[zone_idx].master_range = handle->stat.master_range[zone_idx];
-				_master_range_update(handle, frames, zone_idx);
-			}
-
-			break;
-		}
-		default:
-		{
-			break;
-		}
+		handle->mpe.zones[zone_idx].master_range = handle->stat.master_range[zone_idx];
+		_master_range_update(handle, frames, zone_idx);
 	}
 }
 
@@ -463,24 +437,11 @@ _intercept_voice(void *data, LV2_Atom_Forge *forge, int64_t frames,
 {
 	handle_t *handle = data;
 
-	switch(event)
+	int zone_idx = impl->def - stat_mpe_voice_range;
+	if(zone_idx < handle->stat.zones) // update active zones only
 	{
-		case PROP_EVENT_RESTORE:
-		case PROP_EVENT_SET:
-		{
-			int zone_idx = impl->def - stat_mpe_voice_range;
-			if(zone_idx < handle->stat.zones) // update active zones only
-			{
-				handle->mpe.zones[zone_idx].voice_range = handle->stat.voice_range[zone_idx];
-				_voice_range_update(handle, frames, zone_idx);
-			}
-
-			break;
-		}
-		default:
-		{
-			break;
-		}
+		handle->mpe.zones[zone_idx].voice_range = handle->stat.voice_range[zone_idx];
+		_voice_range_update(handle, frames, zone_idx);
 	}
 }
 
@@ -515,12 +476,12 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	LV2_URID urid = props_register(handle->props, &stat_mpe_zones, _intercept_zones, &handle->stat.zones);
+	LV2_URID urid = props_register(handle->props, &stat_mpe_zones, PROP_EVENT_WRITE, _intercept_zones, &handle->stat.zones);
 	for(unsigned z=0; (z<ZONE_MAX) && urid; z++)
 	{
-		urid = props_register(handle->props, &stat_mpe_master_range[z], _intercept_master, &handle->stat.master_range[z]);
+		urid = props_register(handle->props, &stat_mpe_master_range[z], PROP_EVENT_WRITE, _intercept_master, &handle->stat.master_range[z]);
 		if(urid)
-			urid = props_register(handle->props, &stat_mpe_voice_range[z], _intercept_voice, &handle->stat.voice_range[z]);
+			urid = props_register(handle->props, &stat_mpe_voice_range[z], PROP_EVENT_WRITE, _intercept_voice, &handle->stat.voice_range[z]);
 	}
 
 	if(urid)
