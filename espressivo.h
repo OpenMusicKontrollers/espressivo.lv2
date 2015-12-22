@@ -56,10 +56,12 @@
 #define ESPRESSIVO_TUIO2_IN_URI			ESPRESSIVO_URI"#tuio2_in"
 #define ESPRESSIVO_MPE_OUT_URI			ESPRESSIVO_URI"#mpe_out"
 #define ESPRESSIVO_SNH_URI					ESPRESSIVO_URI"#snh"
+#define ESPRESSIVO_SC_OUT_URI				ESPRESSIVO_URI"#sc_out"
 
 extern const LV2_Descriptor tuio2_in;
 extern const LV2_Descriptor mpe_out;
 extern const LV2_Descriptor snh;
+extern const LV2_Descriptor sc_out;
 
 // bundle enums and structs
 typedef enum _espressivo_state_t		espressivo_state_t;

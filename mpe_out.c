@@ -739,7 +739,8 @@ cleanup(LV2_Handle instance)
 {
 	handle_t *handle = instance;
 
-	props_free(handle->props);
+	if(handle->props)
+		props_free(handle->props);
 	free(handle);
 }
 

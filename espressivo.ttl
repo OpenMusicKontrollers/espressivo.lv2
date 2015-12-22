@@ -396,3 +396,152 @@ esp:snh
 	state:state [
 		esp:snh_sample false ;
 	] .
+
+esp:sc_synth_name_0
+	a lv2:Parameter ;
+	rdfs:label "Synth Name 0" ;
+	rdfs:range atom:String .
+esp:sc_synth_name_1
+	a lv2:Parameter ;
+	rdfs:label "Synth Name 1" ;
+	rdfs:range atom:String .
+esp:sc_synth_name_2
+	a lv2:Parameter ;
+	rdfs:label "Synth Name 2" ;
+	rdfs:range atom:String .
+esp:sc_synth_name_3
+	a lv2:Parameter ;
+	rdfs:label "Synth Name 3" ;
+	rdfs:range atom:String .
+esp:sc_synth_name_4
+	a lv2:Parameter ;
+	rdfs:label "Synth Name 4" ;
+	rdfs:range atom:String .
+esp:sc_synth_name_5
+	a lv2:Parameter ;
+	rdfs:label "Synth Name 5" ;
+	rdfs:range atom:String .
+esp:sc_synth_name_6
+	a lv2:Parameter ;
+	rdfs:label "Synth Name 6" ;
+	rdfs:range atom:String .
+esp:sc_synth_name_7
+	a lv2:Parameter ;
+	rdfs:label "Synth Name 7" ;
+	rdfs:range atom:String .
+
+esp:sc_out_offset
+	a lv2:Parameter ;
+	rdfs:label "Out Offset" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 8 .
+esp:sc_gid_offset
+	a lv2:Parameter ;
+	rdfs:label "GID Offset" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 1000 .
+esp:sc_sid_offset
+	a lv2:Parameter ;
+	rdfs:label "SID Offset" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 1000 .
+esp:sc_sid_wrap
+	a lv2:Parameter ;
+	rdfs:label "SID Wrap" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 1000 .
+esp:sc_arg_offset
+	a lv2:Parameter ;
+	rdfs:label "Argument Offset" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 4 .
+esp:sc_allocate
+	a lv2:Parameter ;
+	rdfs:label "Allocate" ;
+	rdfs:range atom:Bool .
+esp:sc_gate
+	a lv2:Parameter ;
+	rdfs:label "Gate" ;
+	rdfs:range atom:Bool .
+esp:sc_group
+	a lv2:Parameter ;
+	rdfs:label "Group" ;
+	rdfs:range atom:Bool .
+
+# SuperCollider Plugin
+esp:sc_out
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
+	doap:name "Espressivo SuperCollider Out" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:espressivo ;
+	lv2:extensionData state:interface ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule ;
+	lv2:requiredFeature urid:map, state:loadDefaultState ;
+
+	# input event port
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports atom:Object ;
+		atom:supports patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "event_in" ;
+		lv2:name "Event Input" ;
+		lv2:designation lv2:control ;
+	] , [
+	# output osc port
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports atom:Object ;
+		atom:supports patch:Message ;
+		atom:supports osc:Event ;
+		lv2:index 1 ;
+		lv2:symbol "osc_out" ;
+		lv2:name "OSC Output" ;
+		lv2:designation lv2:control ;
+	] ;
+
+	patch:writable
+		esp:sc_synth_name_0 ,
+		esp:sc_synth_name_1 ,
+		esp:sc_synth_name_2 ,
+		esp:sc_synth_name_3 ,
+		esp:sc_synth_name_4 ,
+		esp:sc_synth_name_5 ,
+		esp:sc_synth_name_6 ,
+		esp:sc_synth_name_7 ,
+		esp:sc_out_offset ,
+		esp:sc_gid_offset ,
+		esp:sc_sid_offset ,
+		esp:sc_sid_wrap ,
+		esp:sc_arg_offset ,
+		esp:sc_allocate ,
+		esp:sc_gate ,
+		esp:sc_group ;
+
+	state:state [
+		esp:sc_synth_name_0 "synth_0" ;
+		esp:sc_synth_name_1 "synth_1" ;
+		esp:sc_synth_name_2 "synth_2" ;
+		esp:sc_synth_name_3 "synth_3" ;
+		esp:sc_synth_name_4 "synth_4" ;
+		esp:sc_synth_name_5 "synth_5" ;
+		esp:sc_synth_name_6 "synth_6" ;
+		esp:sc_synth_name_7 "synth_7" ;
+		esp:sc_out_offset 0 ;
+		esp:sc_gid_offset 100 ;
+		esp:sc_sid_offset 200 ;
+		esp:sc_sid_wrap 100 ;
+		esp:sc_arg_offset 0 ;
+		esp:sc_allocate true ;
+		esp:sc_gate true ;
+		esp:sc_group false ;
+	] .

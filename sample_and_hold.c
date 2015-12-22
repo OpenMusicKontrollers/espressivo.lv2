@@ -253,8 +253,6 @@ run(LV2_Handle instance, uint32_t nsamples)
 					handle->ref2 = lv2_atom_forge_frame_time(forge, frames);
 				if(handle->ref2)
 					handle->ref2 = espressivo_event_forge(&handle->cforge, &cev);
-
-				break;
 			}
 		}
 		else
@@ -272,7 +270,8 @@ cleanup(LV2_Handle instance)
 {
 	handle_t *handle = instance;
 
-	props_free(handle->props);
+	if(handle->props)
+		props_free(handle->props);
 	free(handle);
 }
 

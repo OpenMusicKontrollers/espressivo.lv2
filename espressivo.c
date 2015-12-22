@@ -33,6 +33,8 @@ lv2_descriptor(uint32_t index)
 			return &mpe_out;
 		case 2:
 			return &snh;
+		case 3:
+			return &sc_out;
 		default:
 			return NULL;
 	}

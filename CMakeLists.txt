@@ -43,7 +43,8 @@ add_library(espressivo MODULE
 	espressivo.c
 	tuio2_in.c
 	sample_and_hold.c
-	mpe_out.c)
+	mpe_out.c
+	sc_out.c)
 target_link_libraries(espressivo ${LIBS})
 set_target_properties(espressivo PROPERTIES PREFIX "")
 install(TARGETS espressivo DESTINATION ${DEST})
