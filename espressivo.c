@@ -31,6 +31,8 @@ lv2_descriptor(uint32_t index)
 			return &tuio2_in;
 		case 1:
 			return &mpe_out;
+		case 2:
+			return &snh;
 		default:
 			return NULL;
 	}

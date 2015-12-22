@@ -55,9 +55,11 @@
 // plugin uris
 #define ESPRESSIVO_TUIO2_IN_URI			ESPRESSIVO_URI"#tuio2_in"
 #define ESPRESSIVO_MPE_OUT_URI			ESPRESSIVO_URI"#mpe_out"
+#define ESPRESSIVO_SNH_URI					ESPRESSIVO_URI"#snh"
 
 extern const LV2_Descriptor tuio2_in;
 extern const LV2_Descriptor mpe_out;
+extern const LV2_Descriptor snh;
 
 // bundle enums and structs
 typedef enum _espressivo_state_t		espressivo_state_t;
@@ -182,7 +184,7 @@ espressivo_event_forge(espressivo_forge_t *cforge, const espressivo_event_t *ev)
 		},
 		.sid = {
 			.atom.size = sizeof(int32_t),
-			.atom.type = forge->Float,
+			.atom.type = forge->Int,
 			.body = ev->sid
 		},
 		.gid = {
