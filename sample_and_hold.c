@@ -196,6 +196,28 @@ _fltr_off(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
 }
 
 static inline void
+_fltr_set(handle_t *handle, int64_t frames, espressivo_event_t *cev)
+{
+	ref_t *ref = espressivo_dict_ref(handle->dict, cev->sid);
+	if(!ref)
+		return;
+
+	//TODO use a prop for this
+	if(!handle->sample) // is disabled
+	{
+		ref->dim[1] = cev->dim[1];
+	}
+	else // is enabled
+	{
+		// limit changes to one direction only
+		if(cev->dim[1] > ref->dim[1])
+			ref->dim[1] = cev->dim[1];
+		else
+			cev->dim[1] = ref->dim[1];
+	}
+}
+
+static inline void
 _fltr_idle(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
 {
 	if(!handle->sample) // is disabled
@@ -238,6 +260,9 @@ run(LV2_Handle instance, uint32_t nsamples)
 					break;
 				case ESPRESSIVO_STATE_OFF:
 					_fltr_off(handle, frames, &cev);
+					break;
+				case ESPRESSIVO_STATE_SET:
+					_fltr_set(handle, frames, &cev);
 					break;
 				case ESPRESSIVO_STATE_IDLE:
 					_fltr_idle(handle, frames, &cev);
