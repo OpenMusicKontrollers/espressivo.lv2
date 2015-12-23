@@ -22,11 +22,6 @@
 #include <espressivo.h>
 #include <props.h>
 
-#define CHAN_MAX 16
-#define ZONE_MAX (CHAN_MAX / 2)
-
-typedef struct _zone_t zone_t;
-typedef struct _mpe_t mpe_t;
 typedef struct _ref_t ref_t;
 typedef struct _handle_t handle_t;
 
@@ -47,6 +42,7 @@ struct _handle_t {
 	LV2_Atom_Sequence *event_out;
 	
 	int32_t sample;
+	int32_t hold_dimension [4];
 	bool clone;
 	props_t *props;
 };
@@ -56,6 +52,32 @@ static const props_def_t stat_snh_sample = {
 	.access = LV2_PATCH__writable,
 	.type = LV2_ATOM__Bool,
 	.mode = PROP_MODE_STATIC
+};
+static const props_def_t stat_snh_hold_dimension [4] = {
+	[0] = {
+		.property = ESPRESSIVO_URI"#snh_hold_dimension_0",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Bool,
+		.mode = PROP_MODE_STATIC
+	},
+	[1] = {
+		.property = ESPRESSIVO_URI"#snh_hold_dimension_1",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Bool,
+		.mode = PROP_MODE_STATIC
+	},
+	[2] = {
+		.property = ESPRESSIVO_URI"#snh_hold_dimension_2",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Bool,
+		.mode = PROP_MODE_STATIC
+	},
+	[3] = {
+		.property = ESPRESSIVO_URI"#snh_hold_dimension_3",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Bool,
+		.mode = PROP_MODE_STATIC
+	},
 };
 
 static void
@@ -114,7 +136,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	espressivo_forge_init(&handle->cforge, handle->map);
 	ESPRESSIVO_DICT_INIT(handle->dict, handle->ref);
 
-	handle->props = props_new(1, descriptor->URI, handle->map, handle);
+	handle->props = props_new(5, descriptor->URI, handle->map, handle);
 	if(!handle->props)
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
@@ -122,7 +144,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(props_register(handle->props, &stat_snh_sample, PROP_EVENT_WRITE, _intercept_sample, &handle->sample))
+	if(props_register(handle->props, &stat_snh_sample, PROP_EVENT_WRITE, _intercept_sample, &handle->sample)
+		&& props_register(handle->props, &stat_snh_hold_dimension[0], PROP_EVENT_NONE, NULL, &handle->hold_dimension[0])
+		&& props_register(handle->props, &stat_snh_hold_dimension[1], PROP_EVENT_NONE, NULL, &handle->hold_dimension[1])
+		&& props_register(handle->props, &stat_snh_hold_dimension[2], PROP_EVENT_NONE, NULL, &handle->hold_dimension[2])
+		&& props_register(handle->props, &stat_snh_hold_dimension[3], PROP_EVENT_NONE, NULL, &handle->hold_dimension[3]) )
 	{
 		props_sort(handle->props);
 	}
@@ -202,18 +228,27 @@ _fltr_set(handle_t *handle, int64_t frames, espressivo_event_t *cev)
 	if(!ref)
 		return;
 
-	//TODO use a prop for this
 	if(!handle->sample) // is disabled
 	{
+		ref->gid = cev->gid;
+		ref->dim[0] = cev->dim[0];
 		ref->dim[1] = cev->dim[1];
+		ref->dim[2] = cev->dim[2];
+		ref->dim[3] = cev->dim[3];
 	}
 	else // is enabled
 	{
-		// limit changes to one direction only
-		if(cev->dim[1] > ref->dim[1])
-			ref->dim[1] = cev->dim[1];
-		else
-			cev->dim[1] = ref->dim[1];
+		// limit changes to one direction only, aka hold maximum
+		for(unsigned i=0; i<4; i++)
+		{
+			if(handle->hold_dimension[i]) // query hold enable state
+			{
+				if(cev->dim[i] > ref->dim[i])
+					ref->dim[i] = cev->dim[i]; // store new held maximum
+				else
+					cev->dim[i] = ref->dim[i]; // overwrite with held maximum
+			}
+		}
 	}
 }
 

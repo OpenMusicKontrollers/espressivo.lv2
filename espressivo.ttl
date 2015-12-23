@@ -355,6 +355,22 @@ esp:snh_sample
 	a lv2:Parameter ;
 	rdfs:label "Sample" ;
 	rdfs:range atom:Bool .
+esp:snh_hold_dimension_0
+	a lv2:Parameter ;
+	rdfs:label "Hold Dimension 0" ;
+	rdfs:range atom:Bool .
+esp:snh_hold_dimension_1
+	a lv2:Parameter ;
+	rdfs:label "Hold Dimension 1" ;
+	rdfs:range atom:Bool .
+esp:snh_hold_dimension_2
+	a lv2:Parameter ;
+	rdfs:label "Hold Dimension 2" ;
+	rdfs:range atom:Bool .
+esp:snh_hold_dimension_3
+	a lv2:Parameter ;
+	rdfs:label "Hold Dimension 3" ;
+	rdfs:range atom:Bool .
 
 # Sample and Hold Filter Plugin
 esp:snh
@@ -391,10 +407,19 @@ esp:snh
 		lv2:designation lv2:control ;
 	] ;
 
-	patch:writable esp:snh_sample ;
+	patch:writable
+		esp:snh_sample ,
+		esp:snh_hold_dimension_0 ,
+		esp:snh_hold_dimension_1 ,
+		esp:snh_hold_dimension_2 ,
+		esp:snh_hold_dimension_3 ;
 	
 	state:state [
 		esp:snh_sample false ;
+		esp:snh_hold_dimension_0 false ;
+		esp:snh_hold_dimension_1 true ;
+		esp:snh_hold_dimension_2 false ;
+		esp:snh_hold_dimension_3 false ;
 	] .
 
 esp:sc_synth_name_0
