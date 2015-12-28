@@ -19,6 +19,7 @@
 #define _ESPRESSIVO_LV2_H
 
 #include <math.h>
+#include <stdlib.h>
 
 #include <lv2/lv2plug.in/ns/lv2core/lv2.h>
 #include <lv2/lv2plug.in/ns/ext/atom/atom.h>
@@ -321,5 +322,142 @@ espressivo_dict_ref(espressivo_dict_t *dict, uint32_t sid)
 
 	return NULL;
 }
+
+typedef struct _espressivo_voice_t espressivo_voice_t;
+typedef struct _espressivo_inst_t espressivo_inst_t;
+
+struct _espressivo_voice_t {
+	int32_t sid;
+	void *data;
+};
+
+struct _espressivo_inst_t {
+	espressivo_forge_t cforge; 
+	unsigned max_voices;
+	unsigned num_voices;
+	espressivo_voice_t voices [0];
+};
+
+// rt-safe
+static inline void
+espressivo_inst_init(espressivo_inst_t *inst, void *data, size_t data_size, unsigned max_voices)
+{
+	inst->max_voices = max_voices;
+
+	for(unsigned i=0; i<max_voices; i++)
+	{
+		espressivo_voice_t *voice = &inst->voices[i];
+		voice->sid = INT32_MAX; // inactive voice
+		voice->data = data + i*data_size;
+	}
+}
+
+static int
+_voice_sort(const void *itm1, const void *itm2)
+{
+	const espressivo_voice_t *voice1 = itm1;
+	const espressivo_voice_t *voice2 = itm2;
+
+	if(voice1->sid < voice2->sid)
+		return -1;
+	else if(voice1->sid > voice2->sid)
+		return 1;
+
+	return 0;
+}
+
+static inline void *
+espressivo_inst_voice_get(espressivo_inst_t *inst, uint32_t sid)
+{
+	const espressivo_voice_t tmp = {
+		.sid = sid,
+		.data = NULL
+	};
+
+	espressivo_voice_t *voice = bsearch(&tmp, inst->voices, inst->num_voices, sizeof(espressivo_voice_t), _voice_sort);
+
+	if(voice)
+		return voice->data;
+
+	return NULL;
+}
+
+static inline void * 
+espressivo_inst_voice_add(espressivo_inst_t *inst, uint32_t sid)
+{
+	if(inst->num_voices < inst->max_voices)
+	{
+		espressivo_voice_t *voice = &inst->voices[inst->num_voices];
+		voice->sid = sid;
+
+		inst->num_voices += 1;
+		qsort(inst->voices, inst->num_voices, sizeof(espressivo_voice_t), _voice_sort);
+
+		return voice->data;
+	}
+
+	return NULL;
+}
+
+static inline void * 
+espressivo_inst_voice_del(espressivo_inst_t *inst, uint32_t sid)
+{
+	const espressivo_voice_t tmp = {
+		.sid = sid,
+		.data = NULL
+	};
+
+	espressivo_voice_t *voice = bsearch(&tmp, inst->voices, inst->num_voices, sizeof(espressivo_voice_t), _voice_sort);
+
+	if(voice)
+	{
+		voice->sid = INT32_MAX; // inactive voice
+
+		qsort(inst->voices, inst->num_voices, sizeof(espressivo_voice_t), _voice_sort);
+		inst->num_voices -= 1;
+
+		return voice->data;
+	}
+
+	return NULL;
+}
+
+// rt-safe
+static inline void
+espressivo_inst_advance(espressivo_inst_t *inst, LV2_Atom_Forge *forge, int64_t frames, const LV2_Atom_Object *obj)
+{
+	if(espressivo_event_check_type(&inst->cforge, &obj->atom))
+	{
+		espressivo_event_t cev;
+		espressivo_event_deforge(&inst->cforge, &obj->atom, &cev);
+
+		switch(cev.state)
+		{
+			case ESPRESSIVO_STATE_ON:
+			{
+				void *voc = espressivo_inst_voice_add(inst, cev.sid);
+				break;
+			}
+			case ESPRESSIVO_STATE_SET:
+			{
+				void *voc = espressivo_inst_voice_get(inst, cev.sid);
+				break;
+			}
+			case ESPRESSIVO_STATE_OFF:
+			{
+				void *voc = espressivo_inst_voice_del(inst, cev.sid);
+				break;
+			}
+			case ESPRESSIVO_STATE_IDLE:
+			{
+				//TODO
+				break;
+			}
+		}
+	}
+}
+
+#define ESPRESSIVO_INST_VOICES_FOREACH(INST, VOICE) \
+	for(espressivo_voice_t *VOICE=(INST)->voices; VOICE - (INST)->voices < (INST)->num_voices; VOICE++)
 
 #endif // _ESPRESSIVO_LV2_H
