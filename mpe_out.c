@@ -24,6 +24,7 @@
 
 #define CHAN_MAX 16
 #define ZONE_MAX (CHAN_MAX / 2)
+#define MAX_NPROPS (1 + ZONE_MAX*2)
 
 typedef struct _zone_t zone_t;
 typedef struct _mpe_t mpe_t;
@@ -69,7 +70,7 @@ struct _handle_t {
 	} stat;
 
 	mpe_t mpe;
-	props_t *props;
+	PROPS_T(props, MAX_NPROPS);
 	LV2_Atom_Forge_Ref ref2;
 };
 
@@ -468,29 +469,27 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	espressivo_forge_init(&handle->cforge, handle->map);
 	ESPRESSIVO_DICT_INIT(handle->dict, handle->ref);
 
-	handle->props = props_new(1 + ZONE_MAX*2, descriptor->URI, handle->map, handle);
-	if(!handle->props)
+	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
 		free(handle);
 		return NULL;
 	}
 
-	LV2_URID urid = props_register(handle->props, &stat_mpe_zones, PROP_EVENT_WRITE, _intercept_zones, &handle->stat.zones);
+	LV2_URID urid = props_register(&handle->props, &stat_mpe_zones, PROP_EVENT_WRITE, _intercept_zones, &handle->stat.zones);
 	for(unsigned z=0; (z<ZONE_MAX) && urid; z++)
 	{
-		urid = props_register(handle->props, &stat_mpe_master_range[z], PROP_EVENT_WRITE, _intercept_master, &handle->stat.master_range[z]);
+		urid = props_register(&handle->props, &stat_mpe_master_range[z], PROP_EVENT_WRITE, _intercept_master, &handle->stat.master_range[z]);
 		if(urid)
-			urid = props_register(handle->props, &stat_mpe_voice_range[z], PROP_EVENT_WRITE, _intercept_voice, &handle->stat.voice_range[z]);
+			urid = props_register(&handle->props, &stat_mpe_voice_range[z], PROP_EVENT_WRITE, _intercept_voice, &handle->stat.voice_range[z]);
 	}
 
 	if(urid)
 	{
-		props_sort(handle->props);
+		props_sort(&handle->props);
 	}
 	else
 	{
-		props_free(handle->props);
 		free(handle);
 		return NULL;
 	}
@@ -725,7 +724,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 			}
 		}
 		else
-			props_advance(handle->props, forge, ev->time.frames, (const LV2_Atom_Object *)&ev->body, &handle->ref2);
+			props_advance(&handle->props, forge, ev->time.frames, (const LV2_Atom_Object *)&ev->body, &handle->ref2);
 	}
 
 	if(handle->ref2)
@@ -739,9 +738,8 @@ cleanup(LV2_Handle instance)
 {
 	handle_t *handle = instance;
 
-	if(handle->props)
-		props_free(handle->props);
-	free(handle);
+	if(handle)
+		free(handle);
 }
 
 static LV2_State_Status
@@ -751,7 +749,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	handle_t *handle = instance;
 
-	return props_save(handle->props, &handle->cforge.forge, store, state, flags, features);
+	return props_save(&handle->props, &handle->cforge.forge, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -761,7 +759,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	handle_t *handle = instance;
 
-	return props_restore(handle->props, &handle->cforge.forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, &handle->cforge.forge, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

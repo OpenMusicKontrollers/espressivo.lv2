@@ -25,6 +25,7 @@
 
 #define SYNTH_NAMES 8
 #define STRING_SIZE 256
+#define MAX_NPROPS (SYNTH_NAMES + 8)
 
 typedef struct _handle_t handle_t;
 
@@ -36,7 +37,7 @@ struct _handle_t {
 	osc_forge_t oforge;
 	LV2_Atom_Forge forge;
 
-	props_t *props;
+	PROPS_T(props, MAX_NPROPS);
 
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *osc_out;
@@ -166,7 +167,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	handle_t *handle = instance;
 
-	return props_save(handle->props, &handle->forge, store, state, flags, features);
+	return props_save(&handle->props, &handle->forge, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -176,7 +177,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	handle_t *handle = instance;
 
-	return props_restore(handle->props, &handle->forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {
@@ -207,8 +208,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	espressivo_forge_init(&handle->cforge, handle->map);
 	lv2_atom_forge_init(&handle->forge, handle->map);
 
-	handle->props = props_new(SYNTH_NAMES + 8, descriptor->URI, handle->map, handle);
-	if(!handle->props)
+	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
 	{
 		free(handle);
 		return NULL;
@@ -218,23 +218,22 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	for(unsigned i=0; (i<SYNTH_NAMES) && urid; i++)
 	{
 		sprintf(handle->synth_name[i], "synth_%i", i);
-		urid = props_register(handle->props, &synth_name_def[i], PROP_EVENT_NONE, NULL, &handle->synth_name[i]);
+		urid = props_register(&handle->props, &synth_name_def[i], PROP_EVENT_NONE, NULL, &handle->synth_name[i]);
 	}
 	if(urid
-		&& props_register(handle->props, &out_offset_def, PROP_EVENT_NONE, NULL, &handle->out_offset)
-		&& props_register(handle->props, &gid_offset_def, PROP_EVENT_NONE, NULL, &handle->gid_offset)
-		&& props_register(handle->props, &sid_offset_def, PROP_EVENT_NONE, NULL, &handle->sid_offset)
-		&& props_register(handle->props, &sid_wrap_def, PROP_EVENT_NONE, NULL, &handle->sid_wrap)
-		&& props_register(handle->props, &arg_offset_def, PROP_EVENT_NONE, NULL, &handle->arg_offset)
-		&& props_register(handle->props, &allocate_def, PROP_EVENT_NONE, NULL, &handle->allocate)
-		&& props_register(handle->props, &gate_def, PROP_EVENT_NONE, NULL, &handle->gate)
-		&& props_register(handle->props, &group_def, PROP_EVENT_NONE, NULL, &handle->group) )
+		&& props_register(&handle->props, &out_offset_def, PROP_EVENT_NONE, NULL, &handle->out_offset)
+		&& props_register(&handle->props, &gid_offset_def, PROP_EVENT_NONE, NULL, &handle->gid_offset)
+		&& props_register(&handle->props, &sid_offset_def, PROP_EVENT_NONE, NULL, &handle->sid_offset)
+		&& props_register(&handle->props, &sid_wrap_def, PROP_EVENT_NONE, NULL, &handle->sid_wrap)
+		&& props_register(&handle->props, &arg_offset_def, PROP_EVENT_NONE, NULL, &handle->arg_offset)
+		&& props_register(&handle->props, &allocate_def, PROP_EVENT_NONE, NULL, &handle->allocate)
+		&& props_register(&handle->props, &gate_def, PROP_EVENT_NONE, NULL, &handle->gate)
+		&& props_register(&handle->props, &group_def, PROP_EVENT_NONE, NULL, &handle->group) )
 	{
-		props_sort(handle->props);
+		props_sort(&handle->props);
 	}
 	else
 	{
-		props_free(handle->props);
 		free(handle);
 		return NULL;
 	}
@@ -401,7 +400,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
 		int64_t frames = ev->time.frames;
 
-		if(  !props_advance(handle->props, forge, frames, obj, &ref)
+		if(  !props_advance(&handle->props, forge, frames, obj, &ref)
 			&& espressivo_event_check_type(&handle->cforge, &obj->atom) && ref)
 		{
 			espressivo_event_t cev;
@@ -436,9 +435,8 @@ cleanup(LV2_Handle instance)
 {
 	handle_t *handle = (handle_t *)instance;
 
-	if(handle->props)
-		props_free(handle->props);
-	free(handle);
+	if(handle)
+		free(handle);
 }
 
 static const void*

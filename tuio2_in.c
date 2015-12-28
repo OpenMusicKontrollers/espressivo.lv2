@@ -23,6 +23,8 @@
 #include <lv2_osc.h>
 #include <props.h>
 
+#define MAX_NPROPS 5
+
 typedef struct _pos_t pos_t;
 typedef struct _tuio2_ref_t tuio2_ref_t;
 typedef struct _handle_t handle_t;
@@ -105,7 +107,7 @@ struct _handle_t {
 		LV2_URID device_name;
 	} urid;
 
-	props_t *props;
+	PROPS_T(props, MAX_NPROPS);
 };
 
 static const props_def_t stat_tuio2_deviceWidth = {
@@ -302,13 +304,13 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 			if(handle->stat.device_width != handle->tuio2.width)
 			{
 				handle->stat.device_width = handle->tuio2.width;
-				props_set(handle->props, forge, handle->rel, handle->urid.device_width);
+				props_set(&handle->props, forge, handle->rel, handle->urid.device_width);
 			}
 
 			if(handle->stat.device_height != handle->tuio2.height)
 			{
 				handle->stat.device_height = handle->tuio2.height;
-				props_set(handle->props, forge, handle->rel, handle->urid.device_height);
+				props_set(&handle->props, forge, handle->rel, handle->urid.device_height);
 			}
 			
 			const int n = handle->tuio2.width;
@@ -323,7 +325,7 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		if(ptr && strcmp(handle->stat.device_name, source))
 		{
 			strcpy(handle->stat.device_name, source);
-			props_set(handle->props, forge, handle->rel, handle->urid.device_name);
+			props_set(&handle->props, forge, handle->rel, handle->urid.device_name);
 		}
 
 		handle->tuio2.pos ^= 1; // toggle pos
@@ -546,29 +548,27 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	if(handle->log)
 		lv2_log_logger_init(&handle->logger, handle->map, handle->log);
 
-	handle->props = props_new(5, descriptor->URI, handle->map, handle);
-	if(!handle->props)
+	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
 		free(handle);
 		return NULL;
 	}
 
-	if(  (handle->urid.device_width = props_register(handle->props, &stat_tuio2_deviceWidth, PROP_EVENT_NONE, NULL,
+	if(  (handle->urid.device_width = props_register(&handle->props, &stat_tuio2_deviceWidth, PROP_EVENT_NONE, NULL,
 				&handle->stat.device_width))
-		&& (handle->urid.device_height = props_register(handle->props, &stat_tuio2_deviceHeight, PROP_EVENT_NONE, NULL,
+		&& (handle->urid.device_height = props_register(&handle->props, &stat_tuio2_deviceHeight, PROP_EVENT_NONE, NULL,
 				&handle->stat.device_height))
-		&& (handle->urid.device_name = props_register(handle->props, &stat_tuio2_deviceName, PROP_EVENT_NONE, NULL,
+		&& (handle->urid.device_name = props_register(&handle->props, &stat_tuio2_deviceName, PROP_EVENT_NONE, NULL,
 				&handle->stat.device_name))
 
-		&& props_register(handle->props, &stat_tuio2_octave, PROP_EVENT_NONE, NULL, &handle->stat.octave)
-		&& props_register(handle->props, &stat_tuio2_sensorsPerSemitone, PROP_EVENT_NONE, NULL, &handle->stat.sensors_per_semitone) )
+		&& props_register(&handle->props, &stat_tuio2_octave, PROP_EVENT_NONE, NULL, &handle->stat.octave)
+		&& props_register(&handle->props, &stat_tuio2_sensorsPerSemitone, PROP_EVENT_NONE, NULL, &handle->stat.sensors_per_semitone) )
 	{
-		props_sort(handle->props);
+		props_sort(&handle->props);
 	}
 	else
 	{
-		props_free(handle->props);
 		free(handle);
 		return NULL;
 	}
@@ -660,7 +660,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
 
-		if(!props_advance(handle->props, forge, ev->time.frames, obj, &handle->ref))
+		if(!props_advance(&handle->props, forge, ev->time.frames, obj, &handle->ref))
 			osc_atom_event_unroll(&handle->oforge, obj, NULL, NULL, _message_cb, handle);
 	}
 
@@ -675,9 +675,8 @@ cleanup(LV2_Handle instance)
 {
 	handle_t *handle = (handle_t *)instance;
 
-	if(handle->props)
-		props_free(handle->props);
-	free(handle);
+	if(handle)
+		free(handle);
 }
 
 static LV2_State_Status
@@ -687,7 +686,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	handle_t *handle = instance;
 
-	return props_save(handle->props, &handle->cforge.forge, store, state, flags, features);
+	return props_save(&handle->props, &handle->cforge.forge, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -697,7 +696,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	handle_t *handle = instance;
 
-	return props_restore(handle->props, &handle->cforge.forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, &handle->cforge.forge, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

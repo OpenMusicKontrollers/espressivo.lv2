@@ -22,6 +22,8 @@
 #include <espressivo.h>
 #include <props.h>
 
+#define MAX_NPROPS 5
+
 typedef struct _ref_t ref_t;
 typedef struct _handle_t handle_t;
 
@@ -44,7 +46,7 @@ struct _handle_t {
 	int32_t sample;
 	int32_t hold_dimension [4];
 	bool clone;
-	props_t *props;
+	PROPS_T(props, MAX_NPROPS);
 };
 
 static const props_def_t stat_snh_sample = {
@@ -136,25 +138,23 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	espressivo_forge_init(&handle->cforge, handle->map);
 	ESPRESSIVO_DICT_INIT(handle->dict, handle->ref);
 
-	handle->props = props_new(5, descriptor->URI, handle->map, handle);
-	if(!handle->props)
+	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
 		free(handle);
 		return NULL;
 	}
 
-	if(props_register(handle->props, &stat_snh_sample, PROP_EVENT_WRITE, _intercept_sample, &handle->sample)
-		&& props_register(handle->props, &stat_snh_hold_dimension[0], PROP_EVENT_NONE, NULL, &handle->hold_dimension[0])
-		&& props_register(handle->props, &stat_snh_hold_dimension[1], PROP_EVENT_NONE, NULL, &handle->hold_dimension[1])
-		&& props_register(handle->props, &stat_snh_hold_dimension[2], PROP_EVENT_NONE, NULL, &handle->hold_dimension[2])
-		&& props_register(handle->props, &stat_snh_hold_dimension[3], PROP_EVENT_NONE, NULL, &handle->hold_dimension[3]) )
+	if(props_register(&handle->props, &stat_snh_sample, PROP_EVENT_WRITE, _intercept_sample, &handle->sample)
+		&& props_register(&handle->props, &stat_snh_hold_dimension[0], PROP_EVENT_NONE, NULL, &handle->hold_dimension[0])
+		&& props_register(&handle->props, &stat_snh_hold_dimension[1], PROP_EVENT_NONE, NULL, &handle->hold_dimension[1])
+		&& props_register(&handle->props, &stat_snh_hold_dimension[2], PROP_EVENT_NONE, NULL, &handle->hold_dimension[2])
+		&& props_register(&handle->props, &stat_snh_hold_dimension[3], PROP_EVENT_NONE, NULL, &handle->hold_dimension[3]) )
 	{
-		props_sort(handle->props);
+		props_sort(&handle->props);
 	}
 	else
 	{
-		props_free(handle->props);
 		free(handle);
 		return NULL;
 	}
@@ -316,7 +316,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 			}
 		}
 		else
-			props_advance(handle->props, forge, frames, (const LV2_Atom_Object *)&ev->body, &handle->ref2);
+			props_advance(&handle->props, forge, frames, (const LV2_Atom_Object *)&ev->body, &handle->ref2);
 	}
 
 	if(handle->ref2)
@@ -330,9 +330,8 @@ cleanup(LV2_Handle instance)
 {
 	handle_t *handle = instance;
 
-	if(handle->props)
-		props_free(handle->props);
-	free(handle);
+	if(handle)
+		free(handle);
 }
 
 static LV2_State_Status
@@ -342,7 +341,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	handle_t *handle = instance;
 
-	return props_save(handle->props, &handle->cforge.forge, store, state, flags, features);
+	return props_save(&handle->props, &handle->cforge.forge, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -352,7 +351,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	handle_t *handle = instance;
 
-	return props_restore(handle->props, &handle->cforge.forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, &handle->cforge.forge, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {
