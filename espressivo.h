@@ -55,11 +55,13 @@
 
 // plugin uris
 #define ESPRESSIVO_TUIO2_IN_URI			ESPRESSIVO_URI"#tuio2_in"
+#define ESPRESSIVO_MIDI_IN_URI			ESPRESSIVO_URI"#midi_in"
 #define ESPRESSIVO_MPE_OUT_URI			ESPRESSIVO_URI"#mpe_out"
 #define ESPRESSIVO_SNH_URI					ESPRESSIVO_URI"#snh"
 #define ESPRESSIVO_SC_OUT_URI				ESPRESSIVO_URI"#sc_out"
 
 extern const LV2_Descriptor tuio2_in;
+extern const LV2_Descriptor midi_in;
 extern const LV2_Descriptor mpe_out;
 extern const LV2_Descriptor snh;
 extern const LV2_Descriptor sc_out;
@@ -338,6 +340,10 @@ struct _espressivo_inst_t {
 	espressivo_voice_t voices [0];
 };
 
+#define INST_T(INST, NVOICES) \
+	espressivo_inst_t (INST); \
+	espressivo_voice_t _voices [(NVOICES)];
+
 // rt-safe
 static inline void
 espressivo_inst_init(espressivo_inst_t *inst, void *data, size_t data_size, unsigned max_voices)
@@ -423,7 +429,7 @@ espressivo_inst_voice_del(espressivo_inst_t *inst, uint32_t sid)
 }
 
 // rt-safe
-static inline void
+static inline int
 espressivo_inst_advance(espressivo_inst_t *inst, LV2_Atom_Forge *forge, int64_t frames, const LV2_Atom_Object *obj)
 {
 	if(espressivo_event_check_type(&inst->cforge, &obj->atom))
@@ -454,7 +460,11 @@ espressivo_inst_advance(espressivo_inst_t *inst, LV2_Atom_Forge *forge, int64_t 
 				break;
 			}
 		}
+
+		return 1; // handled
 	}
+
+	return 0; // not handled
 }
 
 #define ESPRESSIVO_INST_VOICES_FOREACH(INST, VOICE) \

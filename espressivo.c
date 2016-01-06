@@ -30,10 +30,12 @@ lv2_descriptor(uint32_t index)
 		case 0:
 			return &tuio2_in;
 		case 1:
-			return &mpe_out;
+			return &midi_in;
 		case 2:
-			return &snh;
+			return &mpe_out;
 		case 3:
+			return &snh;
+		case 4:
 			return &sc_out;
 		default:
 			return NULL;

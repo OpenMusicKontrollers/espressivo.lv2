@@ -41,6 +41,7 @@ endif()
 
 add_library(espressivo MODULE
 	espressivo.c
+	midi_in.c
 	tuio2_in.c
 	sample_and_hold.c
 	mpe_out.c

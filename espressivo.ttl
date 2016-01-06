@@ -351,6 +351,165 @@ esp:tuio2_in
 		esp:tuio2_sensorsPerSemitone 3 ;	
 	] .
 
+esp:midi_range
+	a lv2:Parameter ;
+	rdfs:label "Bend Range" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 100 ;
+	lv2:maximum 1200 .
+
+esp:midi_cents_1
+	a lv2:Parameter ;
+	rdfs:label "Note 1 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_2
+	a lv2:Parameter ;
+	rdfs:label "Note 2 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_3
+	a lv2:Parameter ;
+	rdfs:label "Note 3 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_4
+	a lv2:Parameter ;
+	rdfs:label "Note 4 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_5
+	a lv2:Parameter ;
+	rdfs:label "Note 5 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_6
+	a lv2:Parameter ;
+	rdfs:label "Note 6 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_7
+	a lv2:Parameter ;
+	rdfs:label "Note 7 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_8
+	a lv2:Parameter ;
+	rdfs:label "Note 8 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_9
+	a lv2:Parameter ;
+	rdfs:label "Note 9 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_10
+	a lv2:Parameter ;
+	rdfs:label "Note 10 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_11
+	a lv2:Parameter ;
+	rdfs:label "Note 11 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+esp:midi_cents_12
+	a lv2:Parameter ;
+	rdfs:label "Note 12 Offset" ;
+	rdfs:range atom:Int ;
+	units:unit units:cent ;
+	lv2:minimum 0 ;
+	lv2:maximum 1200 .
+
+# MIDI Input Plugin
+esp:midi_in
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
+	doap:name "Espressivo MIDI In" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:espressivo ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log ;
+	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
+
+	lv2:port [
+	# input event port
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports midi:MidiEvent ;
+		atom:supports patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "osc_in" ;
+		lv2:name "OSC Input" ;
+		lv2:designation lv2:control ;
+	] , [
+	# output event port
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports midi:MidiEvent ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "event_out" ;
+		lv2:name "Event Output" ;
+		lv2:designation lv2:control ;
+	] ;
+
+	patch:writable
+		esp:midi_range ,
+		esp:midi_cents_1 ,
+		esp:midi_cents_2 ,
+		esp:midi_cents_3 ,
+		esp:midi_cents_4 ,
+		esp:midi_cents_5 ,
+		esp:midi_cents_6 ,
+		esp:midi_cents_7 ,
+		esp:midi_cents_8 ,
+		esp:midi_cents_9 ,
+		esp:midi_cents_10 ,
+		esp:midi_cents_11 ,
+		esp:midi_cents_12 ;
+	
+	state:state [
+		esp:midi_range 200 ;
+		esp:midi_cents_1 0 ;
+		esp:midi_cents_2 100 ;
+		esp:midi_cents_3 200 ;
+		esp:midi_cents_4 300 ;
+		esp:midi_cents_5 400 ;
+		esp:midi_cents_6 500 ;
+		esp:midi_cents_7 600 ;
+		esp:midi_cents_8 700 ;
+		esp:midi_cents_9 800 ;
+		esp:midi_cents_10 900 ;
+		esp:midi_cents_11 1000 ;
+		esp:midi_cents_12 1100 ;
+	] .
+
 esp:snh_sample
 	a lv2:Parameter ;
 	rdfs:label "Sample" ;
