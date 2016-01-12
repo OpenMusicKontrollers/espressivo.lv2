@@ -30,6 +30,9 @@ typedef struct _handle_t handle_t;
 
 struct _voice_t {
 	uint8_t key;
+
+	float freq;
+	float pressure;
 };
 
 struct _handle_t {
@@ -43,10 +46,10 @@ struct _handle_t {
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *midi_out;
 
-	uint32_t sid;
-
 	int32_t range;
 	int32_t cents [MAX_NPROPS];
+
+	voice_map_t *voice_map;
 
 	PROPS_T(props, MAX_NPROPS);
 	INST_T(inst, MAX_NVOICES);
@@ -161,8 +164,12 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 
 	for(unsigned i=0; features[i]; i++)
+	{
 		if(!strcmp(features[i]->URI, LV2_URID__map))
-			handle->map = (LV2_URID_Map *)features[i]->data;
+			handle->map = features[i]->data;
+		if(!strcmp(features[i]->URI, ESPRESSIVO_URI"#voiceMap"))
+			handle->voice_map = features[i]->data;
+	}
 
 	if(!handle->map)
 	{
@@ -170,6 +177,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		free(handle);
 		return NULL;
 	}
+	if(!handle->voice_map)
+		handle->voice_map = voice_map_fallback;
+
+	for(unsigned i=0; i<12; i++)
+		fprintf(stderr, "%u %u\n", i, handle->voice_map->new_id(handle->voice_map->handle));
 
 	handle->uris.midi_MidiEvent = handle->map->map(handle->map->handle, LV2_MIDI__MidiEvent);
 
@@ -246,12 +258,47 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 			if(comm == LV2_MIDI_MSG_NOTE_ON)
 			{
+				const uint8_t key = m[1];
+				const int32_t sid = ((int32_t)chan << 8) | key;
+
+				voice_t *voice = espressivo_inst_voice_add(&handle->inst, sid);
+
+				voice->key = key;
+				voice->freq = _midi2cps(voice->key);
 				//TODO
-				voice_t *voice = espressivo_inst_voice_add(&handle->inst, handle->sid++);
 			}
 			else if(comm == LV2_MIDI_MSG_NOTE_OFF)
 			{
-				voice_t *voice = espressivo_inst_voice_del(&handle->inst, handle->sid);
+				const uint8_t key = m[1];
+				const int32_t sid = ((int32_t)chan << 8) | key;
+
+				voice_t *voice = espressivo_inst_voice_del(&handle->inst, sid);
+				//TODO
+			}
+			else if(comm == LV2_MIDI_MSG_NOTE_PRESSURE)
+			{
+				const uint8_t key = m[1];
+				const int32_t sid = ((int32_t)chan << 8) | key;
+				const float pressure = m[2] * 0x1p-7;
+
+				voice_t *voice = espressivo_inst_voice_del(&handle->inst, sid);
+				voice->pressure = pressure;
+				//TODO
+			}
+			else if(comm == LV2_MIDI_MSG_BENDER)
+			{
+				const int32_t sid = ((int32_t)chan << 8); //FIXME
+				const int16_t bender = (((int16_t)m[2] << 7) | m[1]) - 0x2000;
+				const float offset = bender * 0x1p-13 * handle->range * 0.01f;
+
+				voice_t *voice = espressivo_inst_voice_get(&handle->inst, sid);
+				voice->freq = (float)voice->key + offset;
+				//TODO
+			}
+			else if(comm == LV2_MIDI_MSG_CONTROLLER)
+			{
+				const uint8_t controller = m[1];
+				const uint8_t value = m[2];
 				//TODO
 			}
 		}
