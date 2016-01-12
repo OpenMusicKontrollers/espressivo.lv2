@@ -341,7 +341,7 @@ struct _espressivo_inst_t {
 };
 
 #define INST_T(INST, NVOICES) \
-	espressivo_inst_t (INST); \
+	espressivo_inst_t INST; \
 	espressivo_voice_t _voices [(NVOICES)];
 
 // rt-safe
@@ -469,5 +469,15 @@ espressivo_inst_advance(espressivo_inst_t *inst, LV2_Atom_Forge *forge, int64_t 
 
 #define ESPRESSIVO_INST_VOICES_FOREACH(INST, VOICE) \
 	for(espressivo_voice_t *VOICE=(INST)->voices; VOICE - (INST)->voices < (INST)->num_voices; VOICE++)
+
+typedef uint32_t (*voice_map_new_id_t)(void *handle);
+typedef struct _voice_map_t voice_map_t;
+
+struct _voice_map_t {
+	void *handle;
+	voice_map_new_id_t new_id;
+};
+
+extern voice_map_t *voice_map_fallback;
 
 #endif // _ESPRESSIVO_LV2_H
