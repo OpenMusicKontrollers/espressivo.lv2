@@ -23,22 +23,31 @@
 #include <props.h>
 
 #define MAX_NPROPS 5
+#define MAX_NVOICES 64
 
-typedef struct _ref_t ref_t;
+typedef struct _target_t target_t;
+typedef struct _target2_t target2_t;
 typedef struct _handle_t handle_t;
 
-struct _ref_t {
-	uint32_t gid;
-	float dim[4];
+struct _target_t {
+	LV2_URID subject;
+};
+
+struct _target2_t {
+	bool on_hold;
+	xpress_state_t state;
 };
 
 struct _handle_t {
 	LV2_URID_Map *map;
-	espressivo_forge_t cforge;
-	LV2_Atom_Forge_Ref ref2;
+	LV2_Atom_Forge forge;
+	LV2_Atom_Forge_Ref ref;
 
-	espressivo_dict_t dict [ESPRESSIVO_DICT_SIZE];
-	ref_t ref [ESPRESSIVO_DICT_SIZE];
+	PROPS_T(props, MAX_NPROPS);
+	XPRESS_T(xpress, MAX_NVOICES);
+	target_t target [MAX_NVOICES];
+	XPRESS_T(xpress2, MAX_NVOICES);
+	target2_t target2 [MAX_NVOICES];
 
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *event_out;
@@ -46,7 +55,6 @@ struct _handle_t {
 	int32_t sample;
 	int32_t hold_dimension [4];
 	bool clone;
-	PROPS_T(props, MAX_NPROPS);
 };
 
 static const props_def_t stat_snh_sample = {
@@ -88,31 +96,103 @@ _intercept_sample(void *data, LV2_Atom_Forge *forge, int64_t frames,
 {
 	handle_t *handle = data;
 
-	if(!handle->sample) // was disabled
+	if(!handle->sample)
 	{
-		uint32_t sid;
-		ref_t *ref;
-		ESPRESSIVO_DICT_FOREACH(handle->dict, sid, ref)
+		// release all events on hold
+		unsigned removed = 0;
+		XPRESS_VOICE_FOREACH(&handle->xpress2, voice)
 		{
-			const espressivo_event_t cev = {
-				.state = ESPRESSIVO_STATE_OFF,
-				.sid = sid,
-				.gid = ref->gid,
-				.dim[0] = ref->dim[0],
-				.dim[1] = ref->dim[1],
-				.dim[2] = ref->dim[2],
-				.dim[3] = ref->dim[3]
-			};
+			target2_t *dst = voice->target;
 
-			if(handle->ref2)
-				handle->ref2 = lv2_atom_forge_frame_time(forge, frames);
-			if(handle->ref2)
-				handle->ref2 = espressivo_event_forge(&handle->cforge, &cev);
+			if(!dst->on_hold)
+				continue; // still playing
+
+			if(handle->ref)
+				handle->ref = xpress_del(&handle->xpress2, forge, frames, voice->subject);
+
+			voice->subject = 0; // mark for removal
+			removed++;
 		}
-
-		espressivo_dict_clear(handle->dict);
+		_xpress_sort(&handle->xpress2);
+		handle->xpress2.nvoices -= removed;
 	}
 }
+
+static void
+_add(void *data, int64_t frames, const xpress_state_t *state,
+	LV2_URID subject, void *target)
+{
+	handle_t *handle = data;
+	target_t *src = target;
+	target2_t *dst;
+
+	if((dst = xpress_create(&handle->xpress2, &src->subject)))
+	{
+		dst->on_hold = false;
+		dst->state.zone = state->zone;
+		dst->state.pitch = state->pitch;
+		dst->state.pressure = state->pressure;
+		dst->state.timbre = state->timbre;
+
+		if(handle->ref)
+			handle->ref = xpress_put(&handle->xpress2, &handle->forge, frames, src->subject, &dst->state);
+	}
+}
+
+static void
+_put(void *data, int64_t frames, const xpress_state_t *state,
+	LV2_URID subject, void *target)
+{
+	handle_t *handle = data;
+	target_t *src = target;
+	target2_t *dst;
+	
+	if((dst = xpress_get(&handle->xpress2, src->subject)))
+	{
+		if(!(handle->hold_dimension[0] && (state->pitch < dst->state.pitch) ))
+			dst->state.pitch = state->pitch;
+		if(!(handle->hold_dimension[1] && (state->pressure < dst->state.pressure) ))
+			dst->state.pressure = state->pressure;
+		if(!(handle->hold_dimension[2] && (state->timbre < dst->state.timbre) ))
+			dst->state.timbre = state->timbre;
+
+		if(handle->ref)
+			handle->ref = xpress_put(&handle->xpress2, &handle->forge, frames, src->subject, &dst->state);
+	}
+}
+
+static void
+_del(void *data, int64_t frames, const xpress_state_t *state,
+	LV2_URID subject, void *target)
+{
+	handle_t *handle = data;
+	target_t *src = target;
+	target2_t *dst;
+
+	if(handle->sample)
+	{
+		if((dst = xpress_get(&handle->xpress2, src->subject)))
+			dst->on_hold = true;
+		return;
+	}
+
+	if(handle->ref)
+		handle->ref = xpress_del(&handle->xpress2, &handle->forge, frames, src->subject);
+
+	xpress_free(&handle->xpress2, src->subject);
+}
+
+static const xpress_iface_t iface = {
+	.size = sizeof(target_t),
+
+	.add = _add,
+	.put = _put,
+	.del = _del
+};
+
+static const xpress_iface_t iface2 = {
+	.size = sizeof(target2_t)
+};
 
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
@@ -122,11 +202,18 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	if(!handle)
 		return NULL;
 
+	xpress_map_t *voice_map = NULL;
+
 	for(unsigned i=0; features[i]; i++)
 	{
 		if(!strcmp(features[i]->URI, LV2_URID__map))
-			handle->map = (LV2_URID_Map *)features[i]->data;
+			handle->map = features[i]->data;
+		else if(!strcmp(features[i]->URI, XPRESS_VOICE_MAP))
+			voice_map = features[i]->data;
 	}
+
+	if(!voice_map)
+		voice_map = &voice_map_fallback;
 
 	if(!handle->map)
 	{
@@ -135,8 +222,16 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	espressivo_forge_init(&handle->cforge, handle->map);
-	ESPRESSIVO_DICT_INIT(handle->dict, handle->ref);
+	lv2_atom_forge_init(&handle->forge, handle->map);
+
+	if(  !xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_ALL, &iface, handle->target, handle)
+		|| !xpress_init(&handle->xpress2, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_NONE, &iface2, handle->target2, NULL) )
+	{
+		free(handle);
+		return NULL;
+	}
 
 	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
 	{
@@ -180,87 +275,6 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 	}
 }
 
-static inline void
-_fltr_on(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
-{
-	ref_t *ref = espressivo_dict_add(handle->dict, cev->sid);
-	if(!ref)
-		return;
-
-	// save initial values
-	ref->gid = cev->gid;
-	ref->dim[0] = cev->dim[0];
-	ref->dim[1] = cev->dim[1];
-	ref->dim[2] = cev->dim[2];
-	ref->dim[3] = cev->dim[3];
-}
-
-static inline void
-_fltr_off(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
-{
-	if(!handle->sample) // is disabled
-	{
-		ref_t *ref = espressivo_dict_del(handle->dict, cev->sid);
-		if(!ref)
-			return;
-	}
-	else // is enabled
-	{
-		ref_t *ref = espressivo_dict_ref(handle->dict, cev->sid);
-		if(!ref)
-			return;
-
-		// save last values
-		ref->gid = cev->gid;
-		ref->dim[0] = cev->dim[0];
-		ref->dim[1] = cev->dim[1];
-		ref->dim[2] = cev->dim[2];
-		ref->dim[3] = cev->dim[3];
-
-		handle->clone = false; // block this event
-	}
-}
-
-static inline void
-_fltr_set(handle_t *handle, int64_t frames, espressivo_event_t *cev)
-{
-	ref_t *ref = espressivo_dict_ref(handle->dict, cev->sid);
-	if(!ref)
-		return;
-
-	if(!handle->sample) // is disabled
-	{
-		ref->gid = cev->gid;
-		ref->dim[0] = cev->dim[0];
-		ref->dim[1] = cev->dim[1];
-		ref->dim[2] = cev->dim[2];
-		ref->dim[3] = cev->dim[3];
-	}
-	else // is enabled
-	{
-		// limit changes to one direction only, aka hold maximum
-		for(unsigned i=0; i<4; i++)
-		{
-			if(handle->hold_dimension[i]) // query hold enable state
-			{
-				if(cev->dim[i] > ref->dim[i])
-					ref->dim[i] = cev->dim[i]; // store new held maximum
-				else
-					cev->dim[i] = ref->dim[i]; // overwrite with held maximum
-			}
-		}
-	}
-}
-
-static inline void
-_fltr_idle(handle_t *handle, int64_t frames, const espressivo_event_t *cev)
-{
-	if(!handle->sample) // is disabled
-		espressivo_dict_clear(handle->dict);
-	else
-		handle->clone = false; // block this event
-}
-
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
@@ -268,58 +282,23 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 	// prepare midi atom forge
 	const uint32_t capacity = handle->event_out->atom.size;
-	LV2_Atom_Forge *forge = &handle->cforge.forge;
+	LV2_Atom_Forge *forge = &handle->forge;
 	lv2_atom_forge_set_buffer(forge, (uint8_t *)handle->event_out, capacity);
 	LV2_Atom_Forge_Frame frame;
-	handle->ref2 = lv2_atom_forge_sequence_head(forge, &frame, 0);
+	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
-		if(!handle->ref2)
-			break;
-
+		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
 		const int64_t frames = ev->time.frames;
 
-		if(espressivo_event_check_type(&handle->cforge, &ev->body))
+		if(!props_advance(&handle->props, forge, frames, obj, &handle->ref))
 		{
-			espressivo_event_t cev;
-
-			espressivo_event_deforge(&handle->cforge, &ev->body, &cev);
-
-			handle->clone = true;
-
-			switch(cev.state)
-			{
-				case ESPRESSIVO_STATE_ON:
-					_fltr_on(handle, frames, &cev);
-					break;
-				case ESPRESSIVO_STATE_OFF:
-					_fltr_off(handle, frames, &cev);
-					break;
-				case ESPRESSIVO_STATE_SET:
-					_fltr_set(handle, frames, &cev);
-					break;
-				case ESPRESSIVO_STATE_IDLE:
-					_fltr_idle(handle, frames, &cev);
-					break;
-				default:
-					break;
-			}
-
-			// clone event
-			if(handle->clone)
-			{
-				if(handle->ref2)
-					handle->ref2 = lv2_atom_forge_frame_time(forge, frames);
-				if(handle->ref2)
-					handle->ref2 = espressivo_event_forge(&handle->cforge, &cev);
-			}
+			xpress_advance(&handle->xpress, forge, frames, obj, &handle->ref);
 		}
-		else
-			props_advance(&handle->props, forge, frames, (const LV2_Atom_Object *)&ev->body, &handle->ref2);
 	}
 
-	if(handle->ref2)
+	if(handle->ref)
 		lv2_atom_forge_pop(forge, &frame);
 	else
 		lv2_atom_sequence_clear(handle->event_out);
@@ -341,7 +320,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	handle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->cforge.forge, store, state, flags, features);
+	return props_save(&handle->props, &handle->forge, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -351,7 +330,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	handle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->cforge.forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

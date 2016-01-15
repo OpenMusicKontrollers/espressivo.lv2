@@ -24,9 +24,10 @@
 #include <props.h>
 
 #define MAX_NPROPS 5
+#define MAX_NVOICES 64
 
 typedef struct _pos_t pos_t;
-typedef struct _tuio2_ref_t tuio2_ref_t;
+typedef struct _target_t target_t;
 typedef struct _handle_t handle_t;
 
 struct _pos_t {
@@ -49,7 +50,11 @@ struct _pos_t {
 	float R;
 };
 
-struct _tuio2_ref_t {
+struct _target_t {
+	LV2_URID subject;
+
+	bool active;
+
 	uint32_t gid;
 	uint32_t tuid;
 
@@ -58,27 +63,26 @@ struct _tuio2_ref_t {
 
 struct _handle_t {
 	LV2_URID_Map *map;
-	espressivo_forge_t cforge;
+	LV2_Atom_Forge forge;
 	osc_forge_t oforge;
 
 	LV2_Log_Log *log;
 	LV2_Log_Logger logger;
+	
+	XPRESS_T(xpress, MAX_NVOICES);
+	target_t target [MAX_NVOICES];
 	
 	float rate;
 	float s;
 	float sm1;
 	uint64_t stamp;
 	
-	int64_t rel;
+	int64_t frames;
 
 	float bot;
 	float ran;
 
 	struct {
-		espressivo_dict_t dict [2][ESPRESSIVO_DICT_SIZE];
-		tuio2_ref_t ref [2][ESPRESSIVO_DICT_SIZE];
-		int pos;
-
 		uint32_t fid;
 		uint64_t last;
 		int32_t missed;
@@ -144,20 +148,6 @@ static const props_def_t stat_tuio2_sensorsPerSemitone = {
 	.type = LV2_ATOM__Int,
 	.mode = PROP_MODE_STATIC
 };
-
-// rt
-static inline LV2_Atom_Forge_Ref
-_chim_event(handle_t *handle, int64_t frames, espressivo_event_t *cev)
-{
-	LV2_Atom_Forge *forge = &handle->cforge.forge;
-	LV2_Atom_Forge_Ref ref;
-
-	ref = lv2_atom_forge_frame_time(forge, frames);
-	if(ref)
-		ref = espressivo_event_forge(&handle->cforge, cev);
-
-	return ref;
-}
 
 static inline void
 _pos_init(pos_t *dst, uint64_t stamp)
@@ -238,9 +228,8 @@ _pos_deriv(handle_t *handle, pos_t *neu, pos_t *old)
 static void
 _tuio2_reset(handle_t *handle)
 {
-	espressivo_dict_clear(handle->tuio2.dict[0]);
-	espressivo_dict_clear(handle->tuio2.dict[1]);
-	handle->tuio2.pos = 0;
+	XPRESS_VOICE_FREE(&handle->xpress, voice)
+	{}
 
 	handle->tuio2.fid = 0;
 	handle->tuio2.last = 0;
@@ -258,7 +247,7 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 {
 	handle_t *handle = data;
 	osc_forge_t *oforge = &handle->oforge;
-	LV2_Atom_Forge *forge = &handle->cforge.forge;
+	LV2_Atom_Forge *forge = &handle->forge;
 
 	const LV2_Atom *ptr = lv2_atom_tuple_begin(args);
 	uint32_t fid;
@@ -304,13 +293,13 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 			if(handle->stat.device_width != handle->tuio2.width)
 			{
 				handle->stat.device_width = handle->tuio2.width;
-				props_set(&handle->props, forge, handle->rel, handle->urid.device_width);
+				props_set(&handle->props, forge, handle->frames, handle->urid.device_width);
 			}
 
 			if(handle->stat.device_height != handle->tuio2.height)
 			{
 				handle->stat.device_height = handle->tuio2.height;
-				props_set(&handle->props, forge, handle->rel, handle->urid.device_height);
+				props_set(&handle->props, forge, handle->frames, handle->urid.device_height);
 			}
 			
 			const int n = handle->tuio2.width;
@@ -325,11 +314,8 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		if(ptr && strcmp(handle->stat.device_name, source))
 		{
 			strcpy(handle->stat.device_name, source);
-			props_set(&handle->props, forge, handle->rel, handle->urid.device_name);
+			props_set(&handle->props, forge, handle->frames, handle->urid.device_name);
 		}
-
-		handle->tuio2.pos ^= 1; // toggle pos
-		espressivo_dict_clear(handle->tuio2.dict[handle->tuio2.pos]);
 
 		// process this bundle
 		handle->tuio2.ignore = false;
@@ -358,6 +344,13 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		}
 	}
 
+	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+	{
+		target_t *src = voice->target;
+
+		src->active = false; // reset active flag
+	}
+
 	return 1;
 }
 
@@ -368,7 +361,7 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 {
 	handle_t *handle = data;
 	osc_forge_t *oforge = &handle->oforge;
-	LV2_Atom_Forge *forge = &handle->cforge.forge;
+	LV2_Atom_Forge *forge = &handle->forge;
 
 	pos_t pos;
 	_pos_init(&pos, handle->stamp);
@@ -376,20 +369,26 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	int has_derivatives = strlen(fmt) == 11;
 
 	const LV2_Atom *ptr = lv2_atom_tuple_begin(args);
-	tuio2_ref_t *ref = NULL;
 
 	if(handle->tuio2.ignore)
 		return 1;
 
 	uint32_t sid;
 	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&sid);
-	if(ptr)
-		ref = espressivo_dict_add(handle->tuio2.dict[handle->tuio2.pos], sid); // get new blob ref
-	if(!ref)
+	if(!ptr)
 		return 1;
 
-	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&ref->tuid);
-	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&ref->gid);
+	target_t *src = xpress_get(&handle->xpress, sid);
+	if(!src)
+	{
+		if(!(src = xpress_add(&handle->xpress, sid)))
+			return 1; // failed to register
+
+		src->subject = xpress_map(&handle->xpress);
+	}
+
+	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&src->tuid);
+	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&src->gid);
 	ptr = osc_deforge_float(oforge, forge, ptr, &pos.x);
 	ptr = osc_deforge_float(oforge, forge, ptr, &pos.z);
 	ptr = osc_deforge_float(oforge, forge, ptr, &pos.a);
@@ -405,10 +404,10 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	}
 	else // !has_derivatives
 	{
-		_pos_deriv(handle, &pos, &ref->pos);
+		_pos_deriv(handle, &pos, &src->pos);
 	}
 
-	_pos_clone(&ref->pos, &pos);
+	_pos_clone(&src->pos, &pos);
 
 	return 1;
 }
@@ -420,97 +419,78 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 {
 	handle_t *handle = data;
 	osc_forge_t *oforge = &handle->oforge;
-	LV2_Atom_Forge *forge = &handle->cforge.forge;
-
-	const LV2_Atom *ptr = lv2_atom_tuple_begin(args);
-	espressivo_event_t cev;
-	int n;
-	uint32_t sid;
-	tuio2_ref_t *dst;
-	tuio2_ref_t *src;
+	LV2_Atom_Forge *forge = &handle->forge;
 
 	if(handle->tuio2.ignore)
 		return 1;
 
-	n = strlen(fmt);
+	const unsigned n = strlen(fmt);
 
-	for(int i=0; i<n; i++)
+	const LV2_Atom *ptr = lv2_atom_tuple_begin(args);
+	for(unsigned i=0; (i<n) && ptr; i++)
 	{
-		if((ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&sid)))
+		uint32_t sid;
+
+		ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&sid);
+
+		// already registered in this step?
+		target_t *src = xpress_get(&handle->xpress, sid);
+		if(!src)
 		{
-			// already registered in this step?
-			dst = espressivo_dict_ref(handle->tuio2.dict[handle->tuio2.pos], sid);
-			if(!dst)
-			{
-				// register in this step
-				dst = espressivo_dict_add(handle->tuio2.dict[handle->tuio2.pos], sid);
-				// clone from previous step
-				src = espressivo_dict_ref(handle->tuio2.dict[!handle->tuio2.pos], sid);
-				if(dst && src)
-					memcpy(dst, src, sizeof(tuio2_ref_t));
-			}
+			if(!(src = xpress_add(&handle->xpress, sid)))
+				continue; // failed to register
+
+			src->subject = xpress_map(&handle->xpress);
 		}
+			
+		src->active = true; // set active state
 	}
 
-	// iterate over last step's blobs
-	ESPRESSIVO_DICT_FOREACH(handle->tuio2.dict[!handle->tuio2.pos], sid, src)
+	// iterate over inactive blobs
+	unsigned removed = 0;
+	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
 	{
-		// is it registered in this step?
-		if(!espressivo_dict_ref(handle->tuio2.dict[handle->tuio2.pos], sid))
-		{
-			// is disappeared blob
-			cev.state = ESPRESSIVO_STATE_OFF;
-			cev.sid = sid;
-			cev.gid = src->gid;
-			cev.dim[0] = _midi2cps(src->pos.x * handle->ran + handle->bot);
-			cev.dim[1] = src->pos.z;
-			cev.dim[2] = src->pos.vx.f11;
-			cev.dim[3] = src->pos.vz.f11;
+		target_t *src = voice->target;
 
-			if(handle->ref)
-				handle->ref = _chim_event(handle, handle->rel, &cev);
-		}
-	}
-
-	// iterate over this step's blobs
-	ESPRESSIVO_DICT_FOREACH(handle->tuio2.dict[handle->tuio2.pos], sid, dst)
-	{
-		cev.sid = sid;
-		cev.gid = dst->gid;
-		cev.dim[0] = _midi2cps(dst->pos.x * handle->ran + handle->bot);
-		cev.dim[1] = dst->pos.z;
-		cev.dim[2] = dst->pos.vx.f11;
-		cev.dim[3] = dst->pos.vz.f11;
-
-		// was it registered in previous step?
-		if(!espressivo_dict_ref(handle->tuio2.dict[!handle->tuio2.pos], sid))
-			cev.state = ESPRESSIVO_STATE_ON;
-		else
-			cev.state = ESPRESSIVO_STATE_SET;
+		// has it disappeared?
+		// is is active?
+		if(src->active)
+			continue;
 
 		if(handle->ref)
-			handle->ref = _chim_event(handle, handle->rel, &cev);
-	}
+			handle->ref = xpress_del(&handle->xpress, forge, handle->frames, src->subject);
 
-	if(!n && !handle->tuio2.n)
+		voice->subject = 0; // mark for removal
+		removed++;
+	}
+	_xpress_sort(&handle->xpress);
+	handle->xpress.nvoices -= removed;
+
+	// iterate over active blobs
+	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
 	{
-		// is idling
-		cev.state = ESPRESSIVO_STATE_IDLE;
-		cev.sid = 0;
-		cev.gid = 0;
-		cev.dim[0] = 0.f;
-		cev.dim[1] = 0.f;
-		cev.dim[2] = 0.f;
-		cev.dim[3] = 0.f;
+		target_t *src = voice->target;
+
+		const xpress_state_t state = {
+			.zone = src->gid,
+			.pitch = _midi2cps(src->pos.x * handle->ran + handle->bot),
+			.pressure = src->pos.z,
+			.timbre = src->pos.vx.f11
+			//state.timbre2 = src->pos.vz.f11; //FIXME
+		};
 
 		if(handle->ref)
-			handle->ref = _chim_event(handle, handle->rel, &cev);
+			handle->ref = xpress_put(&handle->xpress, forge, handle->frames, src->subject, &state);
 	}
 
 	handle->tuio2.n = n;
 
 	return 1;
 }
+
+static const xpress_iface_t iface = {
+	.size = sizeof(target_t)
+};
 
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
@@ -525,13 +505,20 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	handle->sm1 = 1.f - handle->s;
 	handle->s *= 0.5;
 
-	for(int i=0; features[i]; i++)
+	xpress_map_t *voice_map = NULL;
+
+	for(unsigned i=0; features[i]; i++)
 	{
 		if(!strcmp(features[i]->URI, LV2_URID__map))
 			handle->map = features[i]->data;
 		else if(!strcmp(features[i]->URI, LV2_LOG__log))
 			handle->log = features[i]->data;
+		else if(!strcmp(features[i]->URI, XPRESS_VOICE_MAP))
+			voice_map = features[i]->data;
 	}
+
+	if(!voice_map)
+		voice_map = &voice_map_fallback;
 
 	if(!handle->map)
 	{
@@ -540,13 +527,18 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	espressivo_forge_init(&handle->cforge, handle->map);
+	lv2_atom_forge_init(&handle->forge, handle->map);
 	osc_forge_init(&handle->oforge, handle->map);
-	ESPRESSIVO_DICT_INIT(handle->tuio2.dict[0], handle->tuio2.ref[0]);
-	ESPRESSIVO_DICT_INIT(handle->tuio2.dict[1], handle->tuio2.ref[1]);
 
 	if(handle->log)
 		lv2_log_logger_init(&handle->logger, handle->map, handle->log);
+
+	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_NONE, &iface, handle->target, NULL))
+	{
+		free(handle);
+		return NULL;
+	}
 
 	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
 	{
@@ -649,7 +641,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 	
 	handle->stamp += nsamples;
 
-	LV2_Atom_Forge *forge = &handle->cforge.forge;
+	LV2_Atom_Forge *forge = &handle->forge;
 	uint32_t capacity = handle->event_out->atom.size;
 	LV2_Atom_Forge_Frame frame;
 	lv2_atom_forge_set_buffer(forge, (uint8_t *)handle->event_out, capacity);
@@ -659,8 +651,9 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_ATOM_SEQUENCE_FOREACH(handle->osc_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
+		handle->frames = ev->time.frames;
 
-		if(!props_advance(&handle->props, forge, ev->time.frames, obj, &handle->ref))
+		if(!props_advance(&handle->props, forge, handle->frames, obj, &handle->ref))
 			osc_atom_event_unroll(&handle->oforge, obj, NULL, NULL, _message_cb, handle);
 	}
 
@@ -686,7 +679,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	handle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->cforge.forge, store, state, flags, features);
+	return props_save(&handle->props, &handle->forge, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -696,7 +689,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	handle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->cforge.forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

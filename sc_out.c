@@ -26,18 +26,27 @@
 #define SYNTH_NAMES 8
 #define STRING_SIZE 256
 #define MAX_NPROPS (SYNTH_NAMES + 8)
+#define MAX_NVOICES 64
 
+typedef struct _target_t target_t;
 typedef struct _handle_t handle_t;
+
+struct _target_t {
+	int32_t sid;
+	int32_t zone;
+};
 
 struct _handle_t {
 	char synth_name [STRING_SIZE][SYNTH_NAMES];
 
 	LV2_URID_Map *map;
-	espressivo_forge_t cforge;
 	osc_forge_t oforge;
 	LV2_Atom_Forge forge;
+	LV2_Atom_Forge_Ref ref;
 
 	PROPS_T(props, MAX_NPROPS);
+	XPRESS_T(xpress, MAX_NVOICES);
+	target_t target [MAX_NVOICES];
 
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *osc_out;
@@ -50,6 +59,8 @@ struct _handle_t {
 	int32_t allocate;
 	int32_t gate;
 	int32_t group;
+
+	int32_t sid;
 };
 
 static const props_def_t out_offset_def = {
@@ -185,6 +196,122 @@ static const LV2_State_Interface state_iface = {
 	.restore = _state_restore
 };
 
+static void
+_add(void *data, int64_t frames, const xpress_state_t *state,
+	LV2_URID subject, void *target)
+{
+	handle_t *handle = data;
+	LV2_Atom_Forge *forge = &handle->forge;
+	target_t *src = target;
+
+	const int32_t sid = handle->sid_offset + (handle->sid_wrap
+		? handle->sid++ % handle->sid_wrap
+		: handle->sid++);
+	src->sid = sid;
+	src->zone = state->zone;
+	const int32_t gid = handle->gid_offset + state->zone;
+	const int32_t out = handle->out_offset + state->zone;
+	const int32_t id = handle->group ? gid : sid;
+	const int32_t arg_num = 4;
+
+	if(handle->allocate)
+	{
+		if(handle->ref)
+			handle->ref = lv2_atom_forge_frame_time(forge, frames);
+		if(handle->gate)
+		{
+			if(handle->ref)
+				handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+					"/s_new", "siiiiisisi",
+					handle->synth_name[state->zone], id, 0, gid,
+					handle->arg_offset + 4, 128,
+					"gate", 1,
+					"out", out);
+		}
+		else // !handle->gate
+		{
+			if(handle->ref)
+				handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+					"/s_new", "siiiiisi",
+					handle->synth_name[state->zone], id, 0, gid,
+					handle->arg_offset + 4, 128,
+					"out", out);
+		}
+	}
+	else if(handle->gate)
+	{
+		if(handle->ref)
+			handle->ref = lv2_atom_forge_frame_time(forge, frames);
+		if(handle->ref)
+			handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+				"/n_set", "isi",
+				id,
+				"gate", 1);
+	}
+
+	if(handle->ref)
+		handle->ref = lv2_atom_forge_frame_time(forge, frames);
+	if(handle->ref)
+		handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+			"/n_setn", "iiiffff",
+			id, handle->arg_offset, arg_num,
+			state->pitch, state->pressure, 0.f, 0.f); //FIXME velocities
+}
+
+static void
+_put(void *data, int64_t frames, const xpress_state_t *state,
+	LV2_URID subject, void *target)
+{
+	handle_t *handle = data;
+	LV2_Atom_Forge *forge = &handle->forge;
+	target_t *src = target;
+
+	const int32_t sid = src->sid;
+	const int32_t gid = handle->gid_offset + state->zone;
+	const int32_t id = handle->group ? gid : sid;
+	const int32_t arg_num = 4;
+
+	if(handle->ref)
+		handle->ref = lv2_atom_forge_frame_time(forge, frames);
+	if(handle->ref)
+		handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+			"/n_setn", "iiiffff",
+			id, handle->arg_offset, arg_num,
+			state->pitch, state->pressure, 0.f, 0.f); //FIXME velocities
+}
+
+static void
+_del(void *data, int64_t frames, const xpress_state_t *state,
+	LV2_URID subject, void *target)
+{
+	handle_t *handle = data;
+	LV2_Atom_Forge *forge = &handle->forge;
+	target_t *src = target;
+
+	const int32_t sid = src->sid;
+	const int32_t gid = handle->gid_offset + src->zone;
+	const int32_t id = handle->group ? gid : sid;
+
+	if(handle->gate)
+	{
+		if(handle->ref)
+			handle->ref = lv2_atom_forge_frame_time(forge, frames);
+		if(handle->ref)
+			handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+				"/n_set", "isi",
+				id,
+				"gate", 0);
+	}
+}
+
+static const xpress_iface_t iface = {
+	.size = sizeof(target_t),
+
+	.add = _add,
+	.put = _put,
+	.del = _del
+};
+
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
@@ -193,9 +320,18 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	if(!handle)
 		return NULL;
 
+	xpress_map_t *voice_map = NULL;
+
 	for(int i=0; features[i]; i++)
+	{
 		if(!strcmp(features[i]->URI, LV2_URID__map))
-			handle->map = (LV2_URID_Map *)features[i]->data;
+			handle->map = features[i]->data;
+		else if(!strcmp(features[i]->URI, XPRESS_VOICE_MAP))
+			voice_map = features[i]->data;
+	}
+
+	if(!voice_map)
+		voice_map = &voice_map_fallback;
 
 	if(!handle->map)
 	{
@@ -204,9 +340,15 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	osc_forge_init(&handle->oforge, handle->map);
-	espressivo_forge_init(&handle->cforge, handle->map);
 	lv2_atom_forge_init(&handle->forge, handle->map);
+	osc_forge_init(&handle->oforge, handle->map);
+
+	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_ALL, &iface, handle->target, handle) )
+	{
+		free(handle);
+		return NULL;
+	}
 
 	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
 	{
@@ -259,129 +401,6 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 	}
 }
 
-static LV2_Atom_Forge_Ref
-_osc_on(handle_t *handle, LV2_Atom_Forge *forge, int64_t frames,
-	const espressivo_event_t *cev)
-{
-	const int32_t sid = handle->sid_offset + cev->sid % handle->sid_wrap;
-	const int32_t gid = handle->gid_offset + cev->gid;
-	const int32_t out = handle->out_offset + cev->gid;
-	const int32_t id = handle->group ? gid : sid;
-	const int32_t arg_offset = handle->arg_offset;
-	const int32_t arg_num = 4;
-
-	LV2_Atom_Forge_Ref ref;
-
-	if(handle->allocate)
-	{
-		ref = lv2_atom_forge_frame_time(forge, frames);
-		if(handle->gate)
-		{
-			if(ref)
-			{
-				ref = osc_forge_message_vararg(&handle->oforge, forge,
-					"/s_new", "siiiiisisi",
-					handle->synth_name[cev->gid], id, 0, gid,
-					arg_offset + 4, 128,
-					"gate", 1,
-					"out", out);
-				(void)ref;
-			}
-		}
-		else // !handle->gate
-		{
-			if(ref)
-			{
-				ref = osc_forge_message_vararg(&handle->oforge, forge,
-					"/s_new", "siiiiisi",
-					handle->synth_name[cev->gid], id, 0, gid,
-					arg_offset + 4, 128,
-					"out", out);
-				(void)ref;
-			}
-		}
-	}
-	else if(handle->gate)
-	{
-		ref = lv2_atom_forge_frame_time(forge, frames);
-		if(ref)
-		{
-			ref = osc_forge_message_vararg(&handle->oforge, forge,
-				"/n_set", "isi",
-				id,
-				"gate", 1);
-			(void)ref;
-		}
-	}
-
-	ref = lv2_atom_forge_frame_time(forge, frames);
-	if(ref)
-	{
-		ref = osc_forge_message_vararg(&handle->oforge, forge,
-			"/n_setn", "iiiffff",
-			id, arg_offset, arg_num,
-			cev->dim[0], cev->dim[1], cev->dim[2], cev->dim[3]);
-	}
-
-	return ref;
-}
-
-static LV2_Atom_Forge_Ref
-_osc_off(handle_t *handle, LV2_Atom_Forge *forge, int64_t frames,
-	const espressivo_event_t *cev)
-{
-	const int32_t sid = handle->sid_offset + cev->sid % handle->sid_wrap;
-	const int32_t gid = handle->gid_offset + cev->gid;
-	const int32_t id = handle->group ? gid : sid;
-
-	LV2_Atom_Forge_Ref ref = 1;
-
-	if(handle->gate)
-	{
-		ref = lv2_atom_forge_frame_time(forge, frames);
-		if(ref)
-		{
-			ref = osc_forge_message_vararg(&handle->oforge, forge,
-				"/n_set", "isi",
-				id,
-				"gate", 0);
-		}
-	}
-
-	return ref;
-}
-
-static LV2_Atom_Forge_Ref
-_osc_set(handle_t *handle, LV2_Atom_Forge *forge, int64_t frames,
-	const espressivo_event_t *cev)
-{
-	const int32_t sid = handle->sid_offset + cev->sid % handle->sid_wrap;
-	const int32_t gid = handle->gid_offset + cev->gid;
-	const int32_t id = handle->group ? gid : sid;
-	const int32_t arg_offset = handle->arg_offset;
-	const int32_t arg_num = 4;
-
-	LV2_Atom_Forge_Ref ref;
-
-	ref = lv2_atom_forge_frame_time(forge, frames);
-	if(ref)
-	{
-		ref = osc_forge_message_vararg(&handle->oforge, forge,
-			"/n_setn", "iiiffff",
-			id, arg_offset, arg_num,
-			cev->dim[0], cev->dim[1], cev->dim[2], cev->dim[3]);
-	}
-
-	return ref;
-}
-
-static LV2_Atom_Forge_Ref
-_osc_idle(handle_t *handle, LV2_Atom_Forge *forge, int64_t frames,
-	const espressivo_event_t *cev)
-{
-	return 1;
-}
-
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
@@ -392,39 +411,20 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_Atom_Forge *forge = &handle->forge;
 	lv2_atom_forge_set_buffer(forge, (uint8_t *)handle->osc_out, capacity);
 	LV2_Atom_Forge_Frame frame;
-	LV2_Atom_Forge_Ref ref;
-	ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
+	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
-		int64_t frames = ev->time.frames;
+		const int64_t frames = ev->time.frames;
 
-		if(  !props_advance(&handle->props, forge, frames, obj, &ref)
-			&& espressivo_event_check_type(&handle->cforge, &obj->atom) && ref)
+		if(!props_advance(&handle->props, forge, frames, obj, &handle->ref))
 		{
-			espressivo_event_t cev;
-			espressivo_event_deforge(&handle->cforge, &obj->atom, &cev);
-
-			switch(cev.state)
-			{
-				case ESPRESSIVO_STATE_ON:
-					ref = _osc_on(handle, forge, frames, &cev);
-					break;
-				case ESPRESSIVO_STATE_SET:
-					ref = _osc_set(handle, forge, frames, &cev);
-					break;
-				case ESPRESSIVO_STATE_OFF:
-					ref = _osc_off(handle, forge, frames, &cev);
-					break;
-				case ESPRESSIVO_STATE_IDLE:
-					ref = _osc_idle(handle, forge, frames, &cev);
-					break;
-			}
+			xpress_advance(&handle->xpress, forge, frames, obj, &handle->ref);
 		}
 	}
 
-	if(ref)
+	if(handle->ref)
 		lv2_atom_forge_pop(forge, &frame);
 	else
 		lv2_atom_sequence_clear(handle->osc_out);

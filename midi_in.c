@@ -23,16 +23,19 @@
 #include <props.h>
 
 #define MAX_NPROPS (1 + 12)
-#define MAX_NVOICES 128
+#define MAX_NVOICES 64
 
-typedef struct _voice_t voice_t;
+typedef struct _target_t target_t;
 typedef struct _handle_t handle_t;
 
-struct _voice_t {
+struct _target_t {
 	uint8_t key;
+	LV2_URID subject;
 
-	float freq;
-	float pressure;
+	xpress_state_t state;
+
+	uint8_t pressure_lsb;
+	uint8_t timbre_lsb;
 };
 
 struct _handle_t {
@@ -49,11 +52,10 @@ struct _handle_t {
 	int32_t range;
 	int32_t cents [MAX_NPROPS];
 
-	voice_map_t *voice_map;
-
 	PROPS_T(props, MAX_NPROPS);
-	INST_T(inst, MAX_NVOICES);
-	voice_t voices [MAX_NVOICES];
+
+	XPRESS_T(xpress, MAX_NVOICES);
+	target_t target [MAX_NVOICES];
 };
 
 static const props_def_t stat_midi_range = {
@@ -138,23 +140,6 @@ static const props_def_t stat_midi_cents [MAX_NPROPS] = {
 	},
 };
 
-static inline LV2_Atom_Forge_Ref
-_midi_event(handle_t *handle, int64_t frames, const uint8_t *m, size_t len)
-{
-	LV2_Atom_Forge *forge = &handle->forge;
-	LV2_Atom_Forge_Ref ref;
-		
-	ref = lv2_atom_forge_frame_time(forge, frames);
-	if(ref)
-		ref = lv2_atom_forge_atom(forge, len, handle->uris.midi_MidiEvent);
-	if(ref)
-		ref = lv2_atom_forge_raw(forge, m, len);
-	if(ref)
-		lv2_atom_forge_pad(forge, len);
-
-	return ref;
-}
-
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
@@ -163,13 +148,18 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	if(!handle)
 		return NULL;
 
+	xpress_map_t *voice_map = NULL;
+
 	for(unsigned i=0; features[i]; i++)
 	{
 		if(!strcmp(features[i]->URI, LV2_URID__map))
 			handle->map = features[i]->data;
-		if(!strcmp(features[i]->URI, ESPRESSIVO_URI"#voiceMap"))
-			handle->voice_map = features[i]->data;
+		else if(!strcmp(features[i]->URI, ESPRESSIVO_URI"#voiceMap"))
+			voice_map = features[i]->data;
 	}
+
+	if(!voice_map)
+		voice_map = &voice_map_fallback;
 
 	if(!handle->map)
 	{
@@ -177,17 +167,20 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		free(handle);
 		return NULL;
 	}
-	if(!handle->voice_map)
-		handle->voice_map = voice_map_fallback;
 
 	for(unsigned i=0; i<12; i++)
-		fprintf(stderr, "%u %u\n", i, handle->voice_map->new_id(handle->voice_map->handle));
+		fprintf(stderr, "%u %u\n", i, voice_map->new_id(voice_map->handle));
 
 	handle->uris.midi_MidiEvent = handle->map->map(handle->map->handle, LV2_MIDI__MidiEvent);
 
 	lv2_atom_forge_init(&handle->forge, handle->map);
-
-	espressivo_inst_init(&handle->inst, handle->voices, sizeof(voice_t), MAX_NVOICES);
+	
+	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_NONE, NULL, NULL, NULL) )
+	{
+		free(handle);
+		return NULL;
+	}
 
 	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
 	{
@@ -201,7 +194,6 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	{
 		urid = props_register(&handle->props, &stat_midi_cents[z], PROP_EVENT_NONE, NULL, &handle->cents[z]);
 	}
-
 	if(urid)
 	{
 		props_sort(&handle->props);
@@ -233,6 +225,23 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 	}
 }
 
+static inline LV2_Atom_Forge_Ref
+_midi_event(handle_t *handle, int64_t frames, const uint8_t *m, size_t len)
+{
+	LV2_Atom_Forge *forge = &handle->forge;
+	LV2_Atom_Forge_Ref ref;
+		
+	ref = lv2_atom_forge_frame_time(forge, frames);
+	if(ref)
+		ref = lv2_atom_forge_atom(forge, len, handle->uris.midi_MidiEvent);
+	if(ref)
+		ref = lv2_atom_forge_raw(forge, m, len);
+	if(ref)
+		lv2_atom_forge_pad(forge, len);
+
+	return ref;
+}
+
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
@@ -259,47 +268,111 @@ run(LV2_Handle instance, uint32_t nsamples)
 			if(comm == LV2_MIDI_MSG_NOTE_ON)
 			{
 				const uint8_t key = m[1];
-				const int32_t sid = ((int32_t)chan << 8) | key;
+				const LV2_URID subject = ((int32_t)chan << 8) | key;
 
-				voice_t *voice = espressivo_inst_voice_add(&handle->inst, sid);
+				target_t *target = xpress_add(&handle->xpress, subject);
+				if(target)
+				{
+					memset(target, 0x0, sizeof(target_t));
+					target->key = key;
+					target->subject = xpress_map(&handle->xpress);
+					target->state.zone = chan;
+					target->state.pitch = _midi2cps(target->key);
 
-				voice->key = key;
-				voice->freq = _midi2cps(voice->key);
-				//TODO
+					if(handle->ref)
+						handle->ref = xpress_put(&handle->xpress, forge, frames, target->subject, &target->state);
+				}
 			}
 			else if(comm == LV2_MIDI_MSG_NOTE_OFF)
 			{
 				const uint8_t key = m[1];
-				const int32_t sid = ((int32_t)chan << 8) | key;
+				const LV2_URID subject  = ((int32_t)chan << 8) | key;
 
-				voice_t *voice = espressivo_inst_voice_del(&handle->inst, sid);
-				//TODO
+				target_t *target = xpress_get(&handle->xpress, subject);
+				if(target)
+				{
+					if(handle->ref)
+						handle->ref = xpress_del(&handle->xpress, forge, frames, target->subject);
+				}
+
+				xpress_free(&handle->xpress, subject);
 			}
 			else if(comm == LV2_MIDI_MSG_NOTE_PRESSURE)
 			{
 				const uint8_t key = m[1];
-				const int32_t sid = ((int32_t)chan << 8) | key;
-				const float pressure = m[2] * 0x1p-7;
+				const LV2_URID subject = ((int32_t)chan << 8) | key;
 
-				voice_t *voice = espressivo_inst_voice_del(&handle->inst, sid);
-				voice->pressure = pressure;
-				//TODO
+				target_t *target = xpress_get(&handle->xpress, subject);
+				if(target)
+				{
+					const float pressure = m[2] * 0x1p-7;
+					target->state.pressure = pressure;
+
+					if(handle->ref)
+						handle->ref = xpress_del(&handle->xpress, forge, frames, target->subject);
+				}
 			}
 			else if(comm == LV2_MIDI_MSG_BENDER)
 			{
-				const int32_t sid = ((int32_t)chan << 8); //FIXME
 				const int16_t bender = (((int16_t)m[2] << 7) | m[1]) - 0x2000;
 				const float offset = bender * 0x1p-13 * handle->range * 0.01f;
 
-				voice_t *voice = espressivo_inst_voice_get(&handle->inst, sid);
-				voice->freq = (float)voice->key + offset;
-				//TODO
+				XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+				{
+					target_t *target = voice->target;
+
+					if(target->state.zone != chan)
+						continue; // channel not matching
+
+					target->state.pitch = (float)target->key + offset;
+
+					if(handle->ref)
+						handle->ref = xpress_del(&handle->xpress, forge, frames, target->subject);
+				}
 			}
 			else if(comm == LV2_MIDI_MSG_CONTROLLER)
 			{
 				const uint8_t controller = m[1];
 				const uint8_t value = m[2];
-				//TODO
+
+				if(  (controller == LV2_MIDI_CTL_SC5_BRIGHTNESS)
+					|| (controller == (LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20) )
+					|| (controller == LV2_MIDI_CTL_LSB_MODWHEEL)
+					|| (controller == LV2_MIDI_CTL_MSB_MODWHEEL) )
+				{
+					XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+					{
+						target_t *target = voice->target;
+						bool put = false;
+
+						if(target->state.zone != chan)
+							continue; // channel not matching
+
+						switch(controller)
+						{
+							case LV2_MIDI_CTL_SC5_BRIGHTNESS:
+								target->pressure_lsb = value;
+								break;
+							case LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20:
+								target->state.pressure = ( (value << 7) | target->pressure_lsb) * 0x1p-14;
+								put = true;
+								break;
+							case LV2_MIDI_CTL_LSB_MODWHEEL:
+								target->timbre_lsb = value;
+								break;
+							case LV2_MIDI_CTL_MSB_MODWHEEL:
+								target->state.timbre = ( (value << 7) | target->timbre_lsb) * 0x1p-14;
+								put = true;
+								break;
+						}
+
+						if(put)
+						{
+							if(handle->ref)
+								handle->ref = xpress_del(&handle->xpress, forge, frames, target->subject);
+						}
+					}
+				}
 			}
 		}
 		else

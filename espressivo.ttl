@@ -35,6 +35,7 @@
 @prefix proj:	<http://open-music-kontrollers.ch/lv2/> .
 @prefix esp:	<http://open-music-kontrollers.ch/lv2/espressivo#> .
 @prefix osc:	<http://open-music-kontrollers.ch/lv2/osc#> .
+@prefix xpress:	<http://open-music-kontrollers.ch/lv2/xpress#> .
 
 osc:schedule
 	a lv2:Feature .
@@ -45,24 +46,8 @@ osc:Event
 	rdfs:label "OSC Event" ;
 	rdfs:subClassOf atom:Atom .
 
-esp:voiceMap
+xpress:voiceMap
 	a lv2:Feature .
-
-esp:zone
-	a rdf:Property ,
-		owl:ObjectProperty ,
-		owl:FunctionalProperty ;
-	rdfs:label "zone number" ;
-	rdfs:domain patch:Message ;
-	rdfs:range xsd:int .
-
-esp:voice
-	a rdf:Property ,
-		owl:ObjectProperty ,
-		owl:FunctionalProperty ;
-	rdfs:label "voice number" ;
-	rdfs:domain patch:Message ;
-	rdfs:range xsd:int .
 
 # Maintainer
 omk:me
@@ -219,7 +204,7 @@ esp:mpe_out
 	doap:name "Espressivo MPE Out" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -330,7 +315,7 @@ esp:tuio2_in
 	doap:name "Espressivo TUIO2 In" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -471,7 +456,7 @@ esp:midi_in
 	doap:name "Espressivo MIDI In" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, esp:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -558,7 +543,7 @@ esp:snh
 	doap:name "Espressivo Sample and Hold" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -645,19 +630,19 @@ esp:sc_gid_offset
 	rdfs:label "GID Offset" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
-	lv2:maximum 1000 .
+	lv2:maximum 10000 .
 esp:sc_sid_offset
 	a lv2:Parameter ;
 	rdfs:label "SID Offset" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
-	lv2:maximum 1000 .
+	lv2:maximum 10000 .
 esp:sc_sid_wrap
 	a lv2:Parameter ;
 	rdfs:label "SID Wrap" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
-	lv2:maximum 1000 .
+	lv2:maximum 10000 .
 esp:sc_arg_offset
 	a lv2:Parameter ;
 	rdfs:label "Argument Offset" ;
@@ -685,7 +670,7 @@ esp:sc_out
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
 	lv2:extensionData state:interface ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule, xpress:voiceMap ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 
 	# input event port
@@ -743,7 +728,7 @@ esp:sc_out
 		esp:sc_out_offset 0 ;
 		esp:sc_gid_offset 100 ;
 		esp:sc_sid_offset 200 ;
-		esp:sc_sid_wrap 100 ;
+		esp:sc_sid_wrap 0 ;
 		esp:sc_arg_offset 0 ;
 		esp:sc_allocate true ;
 		esp:sc_gate true ;

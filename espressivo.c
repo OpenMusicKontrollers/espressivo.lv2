@@ -19,7 +19,7 @@
 
 #include <espressivo.h>
 
-static _Atomic uint32_t voice_id;
+static _Atomic uint32_t voice_id = ATOMIC_VAR_INIT(UINT32_MAX);
 
 static uint32_t
 _voice_map_new_id(void *handle)
@@ -28,12 +28,10 @@ _voice_map_new_id(void *handle)
 	return atomic_fetch_sub_explicit(&voice_id, 1, memory_order_relaxed);
 }
 
-static voice_map_t voice_map = {
+xpress_map_t voice_map_fallback = {
 	.handle = NULL,
 	.new_id = _voice_map_new_id
 };
-
-voice_map_t *voice_map_fallback = NULL;
 
 #ifdef _WIN32
 __declspec(dllexport)
@@ -43,12 +41,6 @@ __attribute__((visibility("default")))
 const LV2_Descriptor*
 lv2_descriptor(uint32_t index)
 {
-	if(!voice_map_fallback)
-	{
-		voice_map_fallback = &voice_map;
-		atomic_init(&voice_id, UINT32_MAX);
-	}
-
 	switch(index)
 	{
 		case 0:
