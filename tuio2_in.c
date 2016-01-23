@@ -473,10 +473,10 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 
 		const xpress_state_t state = {
 			.zone = src->gid,
-			.pitch = _midi2cps(src->pos.x * handle->ran + handle->bot),
-			.pressure = src->pos.z,
-			.timbre = src->pos.vx.f11
-			//state.timbre2 = src->pos.vz.f11; //FIXME
+			.position[0] = _midi2cps(src->pos.x * handle->ran + handle->bot),
+			.position[1] = src->pos.z,
+			.velocity[0] = src->pos.vx.f11,
+			.velocity[1] = src->pos.vz.f11
 		};
 
 		if(handle->ref)

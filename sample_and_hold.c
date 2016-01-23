@@ -129,10 +129,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	if((dst = xpress_create(&handle->xpress2, &src->subject)))
 	{
 		dst->on_hold = false;
-		dst->state.zone = state->zone;
-		dst->state.pitch = state->pitch;
-		dst->state.pressure = state->pressure;
-		dst->state.timbre = state->timbre;
+		memcpy(&dst->state, state, sizeof(xpress_state_t));
 
 		if(handle->ref)
 			handle->ref = xpress_put(&handle->xpress2, &handle->forge, frames, src->subject, &dst->state);
@@ -149,12 +146,9 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	
 	if((dst = xpress_get(&handle->xpress2, src->subject)))
 	{
-		if(!(handle->hold_dimension[0] && (state->pitch < dst->state.pitch) ))
-			dst->state.pitch = state->pitch;
-		if(!(handle->hold_dimension[1] && (state->pressure < dst->state.pressure) ))
-			dst->state.pressure = state->pressure;
-		if(!(handle->hold_dimension[2] && (state->timbre < dst->state.timbre) ))
-			dst->state.timbre = state->timbre;
+		for(unsigned i=0; i<3; i++)
+			if(!(handle->hold_dimension[i] && (state->position[i] < dst->state.position[i]) ))
+				dst->state.position[i] = state->position[i];
 
 		if(handle->ref)
 			handle->ref = xpress_put(&handle->xpress2, &handle->forge, frames, src->subject, &dst->state);

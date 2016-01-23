@@ -456,7 +456,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	handle_t *handle = data;
 	target_t *src = target;
 
-	const float val = _cps2midi(state->pitch);
+	const float val = _cps2midi(state->position[0]);
 
 	src->chan = mpe_acquire(&handle->mpe, state->zone);
 	src->zone = state->zone;
@@ -480,7 +480,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	handle_t *handle = data;
 	target_t *src = target;
 
-	const float val = _cps2midi(state->pitch);
+	const float val = _cps2midi(state->position[0]);
 	
 	// bender
 	const uint16_t bnd = (val - src->key) * mpe_range_1(&handle->mpe, state->zone) * 0x2000 + 0x1fff;
@@ -497,7 +497,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 		handle->ref = _midi_event(handle, frames, bend, 3);
 
 	// pressure
-	const uint16_t z = state->pressure * 0x3fff;
+	const uint16_t z = state->position[1] * 0x3fff;
 	const uint8_t z_msb = z >> 7;
 	const uint8_t z_lsb = z & 0x7f;
 
@@ -519,7 +519,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 		handle->ref = _midi_event(handle, frames, pressure_msb, 3);
 
 	// timbre
-	const uint16_t vx = (state->timbre * 0x2000) + 0x1fff; //TODO limit
+	const uint16_t vx = (state->position[2] * 0x2000) + 0x1fff; //TODO limit
 	const uint8_t vx_msb = vx >> 7;
 	const uint8_t vx_lsb = vx & 0x7f;
 
@@ -541,7 +541,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 		handle->ref = _midi_event(handle, frames, timbre_msb, 3);
 
 	// timbre
-	const uint16_t vz = (state->timbre * 0x2000) + 0x1fff; //TODO limit //FIXME FIXME
+	const uint16_t vz = (state->velocity[0] * 0x2000) + 0x1fff; //TODO limit //FIXME FIXME
 	const uint8_t vz_msb = vz >> 7;
 	const uint8_t vz_lsb = vz & 0x7f;
 
