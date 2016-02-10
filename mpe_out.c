@@ -622,6 +622,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	handle->uris.midi_MidiEvent = handle->map->map(handle->map->handle, LV2_MIDI__MidiEvent);
 
+	lv2_atom_forge_init(&handle->forge, handle->map);
+
 	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
 			XPRESS_EVENT_ALL, &iface, handle->target, handle))
 	{
@@ -631,15 +633,15 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
 	{
-		fprintf(stderr, "failed to allocate property structure\n");
 		free(handle);
 		return NULL;
 	}
 
 	LV2_URID urid = props_register(&handle->props, &stat_mpe_zones, PROP_EVENT_WRITE, _intercept_zones, &handle->stat.zones);
-	for(unsigned z=0; (z<ZONE_MAX) && urid; z++)
+	for(unsigned z=0; z<ZONE_MAX; z++)
 	{
-		urid = props_register(&handle->props, &stat_mpe_master_range[z], PROP_EVENT_WRITE, _intercept_master, &handle->stat.master_range[z]);
+		if(urid)
+			urid = props_register(&handle->props, &stat_mpe_master_range[z], PROP_EVENT_WRITE, _intercept_master, &handle->stat.master_range[z]);
 		if(urid)
 			urid = props_register(&handle->props, &stat_mpe_voice_range[z], PROP_EVENT_WRITE, _intercept_voice, &handle->stat.voice_range[z]);
 	}

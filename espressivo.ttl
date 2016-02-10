@@ -232,29 +232,27 @@ esp:mpe_out
 		lv2:designation lv2:control ;
 	] ;
 
-	patch:writable esp:mpe_zones ;
-
-	patch:writable esp:mpe_master_range_1 ;
-	patch:writable esp:mpe_master_range_2 ;
-	patch:writable esp:mpe_master_range_3 ;
-	patch:writable esp:mpe_master_range_4 ;
-	patch:writable esp:mpe_master_range_5 ;
-	patch:writable esp:mpe_master_range_6 ;
-	patch:writable esp:mpe_master_range_7 ;
-	patch:writable esp:mpe_master_range_8 ;
-
-	patch:writable esp:mpe_voice_range_1 ;
-	patch:writable esp:mpe_voice_range_2 ;
-	patch:writable esp:mpe_voice_range_3 ;
-	patch:writable esp:mpe_voice_range_4 ;
-	patch:writable esp:mpe_voice_range_5 ;
-	patch:writable esp:mpe_voice_range_6 ;
-	patch:writable esp:mpe_voice_range_7 ;
-	patch:writable esp:mpe_voice_range_8 ;
+	patch:writable
+		esp:mpe_zones ,
+		esp:mpe_master_range_1 ,
+		esp:mpe_master_range_2 ,
+		esp:mpe_master_range_3 ,
+		esp:mpe_master_range_4 ,
+		esp:mpe_master_range_5 ,
+		esp:mpe_master_range_6 ,
+		esp:mpe_master_range_7 ,
+		esp:mpe_master_range_8 ,
+		esp:mpe_voice_range_1 ,
+		esp:mpe_voice_range_2 ,
+		esp:mpe_voice_range_3 ,
+		esp:mpe_voice_range_4 ,
+		esp:mpe_voice_range_5 ,
+		esp:mpe_voice_range_6 ,
+		esp:mpe_voice_range_7 ,
+		esp:mpe_voice_range_8 ;
 	
 	state:state [
 		esp:mpe_zones 1 ;
-
 		esp:mpe_master_range_1 2 ;	
 		esp:mpe_master_range_2 2 ;	
 		esp:mpe_master_range_3 2 ;	
@@ -263,7 +261,6 @@ esp:mpe_out
 		esp:mpe_master_range_6 2 ;	
 		esp:mpe_master_range_7 2 ;	
 		esp:mpe_master_range_8 2 ;	
-
 		esp:mpe_voice_range_1 48 ;	
 		esp:mpe_voice_range_2 48 ;	
 		esp:mpe_voice_range_3 48 ;	
