@@ -24,33 +24,40 @@ esp:tuio2_in
 	a lv2:Plugin ;
 	lv2:minorVersion @ESPRESSIVO_MINOR_VERSION@ ;
 	lv2:microVersion @ESPRESSIVO_MICRO_VERSION@ ;
-	lv2:binary <espressivo@LIB_EXT@> ;
+	lv2:binary <espressivo@CMAKE_SHARED_MODULE_SUFFIX@> ;
 	rdfs:seeAlso <espressivo.ttl> .
 
 esp:midi_in
 	a lv2:Plugin ;
 	lv2:minorVersion @ESPRESSIVO_MINOR_VERSION@ ;
 	lv2:microVersion @ESPRESSIVO_MICRO_VERSION@ ;
-	lv2:binary <espressivo@LIB_EXT@> ;
+	lv2:binary <espressivo@CMAKE_SHARED_MODULE_SUFFIX@> ;
 	rdfs:seeAlso <espressivo.ttl> .
 
 esp:mpe_out
 	a lv2:Plugin ;
 	lv2:minorVersion @ESPRESSIVO_MINOR_VERSION@ ;
 	lv2:microVersion @ESPRESSIVO_MICRO_VERSION@ ;
-	lv2:binary <espressivo@LIB_EXT@> ;
+	lv2:binary <espressivo@CMAKE_SHARED_MODULE_SUFFIX@> ;
 	rdfs:seeAlso <espressivo.ttl> .
 
 esp:snh
 	a lv2:Plugin ;
 	lv2:minorVersion @ESPRESSIVO_MINOR_VERSION@ ;
 	lv2:microVersion @ESPRESSIVO_MICRO_VERSION@ ;
-	lv2:binary <espressivo@LIB_EXT@> ;
+	lv2:binary <espressivo@CMAKE_SHARED_MODULE_SUFFIX@> ;
+	rdfs:seeAlso <espressivo.ttl> .
+
+esp:through
+	a lv2:Plugin ;
+	lv2:minorVersion @ESPRESSIVO_MINOR_VERSION@ ;
+	lv2:microVersion @ESPRESSIVO_MICRO_VERSION@ ;
+	lv2:binary <espressivo@CMAKE_SHARED_MODULE_SUFFIX@> ;
 	rdfs:seeAlso <espressivo.ttl> .
 
 esp:sc_out
 	a lv2:Plugin ;
 	lv2:minorVersion @ESPRESSIVO_MINOR_VERSION@ ;
 	lv2:microVersion @ESPRESSIVO_MICRO_VERSION@ ;
-	lv2:binary <espressivo@LIB_EXT@> ;
+	lv2:binary <espressivo@CMAKE_SHARED_MODULE_SUFFIX@> ;
 	rdfs:seeAlso <espressivo.ttl> .

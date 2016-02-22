@@ -18,13 +18,6 @@ set(ESPRESSIVO_MICRO_VERSION 1)
 set(ESPRESSIVO_VERSION "${}.${}.${}")
 
 set(DEST lib/lv2/espressivo.lv2)
-if(WIN32)
-	set(LIB_EXT ".dll")
-elseif(APPLE)
-	set(LIB_EXT ".so")
-else()
-	set(LIB_EXT ".so")
-endif()
 
 find_package(PkgConfig) # ${PKG_CONFIG_FOUND}
 
@@ -45,6 +38,7 @@ add_library(espressivo MODULE
 	midi_in.c
 	tuio2_in.c
 	sample_and_hold.c
+	through.c
 	mpe_out.c
 	sc_out.c)
 target_link_libraries(espressivo ${LIBS})

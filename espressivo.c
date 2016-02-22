@@ -53,6 +53,8 @@ lv2_descriptor(uint32_t index)
 			return &snh;
 		case 4:
 			return &sc_out;
+		case 5:
+			return &through;
 		default:
 			return NULL;
 	}
