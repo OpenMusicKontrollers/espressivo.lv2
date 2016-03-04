@@ -20,7 +20,9 @@
 #include <math.h>
 
 #include <espressivo.h>
+#include <props.h>
 
+#define MAX_NPROPS 1
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
@@ -28,6 +30,7 @@ typedef struct _handle_t handle_t;
 
 struct _target_t {
 	LV2_URID subject;
+	int32_t zone_mask;
 };
 
 struct _handle_t {
@@ -35,11 +38,21 @@ struct _handle_t {
 	LV2_Atom_Forge forge;
 	LV2_Atom_Forge_Ref ref;
 
+	PROPS_T(props, MAX_NPROPS);
 	XPRESS_T(xpress, MAX_NVOICES);
 	target_t target [MAX_NVOICES];
 
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *event_out;
+
+	int32_t zone_mask;
+};
+
+static const props_def_t stat_through_zone_mask = {
+	.property = ESPRESSIVO_URI"#through_zone_mask",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC
 };
 
 static void
@@ -47,16 +60,21 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	LV2_URID subject, void *target)
 {
 	handle_t *handle = data;
-	LV2_Atom_Forge *forge = &handle->forge;
 	target_t *src = target;
+	src->zone_mask = 1 << state->zone;
 
-	src->subject = xpress_map(&handle->xpress);
+	if(src->zone_mask & handle->zone_mask)
+	{
+		LV2_Atom_Forge *forge = &handle->forge;
 
-	xpress_state_t new_state;
-	memcpy(&new_state, state, sizeof(xpress_state_t));
+		src->subject = xpress_map(&handle->xpress);
 
-	if(handle->ref)
-		handle->ref = xpress_put(&handle->xpress, forge, frames, src->subject, &new_state);
+		xpress_state_t new_state;
+		memcpy(&new_state, state, sizeof(xpress_state_t));
+
+		if(handle->ref)
+			handle->ref = xpress_put(&handle->xpress, forge, frames, src->subject, &new_state);
+	}
 }
 
 static void
@@ -64,14 +82,18 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	LV2_URID subject, void *target)
 {
 	handle_t *handle = data;
-	LV2_Atom_Forge *forge = &handle->forge;
 	target_t *src = target;
 
-	xpress_state_t new_state;
-	memcpy(&new_state, state, sizeof(xpress_state_t));
+	if(src->zone_mask & handle->zone_mask)
+	{
+		LV2_Atom_Forge *forge = &handle->forge;
 
-	if(handle->ref)
-		handle->ref = xpress_put(&handle->xpress, forge, frames, src->subject, &new_state);
+		xpress_state_t new_state;
+		memcpy(&new_state, state, sizeof(xpress_state_t));
+
+		if(handle->ref)
+			handle->ref = xpress_put(&handle->xpress, forge, frames, src->subject, &new_state);
+	}
 }
 
 static void
@@ -79,11 +101,15 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	LV2_URID subject, void *target)
 {
 	handle_t *handle = data;
-	LV2_Atom_Forge *forge = &handle->forge;
 	target_t *src = target;
 
-	if(handle->ref)
-		handle->ref = xpress_del(&handle->xpress, forge, frames, src->subject);
+	if(src->zone_mask & handle->zone_mask)
+	{
+		LV2_Atom_Forge *forge = &handle->forge;
+
+		if(handle->ref)
+			handle->ref = xpress_del(&handle->xpress, forge, frames, src->subject);
+	}
 }
 
 static const xpress_iface_t iface = {
@@ -131,6 +157,23 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
+	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
+	{
+		fprintf(stderr, "failed to allocate property structure\n");
+		free(handle);
+		return NULL;
+	}
+
+	if(props_register(&handle->props, &stat_through_zone_mask, PROP_EVENT_NONE, NULL, &handle->zone_mask) )
+	{
+		props_sort(&handle->props);
+	}
+	else
+	{
+		free(handle);
+		return NULL;
+	}
+
 	return handle;
 }
 
@@ -169,7 +212,10 @@ run(LV2_Handle instance, uint32_t nsamples)
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
 		const int64_t frames = ev->time.frames;
 
-		xpress_advance(&handle->xpress, forge, frames, obj, &handle->ref);
+		if(!props_advance(&handle->props, forge, frames, obj, &handle->ref))
+		{
+			xpress_advance(&handle->xpress, forge, frames, obj, &handle->ref);
+		}
 	}
 
 	if(handle->ref)
@@ -187,6 +233,39 @@ cleanup(LV2_Handle instance)
 		free(handle);
 }
 
+static LV2_State_Status
+_state_save(LV2_Handle instance, LV2_State_Store_Function store,
+	LV2_State_Handle state, uint32_t flags,
+	const LV2_Feature *const *features)
+{
+	handle_t *handle = instance;
+
+	return props_save(&handle->props, &handle->forge, store, state, flags, features);
+}
+
+static LV2_State_Status
+_state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
+	LV2_State_Handle state, uint32_t flags,
+	const LV2_Feature *const *features)
+{
+	handle_t *handle = instance;
+
+	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
+}
+
+static const LV2_State_Interface state_iface = {
+	.save = _state_save,
+	.restore = _state_restore
+};
+
+static const void *
+extension_data(const char *uri)
+{
+	if(!strcmp(uri, LV2_STATE__interface))
+		return &state_iface;
+	return NULL;
+}
+
 const LV2_Descriptor through = {
 	.URI						= ESPRESSIVO_THROUGH_URI,
 	.instantiate		= instantiate,
@@ -195,5 +274,5 @@ const LV2_Descriptor through = {
 	.run						= run,
 	.deactivate			= NULL,
 	.cleanup				= cleanup,
-	.extension_data	= NULL
+	.extension_data	= extension_data
 };
