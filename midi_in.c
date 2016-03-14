@@ -30,7 +30,7 @@ typedef struct _handle_t handle_t;
 
 struct _target_t {
 	uint8_t key;
-	LV2_URID subject;
+	xpress_uuid_t uuid;
 
 	xpress_state_t state;
 
@@ -168,9 +168,6 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	for(unsigned i=0; i<12; i++)
-		fprintf(stderr, "%u %u\n", i, voice_map->new_id(voice_map->handle));
-
 	handle->uris.midi_MidiEvent = handle->map->map(handle->map->handle, LV2_MIDI__MidiEvent);
 
 	lv2_atom_forge_init(&handle->forge, handle->map);
@@ -268,48 +265,48 @@ run(LV2_Handle instance, uint32_t nsamples)
 			if(comm == LV2_MIDI_MSG_NOTE_ON)
 			{
 				const uint8_t key = m[1];
-				const LV2_URID subject = ((int32_t)chan << 8) | key;
+				const xpress_uuid_t uuid = ((int32_t)chan << 8) | key;
 
-				target_t *target = xpress_add(&handle->xpress, subject);
+				target_t *target = xpress_add(&handle->xpress, uuid);
 				if(target)
 				{
 					memset(target, 0x0, sizeof(target_t));
 					target->key = key;
-					target->subject = xpress_map(&handle->xpress);
+					target->uuid = xpress_map(&handle->xpress);
 					target->state.zone = chan;
 					target->state.position[0] = _midi2cps(target->key);
 
 					if(handle->ref)
-						handle->ref = xpress_put(&handle->xpress, forge, frames, target->subject, &target->state);
+						handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);
 				}
 			}
 			else if(comm == LV2_MIDI_MSG_NOTE_OFF)
 			{
 				const uint8_t key = m[1];
-				const LV2_URID subject  = ((int32_t)chan << 8) | key;
+				const xpress_uuid_t uuid  = ((int32_t)chan << 8) | key;
 
-				target_t *target = xpress_get(&handle->xpress, subject);
+				target_t *target = xpress_get(&handle->xpress, uuid);
 				if(target)
 				{
 					if(handle->ref)
-						handle->ref = xpress_del(&handle->xpress, forge, frames, target->subject);
+						handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
 				}
 
-				xpress_free(&handle->xpress, subject);
+				xpress_free(&handle->xpress, uuid);
 			}
 			else if(comm == LV2_MIDI_MSG_NOTE_PRESSURE)
 			{
 				const uint8_t key = m[1];
-				const LV2_URID subject = ((int32_t)chan << 8) | key;
+				const xpress_uuid_t uuid = ((int32_t)chan << 8) | key;
 
-				target_t *target = xpress_get(&handle->xpress, subject);
+				target_t *target = xpress_get(&handle->xpress, uuid);
 				if(target)
 				{
 					const float pressure = m[2] * 0x1p-7;
 					target->state.position[1] = pressure;
 
 					if(handle->ref)
-						handle->ref = xpress_del(&handle->xpress, forge, frames, target->subject);
+						handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
 				}
 			}
 			else if(comm == LV2_MIDI_MSG_BENDER)
@@ -327,7 +324,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 					target->state.position[0] = (float)target->key + offset;
 
 					if(handle->ref)
-						handle->ref = xpress_del(&handle->xpress, forge, frames, target->subject);
+						handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
 				}
 			}
 			else if(comm == LV2_MIDI_MSG_CONTROLLER)
@@ -369,7 +366,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 						if(put)
 						{
 							if(handle->ref)
-								handle->ref = xpress_del(&handle->xpress, forge, frames, target->subject);
+								handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
 						}
 					}
 				}

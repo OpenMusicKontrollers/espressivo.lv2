@@ -19,18 +19,18 @@
 
 #include <espressivo.h>
 
-static _Atomic uint32_t voice_id = ATOMIC_VAR_INIT(UINT32_MAX);
+static _Atomic xpress_uuid_t voice_uuid = ATOMIC_VAR_INIT(0);
 
-static uint32_t
-_voice_map_new_id(void *handle)
+static xpress_uuid_t
+_voice_map_new_uuid(void *handle)
 {
-	(void) handle;
-	return atomic_fetch_sub_explicit(&voice_id, 1, memory_order_relaxed);
+	_Atomic xpress_uuid_t *uuid = handle;
+	return atomic_fetch_add_explicit(uuid, 1, memory_order_relaxed);
 }
 
 xpress_map_t voice_map_fallback = {
-	.handle = NULL,
-	.new_id = _voice_map_new_id
+	.handle = &voice_uuid,
+	.new_uuid = _voice_map_new_uuid
 };
 
 #ifdef _WIN32

@@ -198,7 +198,7 @@ static const LV2_State_Interface state_iface = {
 
 static void
 _add(void *data, int64_t frames, const xpress_state_t *state,
-	LV2_URID subject, void *target)
+	xpress_uuid_t uuid, void *target)
 {
 	handle_t *handle = data;
 	LV2_Atom_Forge *forge = &handle->forge;
@@ -260,7 +260,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 
 static void
 _put(void *data, int64_t frames, const xpress_state_t *state,
-	LV2_URID subject, void *target)
+	xpress_uuid_t uuid, void *target)
 {
 	handle_t *handle = data;
 	LV2_Atom_Forge *forge = &handle->forge;
@@ -282,7 +282,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 
 static void
 _del(void *data, int64_t frames, const xpress_state_t *state,
-	LV2_URID subject, void *target)
+	xpress_uuid_t uuid, void *target)
 {
 	handle_t *handle = data;
 	LV2_Atom_Forge *forge = &handle->forge;

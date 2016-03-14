@@ -51,7 +51,7 @@ struct _pos_t {
 };
 
 struct _target_t {
-	LV2_URID subject;
+	xpress_uuid_t uuid;
 
 	bool active;
 
@@ -384,7 +384,7 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		if(!(src = xpress_add(&handle->xpress, sid)))
 			return 1; // failed to register
 
-		src->subject = xpress_map(&handle->xpress);
+		src->uuid = xpress_map(&handle->xpress);
 	}
 
 	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&src->tuid);
@@ -440,7 +440,7 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 			if(!(src = xpress_add(&handle->xpress, sid)))
 				continue; // failed to register
 
-			src->subject = xpress_map(&handle->xpress);
+			src->uuid = xpress_map(&handle->xpress);
 		}
 			
 		src->active = true; // set active state
@@ -458,9 +458,9 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 			continue;
 
 		if(handle->ref)
-			handle->ref = xpress_del(&handle->xpress, forge, handle->frames, src->subject);
+			handle->ref = xpress_del(&handle->xpress, forge, handle->frames, src->uuid);
 
-		voice->subject = 0; // mark for removal
+		voice->uuid = 0; // mark for removal
 		removed++;
 	}
 	_xpress_sort(&handle->xpress);
@@ -480,7 +480,7 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		};
 
 		if(handle->ref)
-			handle->ref = xpress_put(&handle->xpress, forge, handle->frames, src->subject, &state);
+			handle->ref = xpress_put(&handle->xpress, forge, handle->frames, src->uuid, &state);
 	}
 
 	handle->tuio2.n = n;

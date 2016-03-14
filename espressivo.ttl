@@ -49,6 +49,11 @@ osc:Event
 xpress:voiceMap
 	a lv2:Feature .
 
+xpress:Message
+	a rdfs:Class ,
+		rdfs:Datatype ;
+	rdfs:subClassOf atom:Atom .
+
 # Maintainer
 omk:me
 	a foaf:Person ;
@@ -213,8 +218,7 @@ esp:mpe_out
 	  a lv2:InputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports atom:Object ;
-		atom:supports patch:Message ;
+		atom:supports xpress:Message, patch:Message ;
 		lv2:index 0 ;
 		lv2:symbol "event_in" ;
 		lv2:name "Event Input" ;
@@ -224,8 +228,7 @@ esp:mpe_out
 	  a lv2:OutputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports midi:MidiEvent ;
-		atom:supports patch:Message ;
+		atom:supports midi:MidiEvent, patch:Message ;
 		lv2:index 1 ;
 		lv2:symbol "midi_out" ;
 		lv2:name "MIDI Output" ;
@@ -321,9 +324,7 @@ esp:tuio2_in
 	  a lv2:InputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports atom:Object ;
-		atom:supports osc:Event ;
-		atom:supports patch:Message ;
+		atom:supports osc:Event, patch:Message ;
 		lv2:index 0 ;
 		lv2:symbol "osc_in" ;
 		lv2:name "OSC Input" ;
@@ -333,8 +334,7 @@ esp:tuio2_in
 	  a lv2:OutputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports atom:Object ;
-		atom:supports patch:Message ;
+		atom:supports xpress:Message, patch:Message ;
 		lv2:index 1 ;
 		lv2:symbol "event_out" ;
 		lv2:name "Event Output" ;
@@ -462,8 +462,7 @@ esp:midi_in
 	  a lv2:InputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports midi:MidiEvent ;
-		atom:supports patch:Message ;
+		atom:supports midi:MidiEvent, patch:Message ;
 		lv2:index 0 ;
 		lv2:symbol "osc_in" ;
 		lv2:name "OSC Input" ;
@@ -473,8 +472,7 @@ esp:midi_in
 	  a lv2:OutputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports midi:MidiEvent ;
-		atom:supports patch:Message ;
+		atom:supports patch:Message, xpress:Message ;
 		lv2:index 1 ;
 		lv2:symbol "event_out" ;
 		lv2:name "Event Output" ;
@@ -549,8 +547,7 @@ esp:snh
 	  a lv2:InputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports atom:Object ;
-		atom:supports patch:Message ;
+		atom:supports patch:Message, xpress:Message ;
 		lv2:index 0 ;
 		lv2:symbol "event_in" ;
 		lv2:name "Event Input" ;
@@ -560,8 +557,7 @@ esp:snh
 	  a lv2:OutputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports atom:Object ;
-		atom:supports patch:Message ;
+		atom:supports patch:Message, xpress:Message ;
 		lv2:index 1 ;
 		lv2:symbol "event_out" ;
 		lv2:name "Event Output" ;
@@ -606,8 +602,7 @@ esp:through
 	  a lv2:InputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports atom:Object ;
-		atom:supports patch:Message ;
+		atom:supports patch:Message, xpress:Message ;
 		lv2:index 0 ;
 		lv2:symbol "event_in" ;
 		lv2:name "Event Input" ;
@@ -617,8 +612,7 @@ esp:through
 	  a lv2:OutputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports atom:Object ;
-		atom:supports patch:Message ;
+		atom:supports patch:Message, xpress:Message ;
 		lv2:index 1 ;
 		lv2:symbol "event_out" ;
 		lv2:name "Event Output" ;
@@ -724,8 +718,7 @@ esp:sc_out
 	  a lv2:InputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports atom:Object ;
-		atom:supports patch:Message ;
+		atom:supports patch:Message, xpress:Message ;
 		lv2:index 0 ;
 		lv2:symbol "event_in" ;
 		lv2:name "Event Input" ;
@@ -735,9 +728,7 @@ esp:sc_out
 	  a lv2:OutputPort ,
 			atom:AtomPort ;
 		atom:bufferType atom:Sequence ;
-		atom:supports atom:Object ;
-		atom:supports patch:Message ;
-		atom:supports osc:Event ;
+		atom:supports patch:Message, osc:Event ;
 		lv2:index 1 ;
 		lv2:symbol "osc_out" ;
 		lv2:name "OSC Output" ;

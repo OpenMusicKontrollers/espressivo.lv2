@@ -30,7 +30,7 @@ typedef struct _target2_t target2_t;
 typedef struct _handle_t handle_t;
 
 struct _target_t {
-	LV2_URID subject;
+	xpress_uuid_t uuid;
 };
 
 struct _target2_t {
@@ -108,9 +108,9 @@ _intercept_sample(void *data, LV2_Atom_Forge *forge, int64_t frames,
 				continue; // still playing
 
 			if(handle->ref)
-				handle->ref = xpress_del(&handle->xpress2, forge, frames, voice->subject);
+				handle->ref = xpress_del(&handle->xpress2, forge, frames, voice->uuid);
 
-			voice->subject = 0; // mark for removal
+			voice->uuid = 0; // mark for removal
 			removed++;
 		}
 		_xpress_sort(&handle->xpress2);
@@ -120,44 +120,44 @@ _intercept_sample(void *data, LV2_Atom_Forge *forge, int64_t frames,
 
 static void
 _add(void *data, int64_t frames, const xpress_state_t *state,
-	LV2_URID subject, void *target)
+	xpress_uuid_t uuid, void *target)
 {
 	handle_t *handle = data;
 	target_t *src = target;
 	target2_t *dst;
 
-	if((dst = xpress_create(&handle->xpress2, &src->subject)))
+	if((dst = xpress_create(&handle->xpress2, &src->uuid)))
 	{
 		dst->on_hold = false;
 		memcpy(&dst->state, state, sizeof(xpress_state_t));
 
 		if(handle->ref)
-			handle->ref = xpress_put(&handle->xpress2, &handle->forge, frames, src->subject, &dst->state);
+			handle->ref = xpress_put(&handle->xpress2, &handle->forge, frames, src->uuid, &dst->state);
 	}
 }
 
 static void
 _put(void *data, int64_t frames, const xpress_state_t *state,
-	LV2_URID subject, void *target)
+	xpress_uuid_t uuid, void *target)
 {
 	handle_t *handle = data;
 	target_t *src = target;
 	target2_t *dst;
 	
-	if((dst = xpress_get(&handle->xpress2, src->subject)))
+	if((dst = xpress_get(&handle->xpress2, src->uuid)))
 	{
 		for(unsigned i=0; i<3; i++)
 			if(!(handle->hold_dimension[i] && (state->position[i] < dst->state.position[i]) ))
 				dst->state.position[i] = state->position[i];
 
 		if(handle->ref)
-			handle->ref = xpress_put(&handle->xpress2, &handle->forge, frames, src->subject, &dst->state);
+			handle->ref = xpress_put(&handle->xpress2, &handle->forge, frames, src->uuid, &dst->state);
 	}
 }
 
 static void
 _del(void *data, int64_t frames, const xpress_state_t *state,
-	LV2_URID subject, void *target)
+	xpress_uuid_t uuid, void *target)
 {
 	handle_t *handle = data;
 	target_t *src = target;
@@ -165,15 +165,15 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 
 	if(handle->sample)
 	{
-		if((dst = xpress_get(&handle->xpress2, src->subject)))
+		if((dst = xpress_get(&handle->xpress2, src->uuid)))
 			dst->on_hold = true;
 		return;
 	}
 
 	if(handle->ref)
-		handle->ref = xpress_del(&handle->xpress2, &handle->forge, frames, src->subject);
+		handle->ref = xpress_del(&handle->xpress2, &handle->forge, frames, src->uuid);
 
-	xpress_free(&handle->xpress2, src->subject);
+	xpress_free(&handle->xpress2, src->uuid);
 }
 
 static const xpress_iface_t iface = {

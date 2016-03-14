@@ -29,7 +29,7 @@ typedef struct _target_t target_t;
 typedef struct _handle_t handle_t;
 
 struct _target_t {
-	LV2_URID subject;
+	xpress_uuid_t uuid;
 	int32_t zone_mask;
 };
 
@@ -57,7 +57,7 @@ static const props_def_t stat_through_zone_mask = {
 
 static void
 _add(void *data, int64_t frames, const xpress_state_t *state,
-	LV2_URID subject, void *target)
+	xpress_uuid_t uuid, void *target)
 {
 	handle_t *handle = data;
 	target_t *src = target;
@@ -67,19 +67,19 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	{
 		LV2_Atom_Forge *forge = &handle->forge;
 
-		src->subject = xpress_map(&handle->xpress);
+		src->uuid = xpress_map(&handle->xpress);
 
 		xpress_state_t new_state;
 		memcpy(&new_state, state, sizeof(xpress_state_t));
 
 		if(handle->ref)
-			handle->ref = xpress_put(&handle->xpress, forge, frames, src->subject, &new_state);
+			handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid, &new_state);
 	}
 }
 
 static void
 _put(void *data, int64_t frames, const xpress_state_t *state,
-	LV2_URID subject, void *target)
+	xpress_uuid_t uuid, void *target)
 {
 	handle_t *handle = data;
 	target_t *src = target;
@@ -92,13 +92,13 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 		memcpy(&new_state, state, sizeof(xpress_state_t));
 
 		if(handle->ref)
-			handle->ref = xpress_put(&handle->xpress, forge, frames, src->subject, &new_state);
+			handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid, &new_state);
 	}
 }
 
 static void
 _del(void *data, int64_t frames, const xpress_state_t *state,
-	LV2_URID subject, void *target)
+	xpress_uuid_t uuid, void *target)
 {
 	handle_t *handle = data;
 	target_t *src = target;
@@ -108,7 +108,7 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 		LV2_Atom_Forge *forge = &handle->forge;
 
 		if(handle->ref)
-			handle->ref = xpress_del(&handle->xpress, forge, frames, src->subject);
+			handle->ref = xpress_del(&handle->xpress, forge, frames, src->uuid);
 	}
 }
 
