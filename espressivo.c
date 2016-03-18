@@ -19,7 +19,7 @@
 
 #include <espressivo.h>
 
-static _Atomic xpress_uuid_t voice_uuid = ATOMIC_VAR_INIT(0);
+static _Atomic xpress_uuid_t voice_uuid = ATOMIC_VAR_INIT(INT64_MAX / UINT16_MAX * 1LL);
 
 static xpress_uuid_t
 _voice_map_new_uuid(void *handle)
