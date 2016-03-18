@@ -24,7 +24,7 @@
 
 #define CHAN_MAX 16
 #define ZONE_MAX (CHAN_MAX / 2)
-#define MAX_NPROPS (1 + ZONE_MAX*2)
+#define MAX_NPROPS (1 + ZONE_MAX*4)
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
@@ -71,6 +71,8 @@ struct _handle_t {
 		int32_t zones;
 		int32_t master_range [ZONE_MAX];
 		int32_t voice_range [ZONE_MAX];
+		int32_t pressure_controller [ZONE_MAX];
+		int32_t timbre_controller [ZONE_MAX];
 	} stat;
 
 	mpe_t mpe;
@@ -180,6 +182,108 @@ static const props_def_t stat_mpe_voice_range [ZONE_MAX] = {
 	},
 	[7] = {
 		.property = ESPRESSIVO_URI"#mpe_voice_range_8",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+};
+
+static const props_def_t stat_mpe_pressure_controller [ZONE_MAX] = {
+	[0] = {
+		.property = ESPRESSIVO_URI"#mpe_pressure_controller_1",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[1] = {
+		.property = ESPRESSIVO_URI"#mpe_pressure_controller_2",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[2] = {
+		.property = ESPRESSIVO_URI"#mpe_pressure_controller_3",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[3] = {
+		.property = ESPRESSIVO_URI"#mpe_pressure_controller_4",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[4] = {
+		.property = ESPRESSIVO_URI"#mpe_pressure_controller_5",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[5] = {
+		.property = ESPRESSIVO_URI"#mpe_pressure_controller_6",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[6] = {
+		.property = ESPRESSIVO_URI"#mpe_pressure_controller_7",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[7] = {
+		.property = ESPRESSIVO_URI"#mpe_pressure_controller_8",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+};
+
+static const props_def_t stat_mpe_timbre_controller [ZONE_MAX] = {
+	[0] = {
+		.property = ESPRESSIVO_URI"#mpe_timbre_controller_1",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[1] = {
+		.property = ESPRESSIVO_URI"#mpe_timbre_controller_2",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[2] = {
+		.property = ESPRESSIVO_URI"#mpe_timbre_controller_3",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[3] = {
+		.property = ESPRESSIVO_URI"#mpe_timbre_controller_4",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[4] = {
+		.property = ESPRESSIVO_URI"#mpe_timbre_controller_5",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[5] = {
+		.property = ESPRESSIVO_URI"#mpe_timbre_controller_6",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[6] = {
+		.property = ESPRESSIVO_URI"#mpe_timbre_controller_7",
+		.access = LV2_PATCH__writable,
+		.type = LV2_ATOM__Int,
+		.mode = PROP_MODE_STATIC
+	},
+	[7] = {
+		.property = ESPRESSIVO_URI"#mpe_timbre_controller_8",
 		.access = LV2_PATCH__writable,
 		.type = LV2_ATOM__Int,
 		.mode = PROP_MODE_STATIC
@@ -474,13 +578,13 @@ _set(handle_t *handle, int64_t frames, const xpress_state_t *state,
 
 	const uint8_t pressure_lsb [3] = {
 		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		LV2_MIDI_CTL_SC1_SOUND_VARIATION | 0x20,
+		handle->stat.pressure_controller[state->zone] | 0x20,
 		z_lsb
 	};
 
 	const uint8_t pressure_msb [3] = {
 		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		LV2_MIDI_CTL_SC1_SOUND_VARIATION,
+		handle->stat.pressure_controller[state->zone],
 		z_msb
 	};
 
@@ -496,13 +600,13 @@ _set(handle_t *handle, int64_t frames, const xpress_state_t *state,
 
 	const uint8_t timbre_lsb [3] = {
 		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20,
+		handle->stat.timbre_controller[state->zone] | 0x20,
 		vx_lsb
 	};
 
 	const uint8_t timbre_msb [3] = {
 		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		LV2_MIDI_CTL_SC5_BRIGHTNESS,
+		handle->stat.timbre_controller[state->zone],
 		vx_msb
 	};
 
@@ -511,8 +615,9 @@ _set(handle_t *handle, int64_t frames, const xpress_state_t *state,
 	if(handle->ref)
 		handle->ref = _midi_event(handle, frames, timbre_msb, 3);
 
-	// timbre
-	const uint16_t vz = (state->velocity[0] * 0x2000) + 0x1fff; //TODO limit //FIXME FIXME
+	// timbre 2
+	/* FIXME
+	const uint16_t vz = (state->velocity[0] * 0x2000) + 0x1fff; //TODO limit
 	const uint8_t vz_msb = vz >> 7;
 	const uint8_t vz_lsb = vz & 0x7f;
 
@@ -532,6 +637,7 @@ _set(handle_t *handle, int64_t frames, const xpress_state_t *state,
 		handle->ref = _midi_event(handle, frames, mod_lsb, 3);
 	if(handle->ref)
 		handle->ref = _midi_event(handle, frames, mod_msb, 3);
+	*/
 }
 
 static void
@@ -646,14 +752,21 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	LV2_URID urid = props_register(&handle->props, &stat_mpe_zones, PROP_EVENT_WRITE, _intercept_zones, &handle->stat.zones);
-	for(unsigned z=0; z<ZONE_MAX; z++)
-	{
-		if(urid)
-			urid = props_register(&handle->props, &stat_mpe_master_range[z], PROP_EVENT_WRITE, _intercept_master, &handle->stat.master_range[z]);
-		if(urid)
-			urid = props_register(&handle->props, &stat_mpe_voice_range[z], PROP_EVENT_WRITE, _intercept_voice, &handle->stat.voice_range[z]);
-	}
+	LV2_URID urid = props_register(&handle->props, &stat_mpe_zones,
+		PROP_EVENT_WRITE, _intercept_zones, &handle->stat.zones);
+
+	for(unsigned z=0; urid && (z<ZONE_MAX); z++)
+		urid = props_register(&handle->props, &stat_mpe_master_range[z],
+			PROP_EVENT_WRITE, _intercept_master, &handle->stat.master_range[z]);
+	for(unsigned z=0; urid && (z<ZONE_MAX); z++)
+		urid = props_register(&handle->props, &stat_mpe_voice_range[z],
+			PROP_EVENT_WRITE, _intercept_voice, &handle->stat.voice_range[z]);
+	for(unsigned z=0; urid && (z<ZONE_MAX); z++)
+		urid = props_register(&handle->props, &stat_mpe_pressure_controller[z],
+			PROP_EVENT_NONE, NULL, &handle->stat.pressure_controller[z]);
+	for(unsigned z=0; urid && (z<ZONE_MAX); z++)
+		urid = props_register(&handle->props, &stat_mpe_timbre_controller[z],
+			PROP_EVENT_NONE, NULL, &handle->stat.timbre_controller[z]);
 
 	if(urid)
 	{

@@ -81,7 +81,6 @@ esp:mpe_master_range_1
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_master_range_2
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 2" ;
@@ -89,7 +88,6 @@ esp:mpe_master_range_2
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_master_range_3
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 3" ;
@@ -97,7 +95,6 @@ esp:mpe_master_range_3
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_master_range_4
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 4" ;
@@ -105,7 +102,6 @@ esp:mpe_master_range_4
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_master_range_5
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 5" ;
@@ -113,7 +109,6 @@ esp:mpe_master_range_5
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_master_range_6
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 6" ;
@@ -121,7 +116,6 @@ esp:mpe_master_range_6
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_master_range_7
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 7" ;
@@ -129,7 +123,6 @@ esp:mpe_master_range_7
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_master_range_8
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 8" ;
@@ -145,7 +138,6 @@ esp:mpe_voice_range_1
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_voice_range_2
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 2" ;
@@ -153,7 +145,6 @@ esp:mpe_voice_range_2
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_voice_range_3
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 3" ;
@@ -161,7 +152,6 @@ esp:mpe_voice_range_3
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_voice_range_4
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 4" ;
@@ -169,7 +159,6 @@ esp:mpe_voice_range_4
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_voice_range_5
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 5" ;
@@ -177,7 +166,6 @@ esp:mpe_voice_range_5
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_voice_range_6
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 6" ;
@@ -185,7 +173,6 @@ esp:mpe_voice_range_6
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_voice_range_7
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 7" ;
@@ -193,7 +180,6 @@ esp:mpe_voice_range_7
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
-
 esp:mpe_voice_range_8
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 8" ;
@@ -201,6 +187,104 @@ esp:mpe_voice_range_8
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
 	lv2:maximum 96 .
+
+esp:mpe_pressure_controller_1
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 1" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_pressure_controller_2
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 2" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_pressure_controller_3
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 3" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_pressure_controller_4
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 4" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_pressure_controller_5
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 5" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_pressure_controller_6
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 6" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_pressure_controller_7
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 7" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_pressure_controller_8
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 8" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+
+esp:mpe_timbre_controller_1
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 1" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_timbre_controller_2
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 2" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_timbre_controller_3
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 3" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_timbre_controller_4
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 4" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_timbre_controller_5
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 5" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_timbre_controller_6
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 6" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_timbre_controller_7
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 7" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:mpe_timbre_controller_8
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 8" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
 
 # MPE Output Plugin
 esp:mpe_out
@@ -252,7 +336,23 @@ esp:mpe_out
 		esp:mpe_voice_range_5 ,
 		esp:mpe_voice_range_6 ,
 		esp:mpe_voice_range_7 ,
-		esp:mpe_voice_range_8 ;
+		esp:mpe_voice_range_8 ,
+		esp:mpe_pressure_controller_1 ,
+		esp:mpe_pressure_controller_2 ,
+		esp:mpe_pressure_controller_3 ,
+		esp:mpe_pressure_controller_4 ,
+		esp:mpe_pressure_controller_5 ,
+		esp:mpe_pressure_controller_6 ,
+		esp:mpe_pressure_controller_7 ,
+		esp:mpe_pressure_controller_8 ,
+		esp:mpe_timbre_controller_1 ,
+		esp:mpe_timbre_controller_2 ,
+		esp:mpe_timbre_controller_3 ,
+		esp:mpe_timbre_controller_4 ,
+		esp:mpe_timbre_controller_5 ,
+		esp:mpe_timbre_controller_6 ,
+		esp:mpe_timbre_controller_7 ,
+		esp:mpe_timbre_controller_8 ;
 	
 	state:state [
 		esp:mpe_zones 1 ;
@@ -272,6 +372,22 @@ esp:mpe_out
 		esp:mpe_voice_range_6 48 ;	
 		esp:mpe_voice_range_7 48 ;	
 		esp:mpe_voice_range_8 48 ;	
+		esp:mpe_pressure_controller_1 70 ;	
+		esp:mpe_pressure_controller_2 70 ;	
+		esp:mpe_pressure_controller_3 70 ;	
+		esp:mpe_pressure_controller_4 70 ;	
+		esp:mpe_pressure_controller_5 70 ;	
+		esp:mpe_pressure_controller_6 70 ;	
+		esp:mpe_pressure_controller_7 70 ;	
+		esp:mpe_pressure_controller_8 70 ;	
+		esp:mpe_timbre_controller_1 74 ;	
+		esp:mpe_timbre_controller_2 74 ;	
+		esp:mpe_timbre_controller_3 74 ;	
+		esp:mpe_timbre_controller_4 74 ;	
+		esp:mpe_timbre_controller_5 74 ;	
+		esp:mpe_timbre_controller_6 74 ;	
+		esp:mpe_timbre_controller_7 74 ;	
+		esp:mpe_timbre_controller_8 74 ;	
 	] .
 
 esp:tuio2_deviceWidth
@@ -671,7 +787,7 @@ esp:reducto
 		esp:reducto_threshold ;
 	
 	state:state [
-		esp:reducto_threshold 0.1 ;
+		esp:reducto_threshold "0.1"^^xsd:float ;
 	] .
 
 esp:sc_synth_name_0
