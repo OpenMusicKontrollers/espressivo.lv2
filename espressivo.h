@@ -60,7 +60,8 @@
 #define ESPRESSIVO_MIDI_IN_URI			ESPRESSIVO_URI"#midi_in"
 #define ESPRESSIVO_MPE_OUT_URI			ESPRESSIVO_URI"#mpe_out"
 #define ESPRESSIVO_SNH_URI					ESPRESSIVO_URI"#snh"
-#define ESPRESSIVO_THROUGH_URI					ESPRESSIVO_URI"#through"
+#define ESPRESSIVO_THROUGH_URI			ESPRESSIVO_URI"#through"
+#define ESPRESSIVO_REDUCTO_URI			ESPRESSIVO_URI"#reducto"
 #define ESPRESSIVO_SC_OUT_URI				ESPRESSIVO_URI"#sc_out"
 
 extern const LV2_Descriptor tuio2_in;
@@ -68,6 +69,7 @@ extern const LV2_Descriptor midi_in;
 extern const LV2_Descriptor mpe_out;
 extern const LV2_Descriptor snh;
 extern const LV2_Descriptor through;
+extern const LV2_Descriptor reducto;
 extern const LV2_Descriptor sc_out;
 
 static inline float

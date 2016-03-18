@@ -55,6 +55,13 @@ esp:through
 	lv2:binary <espressivo@CMAKE_SHARED_MODULE_SUFFIX@> ;
 	rdfs:seeAlso <espressivo.ttl> .
 
+esp:reducto
+	a lv2:Plugin ;
+	lv2:minorVersion @ESPRESSIVO_MINOR_VERSION@ ;
+	lv2:microVersion @ESPRESSIVO_MICRO_VERSION@ ;
+	lv2:binary <espressivo@CMAKE_SHARED_MODULE_SUFFIX@> ;
+	rdfs:seeAlso <espressivo.ttl> .
+
 esp:sc_out
 	a lv2:Plugin ;
 	lv2:minorVersion @ESPRESSIVO_MINOR_VERSION@ ;

@@ -39,6 +39,7 @@ add_library(espressivo MODULE
 	tuio2_in.c
 	sample_and_hold.c
 	through.c
+	reducto.c
 	mpe_out.c
 	sc_out.c)
 target_link_libraries(espressivo ${LIBS})
