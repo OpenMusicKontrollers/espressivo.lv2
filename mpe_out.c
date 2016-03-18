@@ -449,39 +449,10 @@ _intercept_voice(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	}
 }
 
-static void
-_add(void *data, int64_t frames, const xpress_state_t *state,
-	xpress_uuid_t uuid, void *target)
+static inline void
+_set(handle_t *handle, int64_t frames, const xpress_state_t *state,
+	float val, target_t *src)
 {
-	handle_t *handle = data;
-	target_t *src = target;
-
-	const float val = _cps2midi(state->position[0]);
-
-	src->chan = mpe_acquire(&handle->mpe, state->zone);
-	src->zone = state->zone;
-	src->key = floor(val);
-	const uint8_t vel = 0x7f; //TODO make configurable
-
-	const uint8_t note_on [3] = {
-		LV2_MIDI_MSG_NOTE_ON | src->chan,
-		src->key,
-		vel
-	};
-
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, note_on, 3);
-}
-
-static void
-_put(void *data, int64_t frames, const xpress_state_t *state,
-	xpress_uuid_t uuid, void *target)
-{
-	handle_t *handle = data;
-	target_t *src = target;
-
-	const float val = _cps2midi(state->position[0]);
-	
 	// bender
 	const uint16_t bnd = (val - src->key) * mpe_range_1(&handle->mpe, state->zone) * 0x2000 + 0x1fff;
 	const uint8_t bnd_msb = bnd >> 7;
@@ -561,6 +532,44 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 		handle->ref = _midi_event(handle, frames, mod_lsb, 3);
 	if(handle->ref)
 		handle->ref = _midi_event(handle, frames, mod_msb, 3);
+}
+
+static void
+_add(void *data, int64_t frames, const xpress_state_t *state,
+	xpress_uuid_t uuid, void *target)
+{
+	handle_t *handle = data;
+	target_t *src = target;
+
+	const float val = _cps2midi(state->position[0]);
+
+	src->chan = mpe_acquire(&handle->mpe, state->zone);
+	src->zone = state->zone;
+	src->key = floor(val);
+	const uint8_t vel = 0x7f; //TODO make configurable
+
+	const uint8_t note_on [3] = {
+		LV2_MIDI_MSG_NOTE_ON | src->chan,
+		src->key,
+		vel
+	};
+
+	if(handle->ref)
+		handle->ref = _midi_event(handle, frames, note_on, 3);
+
+	_set(handle, frames, state, val, src);
+}
+
+static void
+_put(void *data, int64_t frames, const xpress_state_t *state,
+	xpress_uuid_t uuid, void *target)
+{
+	handle_t *handle = data;
+	target_t *src = target;
+
+	const float val = _cps2midi(state->position[0]);
+
+	_set(handle, frames, state, val, src);
 }
 
 static void
