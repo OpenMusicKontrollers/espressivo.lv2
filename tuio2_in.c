@@ -219,9 +219,6 @@ _pos_deriv(handle_t *handle, pos_t *neu, pos_t *old)
 		const double diff = (sec1 - sec0) + (frc1 - frc0) * 0x1p-32;
 		const float rate = 1.0 / diff;
 
-		if(handle->log)
-			lv2_log_trace(&handle->logger, "rate: %f", rate);
-
 		const float dx = neu->x - old->x;
 		neu->vx.f1 = dx * rate;
 
