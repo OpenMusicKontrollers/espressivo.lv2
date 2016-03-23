@@ -23,7 +23,7 @@
 #include <lv2_osc.h>
 #include <props.h>
 
-#define MAX_NPROPS 5
+#define MAX_NPROPS 6
 #define MAX_NVOICES 64
 
 typedef struct _pos_t pos_t;
@@ -32,6 +32,7 @@ typedef struct _handle_t handle_t;
 
 struct _pos_t {
 	uint64_t stamp;
+	int64_t frames;
 
 	float x;
 	float z;
@@ -76,7 +77,8 @@ struct _handle_t {
 	float s;
 	float sm1;
 	uint64_t stamp;
-	
+
+	int64_t offset;
 	int64_t frames;
 
 	float bot;
@@ -103,6 +105,7 @@ struct _handle_t {
 		char device_name [128];
 		int32_t octave;
 		int32_t sensors_per_semitone;
+		int32_t filter_stiffness;
 	} stat;
 
 	struct {
@@ -149,9 +152,17 @@ static const props_def_t stat_tuio2_sensorsPerSemitone = {
 	.mode = PROP_MODE_STATIC
 };
 
+static const props_def_t stat_tuio2_filterStiffness = {
+	.property = ESPRESSIVO_URI"#tuio2_filterStiffness",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC
+};
+
 static inline void
-_pos_init(pos_t *dst, uint64_t stamp)
+_pos_init(pos_t *dst, int64_t frames, uint64_t stamp)
 {
+	dst->frames = frames;
 	dst->stamp = stamp;
 	dst->x = 0.f;
 	dst->z = 0.f;
@@ -171,6 +182,7 @@ _pos_init(pos_t *dst, uint64_t stamp)
 static inline void
 _pos_clone(pos_t *dst, pos_t *src)
 {
+	dst->frames = src->frames;
 	dst->stamp = src->stamp;
 	dst->x = src->x;
 	dst->z = src->z;
@@ -192,6 +204,7 @@ _pos_deriv(handle_t *handle, pos_t *neu, pos_t *old)
 {
 	if(neu->stamp <= old->stamp)
 	{
+		neu->frames = old->frames;
 		neu->stamp = old->stamp;
 		neu->vx.f1 = old->vx.f1;
 		neu->vx.f11 = old->vx.f11;
@@ -204,12 +217,22 @@ _pos_deriv(handle_t *handle, pos_t *neu, pos_t *old)
 	}
 	else
 	{
-		float rate = handle->rate / (neu->stamp - old->stamp);
+		const uint32_t sec0 = old->stamp >> 32;
+		const uint32_t frc0 = old->stamp & 0xffffffff;
+		const uint32_t sec1 = neu->stamp >> 32;
+		const uint32_t frc1 = neu->stamp & 0xffffffff;
+		const double diff = (sec1 - sec0) + (frc1 - frc0) * 0x1p-32;
+		const float rate = 1.0 / diff;
 
-		float dx = neu->x - old->x;
+		/* FIXME
+		if(handle->log)
+			lv2_log_trace(&handle->logger, "rate: %f %f", handle->rate / (neu->frames - old->frames), rate);
+		*/
+
+		const float dx = neu->x - old->x;
 		neu->vx.f1 = dx * rate;
 
-		float dz = neu->z - old->z;
+		const float dz = neu->z - old->z;
 		neu->vz.f1 = dz * rate;
 
 		// first-order IIR filter
@@ -218,7 +241,7 @@ _pos_deriv(handle_t *handle, pos_t *neu, pos_t *old)
 
 		neu->v = sqrtf(neu->vx.f11 * neu->vx.f11 + neu->vz.f11 * neu->vz.f11);
 
-		float dv =  neu->v - old->v;
+		const float dv =  neu->v - old->v;
 		neu->A = 0.f;
 		neu->m = dv * rate;
 		neu->R = 0.f;
@@ -240,6 +263,8 @@ _tuio2_reset(handle_t *handle)
 	handle->tuio2.n = 0;
 }
 
+uint64_t last_last = 0ULL;
+
 // rt
 static int
 _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
@@ -254,7 +279,7 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	uint64_t last;
 
 	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&fid);
-	ptr = osc_deforge_timestamp(oforge, forge, ptr, &last);
+	ptr = osc_deforge_timestamp(oforge, forge, ptr, &handle->stamp);
 
 	if(!ptr)
 		return 1;
@@ -364,7 +389,7 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	LV2_Atom_Forge *forge = &handle->forge;
 
 	pos_t pos;
-	_pos_init(&pos, handle->stamp);
+	_pos_init(&pos, handle->offset + handle->frames, handle->stamp);
 
 	int has_derivatives = strlen(fmt) == 11;
 
@@ -492,6 +517,23 @@ static const xpress_iface_t iface = {
 	.size = sizeof(target_t)
 };
 
+static inline void
+_stiffness_set(handle_t *handle, int32_t stiffness)
+{
+	handle->s = 1.f / 32.f; //FIXME make stiffness configurable
+	handle->sm1 = 1.f - handle->s;
+	handle->s *= 0.5;
+}
+
+static void
+_intercept_filter_stiffness(void *data, LV2_Atom_Forge *forge, int64_t frames,
+	props_event_t event, props_impl_t *impl)
+{
+	handle_t *handle = data;
+
+	_stiffness_set(handle, handle->stat.filter_stiffness);
+}
+
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
@@ -501,9 +543,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 
 	handle->rate = rate;
-	handle->s = 1.f / 32.f; //FIXME make stiffness configurable
-	handle->sm1 = 1.f - handle->s;
-	handle->s *= 0.5;
+	_stiffness_set(handle, 32);
 
 	xpress_map_t *voice_map = NULL;
 
@@ -555,7 +595,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 				&handle->stat.device_name))
 
 		&& props_register(&handle->props, &stat_tuio2_octave, PROP_EVENT_NONE, NULL, &handle->stat.octave)
-		&& props_register(&handle->props, &stat_tuio2_sensorsPerSemitone, PROP_EVENT_NONE, NULL, &handle->stat.sensors_per_semitone) )
+		&& props_register(&handle->props, &stat_tuio2_sensorsPerSemitone, PROP_EVENT_NONE, NULL, &handle->stat.sensors_per_semitone)
+		&& props_register(&handle->props, &stat_tuio2_filterStiffness, PROP_EVENT_WRITE, _intercept_filter_stiffness, &handle->stat.filter_stiffness) )
 	{
 		props_sort(&handle->props);
 	}
@@ -591,7 +632,7 @@ activate(LV2_Handle instance)
 {
 	handle_t *handle = (handle_t *)instance;
 
-	handle->stamp = 0;
+	handle->offset = 0;
 
 	handle->stat.device_width = 1;
 	handle->stat.device_height = 1;
@@ -639,8 +680,6 @@ run(LV2_Handle instance, uint32_t nsamples)
 {
 	handle_t *handle = (handle_t *)instance;
 	
-	handle->stamp += nsamples;
-
 	LV2_Atom_Forge *forge = &handle->forge;
 	uint32_t capacity = handle->event_out->atom.size;
 	LV2_Atom_Forge_Frame frame;
@@ -661,6 +700,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 		lv2_atom_forge_pop(forge, &frame);
 	else
 		lv2_atom_sequence_clear(handle->event_out);
+
+	handle->offset += nsamples;
 }
 
 static void

@@ -424,6 +424,14 @@ esp:tuio2_sensorsPerSemitone
 	lv2:minimum 1 ;
 	lv2:maximum 160 .
 
+esp:tuio2_filterStiffness
+	a lv2:Parameter ;
+	rdfs:label "Filter stiffness" ;
+	rdfs:range atom:Int ;
+	units:units units:frame ;
+	lv2:minimum 1 ;
+	lv2:maximum 128 .
+
 # TUIO2 Input Plugin
 esp:tuio2_in
 	a lv2:Plugin ,
@@ -457,16 +465,20 @@ esp:tuio2_in
 		lv2:designation lv2:control ;
 	] ;
 
-	patch:readable esp:tuio2_deviceWidth ;
-	patch:readable esp:tuio2_deviceHeight ;
-	patch:readable esp:tuio2_deviceName ;
+	patch:readable
+		esp:tuio2_deviceWidth ,
+		esp:tuio2_deviceHeight ,
+		esp:tuio2_deviceName ;
 
-	patch:writable esp:tuio2_octave ;
-	patch:writable esp:tuio2_sensorsPerSemitone ;
+	patch:writable
+		esp:tuio2_octave ,
+		esp:tuio2_sensorsPerSemitone ,
+		esp:tuio2_filterStiffness ;
 	
 	state:state [
 		esp:tuio2_octave 2 ;
 		esp:tuio2_sensorsPerSemitone 3 ;	
+		esp:tuio2_filterStiffness 32 ;
 	] .
 
 esp:midi_range
@@ -702,7 +714,7 @@ esp:through_zone_mask
 	rdfs:range atom:Int ;
 	lv2:parameterProperty lv2:isBitmask ;
 	lv2:minimum 0 ;
-	lv2:maximum 65535 .
+	lv2:maximum 256 .
 
 esp:through
 	a lv2:Plugin ,
