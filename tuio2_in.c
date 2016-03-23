@@ -32,7 +32,6 @@ typedef struct _handle_t handle_t;
 
 struct _pos_t {
 	uint64_t stamp;
-	int64_t frames;
 
 	float x;
 	float z;
@@ -78,7 +77,6 @@ struct _handle_t {
 	float sm1;
 	uint64_t stamp;
 
-	int64_t offset;
 	int64_t frames;
 
 	float bot;
@@ -160,9 +158,8 @@ static const props_def_t stat_tuio2_filterStiffness = {
 };
 
 static inline void
-_pos_init(pos_t *dst, int64_t frames, uint64_t stamp)
+_pos_init(pos_t *dst, uint64_t stamp)
 {
-	dst->frames = frames;
 	dst->stamp = stamp;
 	dst->x = 0.f;
 	dst->z = 0.f;
@@ -182,7 +179,6 @@ _pos_init(pos_t *dst, int64_t frames, uint64_t stamp)
 static inline void
 _pos_clone(pos_t *dst, pos_t *src)
 {
-	dst->frames = src->frames;
 	dst->stamp = src->stamp;
 	dst->x = src->x;
 	dst->z = src->z;
@@ -204,7 +200,6 @@ _pos_deriv(handle_t *handle, pos_t *neu, pos_t *old)
 {
 	if(neu->stamp <= old->stamp)
 	{
-		neu->frames = old->frames;
 		neu->stamp = old->stamp;
 		neu->vx.f1 = old->vx.f1;
 		neu->vx.f11 = old->vx.f11;
@@ -224,10 +219,8 @@ _pos_deriv(handle_t *handle, pos_t *neu, pos_t *old)
 		const double diff = (sec1 - sec0) + (frc1 - frc0) * 0x1p-32;
 		const float rate = 1.0 / diff;
 
-		/* FIXME
 		if(handle->log)
-			lv2_log_trace(&handle->logger, "rate: %f %f", handle->rate / (neu->frames - old->frames), rate);
-		*/
+			lv2_log_trace(&handle->logger, "rate: %f", rate);
 
 		const float dx = neu->x - old->x;
 		neu->vx.f1 = dx * rate;
@@ -389,7 +382,7 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	LV2_Atom_Forge *forge = &handle->forge;
 
 	pos_t pos;
-	_pos_init(&pos, handle->offset + handle->frames, handle->stamp);
+	_pos_init(&pos, handle->stamp);
 
 	int has_derivatives = strlen(fmt) == 11;
 
@@ -632,8 +625,6 @@ activate(LV2_Handle instance)
 {
 	handle_t *handle = (handle_t *)instance;
 
-	handle->offset = 0;
-
 	handle->stat.device_width = 1;
 	handle->stat.device_height = 1;
 	handle->stat.device_name[0] = '\0';
@@ -700,8 +691,6 @@ run(LV2_Handle instance, uint32_t nsamples)
 		lv2_atom_forge_pop(forge, &frame);
 	else
 		lv2_atom_sequence_clear(handle->event_out);
-
-	handle->offset += nsamples;
 }
 
 static void
