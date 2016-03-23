@@ -647,7 +647,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	handle_t *handle = data;
 	target_t *src = target;
 
-	const float val = _cps2midi(state->position[0]);
+	const float val = state->position[0];
 
 	src->chan = mpe_acquire(&handle->mpe, state->zone);
 	src->zone = state->zone;
@@ -673,7 +673,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	handle_t *handle = data;
 	target_t *src = target;
 
-	const float val = _cps2midi(state->position[0]);
+	const float val = state->position[0];
 
 	_set(handle, frames, state, val, src);
 }

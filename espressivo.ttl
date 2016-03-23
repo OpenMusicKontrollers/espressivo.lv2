@@ -428,7 +428,7 @@ esp:tuio2_filterStiffness
 	a lv2:Parameter ;
 	rdfs:label "Filter stiffness" ;
 	rdfs:range atom:Int ;
-	units:units units:frame ;
+	units:unit units:frame ;
 	lv2:minimum 1 ;
 	lv2:maximum 128 .
 
@@ -756,9 +756,16 @@ esp:through
 	] .
 
 # Reducto
-esp:reducto_threshold
+esp:reducto_position_threshold
 	a lv2:Parameter ;
-	rdfs:label "Threshold" ;
+	rdfs:label "Position threshold" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET ;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:reducto_velocity_threshold
+	a lv2:Parameter ;
+	rdfs:label "Velocity threshold" ;
 	rdfs:range atom:Float ;
 	lv2:minimum 0.0 ;
 	lv2:maximum 1.0 .
@@ -796,10 +803,12 @@ esp:reducto
 	] ;
 
 	patch:writable
-		esp:reducto_threshold ;
+		esp:reducto_position_threshold ,
+		esp:reducto_velocity_threshold ;
 	
 	state:state [
-		esp:reducto_threshold "0.1"^^xsd:float ;
+		esp:reducto_position_threshold "1.0"^^xsd:float ;
+		esp:reducto_velocity_threshold "0.2"^^xsd:float ;
 	] .
 
 esp:sc_synth_name_0

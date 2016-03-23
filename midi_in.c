@@ -274,7 +274,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 					target->key = key;
 					target->uuid = xpress_map(&handle->xpress);
 					target->state.zone = chan;
-					target->state.position[0] = _midi2cps(target->key);
+					target->state.position[0] = target->key;
 
 					if(handle->ref)
 						handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);

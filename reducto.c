@@ -22,7 +22,7 @@
 #include <espressivo.h>
 #include <props.h>
 
-#define MAX_NPROPS 1
+#define MAX_NPROPS 2
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
@@ -31,6 +31,7 @@ typedef struct _handle_t handle_t;
 struct _target_t {
 	xpress_uuid_t uuid;
 	bool below;
+	float x;
 };
 
 struct _handle_t {
@@ -45,11 +46,19 @@ struct _handle_t {
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *event_out;
 
-	float threshold;
+	float position_threshold;
+	float velocity_threshold;
 };
 
-static const props_def_t stat_reducto_threshold = {
-	.property = ESPRESSIVO_URI"#reducto_threshold",
+static const props_def_t stat_reducto_position_threshold = {
+	.property = ESPRESSIVO_URI"#reducto_position_threshold",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Float,
+	.mode = PROP_MODE_STATIC
+};
+
+static const props_def_t stat_reducto_velocity_threshold = {
+	.property = ESPRESSIVO_URI"#reducto_velocity_threshold",
 	.access = LV2_PATCH__writable,
 	.type = LV2_ATOM__Float,
 	.mode = PROP_MODE_STATIC
@@ -66,6 +75,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 
 	src->uuid = xpress_map(&handle->xpress);
 	src->below = true;
+	src->x = state->position[0];
 
 	if(handle->ref)
 		handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid, state);
@@ -78,30 +88,40 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	handle_t *handle = data;
 	target_t *src = target;
 
+	bool spawn_new = false;
 	const float vel_x_abs = fabs(state->velocity[0]);
 
 	if(src->below)
 	{
-		if(vel_x_abs >= handle->threshold)
+		if(vel_x_abs >= handle->velocity_threshold)
 			src->below = false;
 	}
 	else // !src->below
 	{
-		if(vel_x_abs < handle->threshold)
+		if(vel_x_abs < handle->velocity_threshold)
 		{
-			LV2_Atom_Forge *forge = &handle->forge;
+			const float pos_x_diff_abs = fabs(state->position[0] - src->x);
 
-			// delete previous event
-			if(handle->ref)
-				handle->ref = xpress_del(&handle->xpress, forge, frames, src->uuid);
-
-			// create new event
-			src->uuid = xpress_map(&handle->xpress);
-			src->below = true;
-
-			if(handle->ref)
-				handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid, state);
+			if(pos_x_diff_abs >= handle->position_threshold)
+				spawn_new = true;
 		}
+	}
+
+	if(spawn_new)
+	{
+		LV2_Atom_Forge *forge = &handle->forge;
+
+		// delete previous event
+		if(handle->ref)
+			handle->ref = xpress_del(&handle->xpress, forge, frames, src->uuid);
+
+		// create new event
+		src->uuid = xpress_map(&handle->xpress);
+		src->below = true;
+		src->x = state->position[0];
+
+		if(handle->ref)
+			handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid, state);
 	}
 }
 
@@ -170,7 +190,10 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(props_register(&handle->props, &stat_reducto_threshold, PROP_EVENT_NONE, NULL, &handle->threshold) )
+	if(  props_register(&handle->props, &stat_reducto_velocity_threshold,
+				PROP_EVENT_NONE, NULL, &handle->velocity_threshold)
+		&& props_register(&handle->props, &stat_reducto_position_threshold,
+				PROP_EVENT_NONE, NULL, &handle->position_threshold) )
 	{
 		props_sort(&handle->props);
 	}

@@ -488,7 +488,7 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 
 		const xpress_state_t state = {
 			.zone = src->gid,
-			.position[0] = _midi2cps(src->pos.x * handle->ran + handle->bot),
+			.position[0] = src->pos.x * handle->ran + handle->bot,
 			.position[1] = src->pos.z,
 			.velocity[0] = src->pos.vx.f11,
 			.velocity[1] = src->pos.vz.f11

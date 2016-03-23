@@ -255,7 +255,8 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 		handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
 			"/n_setn", "iiiffff",
 			id, handle->arg_offset, arg_num,
-			state->position[0], state->position[1], state->velocity[0], state->velocity[1]);
+			_midi2cps(state->position[0]), state->position[1],
+			state->velocity[0], state->velocity[1]);
 }
 
 static void
@@ -277,7 +278,8 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 		handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
 			"/n_setn", "iiiffff",
 			id, handle->arg_offset, arg_num,
-			state->position[0], state->position[1], state->velocity[0], state->velocity[1]);
+			_midi2cps(state->position[0]), state->position[1],
+			state->velocity[0], state->velocity[1]);
 }
 
 static void
