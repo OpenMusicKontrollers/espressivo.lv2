@@ -34,15 +34,6 @@
 #include <lv2/lv2plug.in/ns/ext/log/log.h>
 #include <lv2/lv2plug.in/ns/ext/log/logger.h>
 
-#define _ATOM_ALIGNED __attribute__((aligned(8)))
-
-#if defined(HAS_BUILTIN_ASSUME_ALIGNED)
-#	define ASSUME_ALIGNED(PTR) __builtin_assume_aligned((PTR), 8)
-#else
-#	define ASSUME_ALIGNED(PTR) (PTR)
-#endif
-
-
 // bundle uri
 #define ESPRESSIVO_URI							"http://open-music-kontrollers.ch/lv2/espressivo"
 
