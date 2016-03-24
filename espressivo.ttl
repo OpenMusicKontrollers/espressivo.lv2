@@ -811,6 +811,61 @@ esp:reducto
 		esp:reducto_velocity_threshold "0.2"^^xsd:float ;
 	] .
 
+# Discreto
+esp:discreto_position_order
+	a lv2:Parameter ;
+	rdfs:label "Position Order" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 10 .
+esp:discreto_velocity_order
+	a lv2:Parameter ;
+	rdfs:label "Velocity Order" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 10 .
+
+esp:discreto
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
+	doap:name "Espressivo Discreto" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:espressivo ;
+	lv2:extensionData state:interface ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap ;
+	lv2:requiredFeature urid:map, state:loadDefaultState ;
+
+	lv2:port [
+	# input event port
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message, xpress:Message ;
+		lv2:index 0 ;
+		lv2:symbol "event_in" ;
+		lv2:name "Event Input" ;
+		lv2:designation lv2:control ;
+	] , [
+	# output event port
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message, xpress:Message ;
+		lv2:index 1 ;
+		lv2:symbol "event_out" ;
+		lv2:name "Event Output" ;
+		lv2:designation lv2:control ;
+	] ;
+
+	patch:writable
+		esp:discreto_position_order ,
+		esp:discreto_velocity_order ;
+	
+	state:state [
+		esp:discreto_position_order 1 ;
+		esp:discreto_velocity_order 0 ;
+	] .
+
 esp:sc_synth_name_0
 	a lv2:Parameter ;
 	rdfs:label "Synth Name 0" ;

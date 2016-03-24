@@ -34,6 +34,7 @@ add_library(espressivo MODULE
 	sample_and_hold.c
 	through.c
 	reducto.c
+	discreto.c
 	mpe_out.c
 	sc_out.c)
 target_link_libraries(espressivo ${LIBS})

@@ -57,6 +57,8 @@ lv2_descriptor(uint32_t index)
 			return &through;
 		case 6:
 			return &reducto;
+		case 7:
+			return &discreto;
 		default:
 			return NULL;
 	}
