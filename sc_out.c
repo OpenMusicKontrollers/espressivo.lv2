@@ -37,7 +37,7 @@ struct _target_t {
 };
 
 struct _handle_t {
-	char synth_name [STRING_SIZE][SYNTH_NAMES];
+	char synth_name [SYNTH_NAMES][STRING_SIZE];
 
 	LV2_URID_Map *map;
 	osc_forge_t oforge;
@@ -361,8 +361,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	LV2_URID urid = 1;
 	for(unsigned i=0; (i<SYNTH_NAMES) && urid; i++)
 	{
-		sprintf(handle->synth_name[i], "synth_%i", i);
-		urid = props_register(&handle->props, &synth_name_def[i], PROP_EVENT_NONE, NULL, &handle->synth_name[i]);
+		urid = props_register(&handle->props, &synth_name_def[i], PROP_EVENT_NONE, NULL, handle->synth_name[i]);
 	}
 	if(urid
 		&& props_register(&handle->props, &out_offset_def, PROP_EVENT_NONE, NULL, &handle->out_offset)
