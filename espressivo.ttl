@@ -54,6 +54,12 @@ xpress:Message
 		rdfs:Datatype ;
 	rdfs:subClassOf atom:Atom .
 
+units:midiController
+	a units:Unit ;
+	rdfs:label "MIDI controller" ;
+	units:render "MIDI controller %d" ;
+	units:symbol "controller" .
+
 # Maintainer
 omk:me
 	a foaf:Person ;
@@ -192,48 +198,56 @@ esp:mpe_pressure_controller_1
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 1" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_2
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 2" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_3
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 3" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_4
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 4" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_5
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 5" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_6
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 6" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_7
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 7" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_8
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 8" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 
@@ -241,48 +255,56 @@ esp:mpe_timbre_controller_1
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 1" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_2
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 2" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_3
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 3" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_4
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 4" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_5
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 5" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_6
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 6" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_7
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 7" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_8
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 8" ;
 	rdfs:range atom:Int ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
 
