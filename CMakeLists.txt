@@ -15,7 +15,7 @@ add_definitions("-D_GNU_SOURCE=1") # asprintf
 set(ESPRESSIVO_MAJOR_VERSION 0)
 set(ESPRESSIVO_MINOR_VERSION 1)
 set(ESPRESSIVO_MICRO_VERSION 1)
-set(ESPRESSIVO_VERSION "${}.${}.${}")
+set(ESPRESSIVO_VERSION "${ESPRESSIVO_MAJOR_VERSION}.${ESPRESSIVO_MINOR_VERSION}.${ESPRESSIVO_MICRO_VERSION}")
 
 set(DEST lib/lv2/espressivo.lv2)
 
@@ -32,6 +32,7 @@ add_library(espressivo MODULE
 	midi_in.c
 	mpe_in.c
 	tuio2_in.c
+	tuio2_out.c
 	sample_and_hold.c
 	through.c
 	reducto.c

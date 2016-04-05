@@ -48,6 +48,7 @@
 
 // plugin uris
 #define ESPRESSIVO_TUIO2_IN_URI			ESPRESSIVO_URI"#tuio2_in"
+#define ESPRESSIVO_TUIO2_OUT_URI		ESPRESSIVO_URI"#tuio2_out"
 #define ESPRESSIVO_MIDI_IN_URI			ESPRESSIVO_URI"#midi_in"
 #define ESPRESSIVO_MPE_IN_URI				ESPRESSIVO_URI"#mpe_in"
 #define ESPRESSIVO_MPE_OUT_URI			ESPRESSIVO_URI"#mpe_out"
@@ -58,6 +59,7 @@
 #define ESPRESSIVO_SC_OUT_URI				ESPRESSIVO_URI"#sc_out"
 
 extern const LV2_Descriptor tuio2_in;
+extern const LV2_Descriptor tuio2_out;
 extern const LV2_Descriptor midi_in;
 extern const LV2_Descriptor mpe_in;
 extern const LV2_Descriptor mpe_out;

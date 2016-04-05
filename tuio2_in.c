@@ -133,7 +133,8 @@ static const props_def_t stat_tuio2_deviceName = {
 	.property = ESPRESSIVO_URI"#tuio2_deviceName",
 	.access = LV2_PATCH__readable,
 	.type = LV2_ATOM__String,
-	.mode = PROP_MODE_STATIC
+	.mode = PROP_MODE_STATIC,
+	.maximum.s = 128
 };
 
 static const props_def_t stat_tuio2_octave = {
