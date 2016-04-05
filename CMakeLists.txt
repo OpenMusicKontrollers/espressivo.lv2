@@ -30,6 +30,7 @@ set(LIBS ${LIBS} ${LV2_LDFLAGS})
 add_library(espressivo MODULE
 	espressivo.c
 	midi_in.c
+	mpe_in.c
 	tuio2_in.c
 	sample_and_hold.c
 	through.c

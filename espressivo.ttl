@@ -390,6 +390,42 @@ esp:mpe_out
 		esp:mpe_timbre_controller_8 74 ;	
 	] .
 
+# MPE Input Plugin
+esp:mpe_in
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
+	doap:name "Espressivo MPE In" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:espressivo ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap ;
+	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
+
+	lv2:port [
+	# input event port
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports midi:MidiEvent, patch:Message ;
+		lv2:index 0 ;
+		lv2:symbol "event_in" ;
+		lv2:name "Event Input" ;
+		lv2:designation lv2:control ;
+	] , [
+	# output midi port
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports xpress:Message, patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "midi_out" ;
+		lv2:name "MIDI Output" ;
+		lv2:designation lv2:control ;
+	] ;
+
+	patch:readable
+		esp:mpe_zones .
+
 esp:tuio2_deviceWidth
 	a lv2:Parameter ;
 	rdfs:label "Device width" ;

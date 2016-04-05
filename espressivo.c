@@ -59,6 +59,8 @@ lv2_descriptor(uint32_t index)
 			return &reducto;
 		case 7:
 			return &discreto;
+		case 8:
+			return &mpe_in;
 		default:
 			return NULL;
 	}
