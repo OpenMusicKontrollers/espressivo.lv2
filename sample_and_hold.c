@@ -27,6 +27,7 @@
 
 typedef struct _target_t target_t;
 typedef struct _target2_t target2_t;
+typedef struct _state_t state_t;
 typedef struct _handle_t handle_t;
 
 struct _target_t {
@@ -36,6 +37,11 @@ struct _target_t {
 struct _target2_t {
 	bool on_hold;
 	xpress_state_t state;
+};
+
+struct _state_t {
+	int32_t sample;
+	int32_t hold_dimension [4];
 };
 
 struct _handle_t {
@@ -52,42 +58,10 @@ struct _handle_t {
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *event_out;
 	
-	int32_t sample;
-	int32_t hold_dimension [4];
 	bool clone;
-};
 
-static const props_def_t stat_snh_sample = {
-	.property = ESPRESSIVO_URI"#snh_sample",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Bool,
-	.mode = PROP_MODE_STATIC
-};
-static const props_def_t stat_snh_hold_dimension [4] = {
-	[0] = {
-		.property = ESPRESSIVO_URI"#snh_hold_dimension_0",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Bool,
-		.mode = PROP_MODE_STATIC
-	},
-	[1] = {
-		.property = ESPRESSIVO_URI"#snh_hold_dimension_1",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Bool,
-		.mode = PROP_MODE_STATIC
-	},
-	[2] = {
-		.property = ESPRESSIVO_URI"#snh_hold_dimension_2",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Bool,
-		.mode = PROP_MODE_STATIC
-	},
-	[3] = {
-		.property = ESPRESSIVO_URI"#snh_hold_dimension_3",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Bool,
-		.mode = PROP_MODE_STATIC
-	},
+	state_t state;
+	state_t stash;
 };
 
 static void
@@ -96,7 +70,7 @@ _intercept_sample(void *data, LV2_Atom_Forge *forge, int64_t frames,
 {
 	handle_t *handle = data;
 
-	if(!handle->sample)
+	if(!handle->state.sample)
 	{
 		// release all events on hold
 		unsigned removed = 0;
@@ -117,6 +91,30 @@ _intercept_sample(void *data, LV2_Atom_Forge *forge, int64_t frames,
 		handle->xpress2.nvoices -= removed;
 	}
 }
+
+static const props_def_t stat_snh_sample = {
+	.property = ESPRESSIVO_URI"#snh_sample",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Bool,
+	.mode = PROP_MODE_STATIC,
+	.event_mask = PROP_EVENT_WRITE,
+	.event_cb = _intercept_sample
+};
+
+#define HOLD_DIMENSION(NUM) \
+{ \
+	.property = ESPRESSIVO_URI"#snh_hold_dimension_"#NUM, \
+	.access = LV2_PATCH__writable, \
+	.type = LV2_ATOM__Bool, \
+	.mode = PROP_MODE_STATIC \
+}
+
+static const props_def_t stat_snh_hold_dimension [4] = {
+	[0] = HOLD_DIMENSION(1),
+	[1] = HOLD_DIMENSION(2),
+	[2] = HOLD_DIMENSION(3),
+	[3] = HOLD_DIMENSION(4)
+};
 
 static void
 _add(void *data, int64_t frames, const xpress_state_t *state,
@@ -147,7 +145,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	if((dst = xpress_get(&handle->xpress2, src->uuid)))
 	{
 		for(unsigned i=0; i<3; i++)
-			if(!(handle->hold_dimension[i] && (state->position[i] < dst->state.position[i]) ))
+			if(!(handle->state.hold_dimension[i] && (state->position[i] < dst->state.position[i]) ))
 				dst->state.position[i] = state->position[i];
 
 		if(handle->ref)
@@ -163,7 +161,7 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	target_t *src = target;
 	target2_t *dst;
 
-	if(handle->sample)
+	if(handle->state.sample)
 	{
 		if((dst = xpress_get(&handle->xpress2, src->uuid)))
 			dst->on_hold = true;
@@ -234,15 +232,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(props_register(&handle->props, &stat_snh_sample, PROP_EVENT_WRITE, _intercept_sample, &handle->sample)
-		&& props_register(&handle->props, &stat_snh_hold_dimension[0], PROP_EVENT_NONE, NULL, &handle->hold_dimension[0])
-		&& props_register(&handle->props, &stat_snh_hold_dimension[1], PROP_EVENT_NONE, NULL, &handle->hold_dimension[1])
-		&& props_register(&handle->props, &stat_snh_hold_dimension[2], PROP_EVENT_NONE, NULL, &handle->hold_dimension[2])
-		&& props_register(&handle->props, &stat_snh_hold_dimension[3], PROP_EVENT_NONE, NULL, &handle->hold_dimension[3]) )
-	{
-		props_sort(&handle->props);
-	}
-	else
+	if(  !props_register(&handle->props, &stat_snh_sample, &handle->state.sample, &handle->stash.sample)
+		|| !props_register(&handle->props, &stat_snh_hold_dimension[0], &handle->state.hold_dimension[0], &handle->stash.hold_dimension[0])
+		|| !props_register(&handle->props, &stat_snh_hold_dimension[1], &handle->state.hold_dimension[1], &handle->stash.hold_dimension[1])
+		|| !props_register(&handle->props, &stat_snh_hold_dimension[2], &handle->state.hold_dimension[2], &handle->stash.hold_dimension[2])
+		|| !props_register(&handle->props, &stat_snh_hold_dimension[3], &handle->state.hold_dimension[3], &handle->stash.hold_dimension[3]) )
 	{
 		free(handle);
 		return NULL;

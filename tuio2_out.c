@@ -25,8 +25,10 @@
 
 #define MAX_NPROPS 6
 #define MAX_NVOICES 64
+#define MAX_STRLEN 128
 
 typedef struct _target_t target_t;
+typedef struct _state_t state_t;
 typedef struct _handle_t handle_t;
 
 struct _target_t {
@@ -34,6 +36,15 @@ struct _target_t {
 	xpress_state_t state;
 	bool dirty;
 	int64_t last;
+};
+
+struct _state_t {
+	int32_t device_width;
+	int32_t device_height;
+	char device_name [MAX_STRLEN];
+	int32_t octave;
+	int32_t sensors_per_semitone;
+	float timestamp_offset;
 };
 
 struct _handle_t {
@@ -50,35 +61,73 @@ struct _handle_t {
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *event_out;
 
-	struct {
-		int32_t device_width;
-		int32_t device_height;
-		char device_name [128];
-		int32_t octave;
-		int32_t sensors_per_semitone;
-		float timestamp_offset;
-	} stat;
-
 	int32_t dim;
 	int32_t fid;
 	bool dirty;
 	int64_t last;
 	float bot;
 	float ran_1;
+
+	state_t state;
+	state_t stash;
 };
+
+static void
+_intercept(void *data, LV2_Atom_Forge *forge, int64_t frames,
+	props_event_t event, props_impl_t *impl)
+{
+	handle_t *handle = data;
+
+	int32_t w = handle->state.device_width;
+	const int32_t h = handle->state.device_height;
+	const float oct = handle->state.octave;
+	int32_t sps = handle->state.sensors_per_semitone; 
+
+	if(w <= 0)
+		w = 1;
+	if(sps <= 0)
+		sps = 1;
+
+	handle->ran_1 = (float)sps / w;
+	handle->bot = oct*12.f - 0.5 - (w % (6*sps) / (2.f*sps));
+
+	handle->dim = (w << 16) | h;
+}
 
 static const props_def_t stat_tuio2_deviceWidth = {
 	.property = ESPRESSIVO_URI"#tuio2_deviceWidth",
 	.access = LV2_PATCH__writable,
 	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
+	.mode = PROP_MODE_STATIC,
+	.event_mask = PROP_EVENT_WRITE,
+	.event_cb = _intercept
 };
 
 static const props_def_t stat_tuio2_deviceHeight = {
 	.property = ESPRESSIVO_URI"#tuio2_deviceHeight",
 	.access = LV2_PATCH__writable,
 	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
+	.mode = PROP_MODE_STATIC,
+	.event_mask = PROP_EVENT_WRITE,
+	.event_cb = _intercept
+};
+
+static const props_def_t stat_tuio2_octave = {
+	.property = ESPRESSIVO_URI"#tuio2_octave",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC,
+	.event_mask = PROP_EVENT_WRITE,
+	.event_cb = _intercept
+};
+
+static const props_def_t stat_tuio2_sensorsPerSemitone = {
+	.property = ESPRESSIVO_URI"#tuio2_sensorsPerSemitone",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC,
+	.event_mask = PROP_EVENT_WRITE,
+	.event_cb = _intercept
 };
 
 static const props_def_t stat_tuio2_deviceName = {
@@ -86,21 +135,7 @@ static const props_def_t stat_tuio2_deviceName = {
 	.access = LV2_PATCH__writable,
 	.type = LV2_ATOM__String,
 	.mode = PROP_MODE_STATIC,
-	.maximum.s = 128
-};
-
-static const props_def_t stat_tuio2_octave = {
-	.property = ESPRESSIVO_URI"#tuio2_octave",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
-};
-
-static const props_def_t stat_tuio2_sensorsPerSemitone = {
-	.property = ESPRESSIVO_URI"#tuio2_sensorsPerSemitone",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
+	.max_size = MAX_STRLEN 
 };
 
 static const props_def_t stat_tuio2_timestampOffset = {
@@ -120,7 +155,7 @@ _frm(handle_t *handle, uint64_t ttag)
 
 	return osc_forge_message_vararg(&handle->oforge, &handle->forge,
 		"/tuio2/frm", "itis",
-		++handle->fid, ttag, handle->dim, handle->stat.device_name);
+		++handle->fid, ttag, handle->dim, handle->state.device_name);
 }
 
 static inline LV2_Atom_Forge_Ref
@@ -197,7 +232,7 @@ _tuio2_2d(handle_t *handle, int64_t from, int64_t to)
 		ttag0 = handle->osc_sched->frames2osc(handle->osc_sched->handle, from);
 
 		// calculate bundle timetag
-		if(handle->stat.timestamp_offset == 0.f)
+		if(handle->state.timestamp_offset == 0.f)
 		{
 			ttag1 = ttag0;
 		}
@@ -205,7 +240,7 @@ _tuio2_2d(handle_t *handle, int64_t from, int64_t to)
 		{
 			uint64_t sec = ttag0 >> 32;
 			double frac = (ttag0 & 0xffffffff) * 0x1p-32;
-			frac += handle->stat.timestamp_offset * 1e-3;
+			frac += handle->state.timestamp_offset * 1e-3;
 			while(frac >= 1.0)
 			{
 				sec += 1;
@@ -311,28 +346,6 @@ static const xpress_iface_t iface = {
 	.del = _del
 };
 
-static void
-_intercept(void *data, LV2_Atom_Forge *forge, int64_t frames,
-	props_event_t event, props_impl_t *impl)
-{
-	handle_t *handle = data;
-
-	int32_t w = handle->stat.device_width;
-	const int32_t h = handle->stat.device_height;
-	const float oct = handle->stat.octave;
-	int32_t sps = handle->stat.sensors_per_semitone; 
-
-	if(w <= 0)
-		w = 1;
-	if(sps <= 0)
-		sps = 1;
-
-	handle->ran_1 = (float)sps / w;
-	handle->bot = oct*12.f - 0.5 - (w % (6*sps) / (2.f*sps));
-
-	handle->dim = (w << 16) | h;
-}
-
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
@@ -380,22 +393,18 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(  props_register(&handle->props, &stat_tuio2_deviceWidth,
-				PROP_EVENT_WRITE, _intercept, &handle->stat.device_width)
-		&& props_register(&handle->props, &stat_tuio2_deviceHeight,
-				PROP_EVENT_WRITE, _intercept, &handle->stat.device_height)
-		&& props_register(&handle->props, &stat_tuio2_octave,
-				PROP_EVENT_WRITE, _intercept, &handle->stat.octave)
-		&& props_register(&handle->props, &stat_tuio2_sensorsPerSemitone,
-				PROP_EVENT_WRITE, _intercept, &handle->stat.sensors_per_semitone)
-		&& props_register(&handle->props, &stat_tuio2_deviceName,
-				PROP_EVENT_NONE, NULL, &handle->stat.device_name)
-		&& props_register(&handle->props, &stat_tuio2_timestampOffset,
-				PROP_EVENT_NONE, NULL, &handle->stat.timestamp_offset) )
-	{
-		props_sort(&handle->props);
-	}
-	else
+	if(  !props_register(&handle->props, &stat_tuio2_deviceWidth,
+			&handle->state.device_width, &handle->stash.device_width)
+		|| !props_register(&handle->props, &stat_tuio2_deviceHeight,
+			&handle->state.device_height, &handle->stash.device_height)
+		|| !props_register(&handle->props, &stat_tuio2_octave,
+			&handle->state.octave, &handle->stash.octave)
+		|| !props_register(&handle->props, &stat_tuio2_sensorsPerSemitone,
+			&handle->state.sensors_per_semitone, &handle->stash.sensors_per_semitone)
+		|| !props_register(&handle->props, &stat_tuio2_deviceName,
+			handle->state.device_name, handle->stash.device_name)
+		|| !props_register(&handle->props, &stat_tuio2_timestampOffset,
+			&handle->state.timestamp_offset, &handle->stash.timestamp_offset) )
 	{
 		free(handle);
 		return NULL;

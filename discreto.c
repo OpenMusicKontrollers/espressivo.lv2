@@ -26,10 +26,16 @@
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
+typedef struct _state_t state_t;
 typedef struct _handle_t handle_t;
 
 struct _target_t {
 	xpress_uuid_t uuid;
+};
+
+struct _state_t {
+	int32_t position_order;
+	int32_t velocity_order;
 };
 
 struct _handle_t {
@@ -44,8 +50,8 @@ struct _handle_t {
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *event_out;
 
-	int32_t position_order;
-	int32_t velocity_order;
+	state_t state;
+	state_t stash;
 };
 
 static const props_def_t stat_discreto_position_order = {
@@ -73,7 +79,7 @@ _set(handle_t *handle, int64_t frames, const xpress_state_t *state,
 
 	float x = state->position[0];
 
-	switch(handle->position_order)
+	switch(handle->state.position_order)
 	{
 		case 0:
 		{
@@ -95,16 +101,16 @@ _set(handle_t *handle, int64_t frames, const xpress_state_t *state,
 				? 0.f
 				: 1.f - v_abs;
 			float k2;
-			switch(handle->velocity_order)
+			switch(handle->state.velocity_order)
 			{
 				case 0:
-					k2 = handle->position_order;
+					k2 = handle->state.position_order;
 					break;
 				case 1:
-					k2 = 1.f + (handle->position_order - 1.f) * v2;
+					k2 = 1.f + (handle->state.position_order - 1.f) * v2;
 					break;
 				default:
-					k2 = 1.f + (handle->position_order - 1.f) * powf(v2, handle->velocity_order);
+					k2 = 1.f + (handle->state.position_order - 1.f) * powf(v2, handle->state.velocity_order);
 					break;
 			}
 			const float ex = exp2f( (k2 - 1.f) / k2);
@@ -211,14 +217,10 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(  props_register(&handle->props, &stat_discreto_position_order,
-				PROP_EVENT_NONE, NULL, &handle->position_order)
-		&& props_register(&handle->props, &stat_discreto_velocity_order,
-				PROP_EVENT_NONE, NULL, &handle->velocity_order) )
-	{
-		props_sort(&handle->props);
-	}
-	else
+	if(  !props_register(&handle->props, &stat_discreto_position_order,
+			&handle->state.position_order, &handle->stash.position_order)
+		|| !props_register(&handle->props, &stat_discreto_velocity_order,
+			&handle->state.velocity_order, &handle->stash.velocity_order) )
 	{
 		free(handle);
 		return NULL;

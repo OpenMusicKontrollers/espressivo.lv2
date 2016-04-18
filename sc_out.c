@@ -29,6 +29,7 @@
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
+typedef struct _state_t state_t;
 typedef struct _handle_t handle_t;
 
 struct _target_t {
@@ -36,9 +37,19 @@ struct _target_t {
 	int32_t zone;
 };
 
-struct _handle_t {
+struct _state_t {
 	char synth_name [SYNTH_NAMES][STRING_SIZE];
+	int32_t out_offset;
+	int32_t gid_offset;
+	int32_t sid_offset;
+	int32_t sid_wrap;
+	int32_t arg_offset;
+	int32_t allocate;
+	int32_t gate;
+	int32_t group;
+};
 
+struct _handle_t {
 	LV2_URID_Map *map;
 	osc_forge_t oforge;
 	LV2_Atom_Forge forge;
@@ -51,16 +62,10 @@ struct _handle_t {
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *osc_out;
 
-	int32_t out_offset;
-	int32_t gid_offset;
-	int32_t sid_offset;
-	int32_t sid_wrap;
-	int32_t arg_offset;
-	int32_t allocate;
-	int32_t gate;
-	int32_t group;
-
 	int32_t sid;
+
+	state_t state;
+	state_t stash;
 };
 
 static const props_def_t out_offset_def = {
@@ -112,63 +117,24 @@ static const props_def_t group_def = {
 	.mode = PROP_MODE_STATIC
 };
 
+#define SYNTH_NAME(NUM) \
+{ \
+	.property = ESPRESSIVO_URI"#sc_synth_name_"#NUM, \
+	.access = LV2_PATCH__writable, \
+	.type = LV2_ATOM__String, \
+	.mode = PROP_MODE_STATIC, \
+	.max_size = STRING_SIZE \
+}
+
 static const props_def_t synth_name_def [SYNTH_NAMES] = {
-	[0] = {
-		.property = ESPRESSIVO_URI"#sc_synth_name_0",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__String,
-		.mode = PROP_MODE_STATIC,
-		.maximum.s = STRING_SIZE // strlen
-	},
-	[1] = {
-		.property = ESPRESSIVO_URI"#sc_synth_name_1",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__String,
-		.mode = PROP_MODE_STATIC,
-		.maximum.s = STRING_SIZE // strlen
-	},
-	[2] = {
-		.property = ESPRESSIVO_URI"#sc_synth_name_2",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__String,
-		.mode = PROP_MODE_STATIC,
-		.maximum.s = STRING_SIZE // strlen
-	},
-	[3] = {
-		.property = ESPRESSIVO_URI"#sc_synth_name_3",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__String,
-		.mode = PROP_MODE_STATIC,
-		.maximum.s = STRING_SIZE // strlen
-	},
-	[4] = {
-		.property = ESPRESSIVO_URI"#sc_synth_name_4",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__String,
-		.mode = PROP_MODE_STATIC,
-		.maximum.s = STRING_SIZE // strlen
-	},
-	[5] = {
-		.property = ESPRESSIVO_URI"#sc_synth_name_5",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__String,
-		.mode = PROP_MODE_STATIC,
-		.maximum.s = STRING_SIZE // strlen
-	},
-	[6] = {
-		.property = ESPRESSIVO_URI"#sc_synth_name_6",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__String,
-		.mode = PROP_MODE_STATIC,
-		.maximum.s = STRING_SIZE // strlen
-	},
-	[7] = {
-		.property = ESPRESSIVO_URI"#sc_synth_name_7",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__String,
-		.mode = PROP_MODE_STATIC,
-		.maximum.s = STRING_SIZE // strlen
-	},
+	[0] = SYNTH_NAME(1),
+	[1] = SYNTH_NAME(2),
+	[2] = SYNTH_NAME(3),
+	[3] = SYNTH_NAME(4),
+	[4] = SYNTH_NAME(5),
+	[5] = SYNTH_NAME(6),
+	[6] = SYNTH_NAME(7),
+	[7] = SYNTH_NAME(8)
 };
 
 static LV2_State_Status
@@ -204,41 +170,41 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	LV2_Atom_Forge *forge = &handle->forge;
 	target_t *src = target;
 
-	const int32_t sid = handle->sid_offset + (handle->sid_wrap
-		? handle->sid++ % handle->sid_wrap
+	const int32_t sid = handle->state.sid_offset + (handle->state.sid_wrap
+		? handle->sid++ % handle->state.sid_wrap
 		: handle->sid++);
 	src->sid = sid;
 	src->zone = state->zone;
-	const int32_t gid = handle->gid_offset + state->zone;
-	const int32_t out = handle->out_offset + state->zone;
-	const int32_t id = handle->group ? gid : sid;
+	const int32_t gid = handle->state.gid_offset + state->zone;
+	const int32_t out = handle->state.out_offset + state->zone;
+	const int32_t id = handle->state.group ? gid : sid;
 	const int32_t arg_num = 4;
 
-	if(handle->allocate)
+	if(handle->state.allocate)
 	{
 		if(handle->ref)
 			handle->ref = lv2_atom_forge_frame_time(forge, frames);
-		if(handle->gate)
+		if(handle->state.gate)
 		{
 			if(handle->ref)
 				handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
 					"/s_new", "siiiiisisi",
-					handle->synth_name[state->zone], id, 0, gid,
-					handle->arg_offset + 4, 128,
+					handle->state.synth_name[state->zone], id, 0, gid,
+					handle->state.arg_offset + 4, 128,
 					"gate", 1,
 					"out", out);
 		}
-		else // !handle->gate
+		else // !handle->state.gate
 		{
 			if(handle->ref)
 				handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
 					"/s_new", "siiiiisi",
-					handle->synth_name[state->zone], id, 0, gid,
-					handle->arg_offset + 4, 128,
+					handle->state.synth_name[state->zone], id, 0, gid,
+					handle->state.arg_offset + 4, 128,
 					"out", out);
 		}
 	}
-	else if(handle->gate)
+	else if(handle->state.gate)
 	{
 		if(handle->ref)
 			handle->ref = lv2_atom_forge_frame_time(forge, frames);
@@ -254,7 +220,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	if(handle->ref)
 		handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
 			"/n_setn", "iiiffff",
-			id, handle->arg_offset, arg_num,
+			id, handle->state.arg_offset, arg_num,
 			_midi2cps(state->position[0]), state->position[1],
 			state->velocity[0], state->velocity[1]);
 }
@@ -268,8 +234,8 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	target_t *src = target;
 
 	const int32_t sid = src->sid;
-	const int32_t gid = handle->gid_offset + state->zone;
-	const int32_t id = handle->group ? gid : sid;
+	const int32_t gid = handle->state.gid_offset + state->zone;
+	const int32_t id = handle->state.group ? gid : sid;
 	const int32_t arg_num = 4;
 
 	if(handle->ref)
@@ -277,7 +243,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	if(handle->ref)
 		handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
 			"/n_setn", "iiiffff",
-			id, handle->arg_offset, arg_num,
+			id, handle->state.arg_offset, arg_num,
 			_midi2cps(state->position[0]), state->position[1],
 			state->velocity[0], state->velocity[1]);
 }
@@ -291,10 +257,10 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	target_t *src = target;
 
 	const int32_t sid = src->sid;
-	const int32_t gid = handle->gid_offset + src->zone;
-	const int32_t id = handle->group ? gid : sid;
+	const int32_t gid = handle->state.gid_offset + src->zone;
+	const int32_t id = handle->state.group ? gid : sid;
 
-	if(handle->gate)
+	if(handle->state.gate)
 	{
 		if(handle->ref)
 			handle->ref = lv2_atom_forge_frame_time(forge, frames);
@@ -361,21 +327,17 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	LV2_URID urid = 1;
 	for(unsigned i=0; (i<SYNTH_NAMES) && urid; i++)
 	{
-		urid = props_register(&handle->props, &synth_name_def[i], PROP_EVENT_NONE, NULL, handle->synth_name[i]);
+		urid = props_register(&handle->props, &synth_name_def[i], handle->state.synth_name[i], handle->stash.synth_name[i]);
 	}
-	if(urid
-		&& props_register(&handle->props, &out_offset_def, PROP_EVENT_NONE, NULL, &handle->out_offset)
-		&& props_register(&handle->props, &gid_offset_def, PROP_EVENT_NONE, NULL, &handle->gid_offset)
-		&& props_register(&handle->props, &sid_offset_def, PROP_EVENT_NONE, NULL, &handle->sid_offset)
-		&& props_register(&handle->props, &sid_wrap_def, PROP_EVENT_NONE, NULL, &handle->sid_wrap)
-		&& props_register(&handle->props, &arg_offset_def, PROP_EVENT_NONE, NULL, &handle->arg_offset)
-		&& props_register(&handle->props, &allocate_def, PROP_EVENT_NONE, NULL, &handle->allocate)
-		&& props_register(&handle->props, &gate_def, PROP_EVENT_NONE, NULL, &handle->gate)
-		&& props_register(&handle->props, &group_def, PROP_EVENT_NONE, NULL, &handle->group) )
-	{
-		props_sort(&handle->props);
-	}
-	else
+	if(  !urid
+		|| !props_register(&handle->props, &out_offset_def, &handle->state.out_offset, &handle->stash.out_offset)
+		|| !props_register(&handle->props, &gid_offset_def, &handle->state.gid_offset, &handle->stash.gid_offset)
+		|| !props_register(&handle->props, &sid_offset_def, &handle->state.sid_offset, &handle->stash.sid_offset)
+		|| !props_register(&handle->props, &sid_wrap_def, &handle->state.sid_wrap, &handle->stash.sid_wrap)
+		|| !props_register(&handle->props, &arg_offset_def, &handle->state.arg_offset, &handle->stash.arg_offset)
+		|| !props_register(&handle->props, &allocate_def, &handle->state.allocate, &handle->stash.allocate)
+		|| !props_register(&handle->props, &gate_def, &handle->state.gate, &handle->stash.gate)
+		|| !props_register(&handle->props, &group_def, &handle->state.group, &handle->stash.group) )
 	{
 		free(handle);
 		return NULL;

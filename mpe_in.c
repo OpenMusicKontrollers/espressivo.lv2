@@ -30,6 +30,7 @@
 
 typedef struct _zone_t zone_t;
 typedef struct _target_t target_t;
+typedef struct _state_t state_t;
 typedef struct _handle_t handle_t;
 
 struct _zone_t {
@@ -54,6 +55,10 @@ struct _target_t {
 	*/
 };
 
+struct _state_t {
+	int32_t num_zones;
+};
+
 struct _handle_t {
 	LV2_URID_Map *map;
 	struct {
@@ -66,7 +71,6 @@ struct _handle_t {
 	LV2_Atom_Sequence *midi_out;
 
 	PROPS_T(props, MAX_NPROPS);
-	int32_t num_zones;
 
 	XPRESS_T(xpress, MAX_NVOICES);
 	target_t target [MAX_NVOICES];
@@ -76,6 +80,9 @@ struct _handle_t {
 
 	zone_t zones [MAX_ZONES];
 	zone_t *slots [MAX_CHANNELS];
+
+	state_t state;
+	state_t stash;
 };
 
 static const props_def_t stat_mpe_zones = {
@@ -229,11 +236,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(props_register(&handle->props, &stat_mpe_zones, PROP_EVENT_NONE, NULL, &handle->num_zones))
-	{
-		props_sort(&handle->props);
-	}
-	else
+	if(!props_register(&handle->props, &stat_mpe_zones, &handle->state.num_zones, &handle->stash.num_zones))
 	{
 		free(handle);
 		return NULL;

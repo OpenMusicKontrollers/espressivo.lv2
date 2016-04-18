@@ -25,9 +25,11 @@
 
 #define MAX_NPROPS 6
 #define MAX_NVOICES 64
+#define MAX_STRLEN 128
 
 typedef struct _pos_t pos_t;
 typedef struct _target_t target_t;
+typedef struct _state_t state_t;
 typedef struct _handle_t handle_t;
 
 struct _pos_t {
@@ -59,6 +61,15 @@ struct _target_t {
 	uint32_t tuid;
 
 	pos_t pos;
+};
+
+struct _state_t {
+	int32_t device_width;
+	int32_t device_height;
+	char device_name [128];
+	int32_t octave;
+	int32_t sensors_per_semitone;
+	int32_t filter_stiffness;
 };
 
 struct _handle_t {
@@ -96,15 +107,6 @@ struct _handle_t {
 	LV2_Atom_Sequence *event_out;
 
 	LV2_Atom_Forge_Ref ref;
-	
-	struct {
-		int32_t device_width;
-		int32_t device_height;
-		char device_name [128];
-		int32_t octave;
-		int32_t sensors_per_semitone;
-		int32_t filter_stiffness;
-	} stat;
 
 	struct {
 		LV2_URID device_width;
@@ -113,6 +115,9 @@ struct _handle_t {
 	} urid;
 
 	PROPS_T(props, MAX_NPROPS);
+
+	state_t state;
+	state_t stash;
 };
 
 static const props_def_t stat_tuio2_deviceWidth = {
@@ -134,7 +139,7 @@ static const props_def_t stat_tuio2_deviceName = {
 	.access = LV2_PATCH__readable,
 	.type = LV2_ATOM__String,
 	.mode = PROP_MODE_STATIC,
-	.maximum.s = 128
+	.max_size = MAX_STRLEN 
 };
 
 static const props_def_t stat_tuio2_octave = {
@@ -151,11 +156,30 @@ static const props_def_t stat_tuio2_sensorsPerSemitone = {
 	.mode = PROP_MODE_STATIC
 };
 
+static inline void
+_stiffness_set(handle_t *handle, int32_t stiffness)
+{
+	handle->s = 1.f / 32.f; //FIXME make stiffness configurable
+	handle->sm1 = 1.f - handle->s;
+	handle->s *= 0.5;
+}
+
+static void
+_intercept_filter_stiffness(void *data, LV2_Atom_Forge *forge, int64_t frames,
+	props_event_t event, props_impl_t *impl)
+{
+	handle_t *handle = data;
+
+	_stiffness_set(handle, handle->state.filter_stiffness);
+}
+
 static const props_def_t stat_tuio2_filterStiffness = {
 	.property = ESPRESSIVO_URI"#tuio2_filterStiffness",
 	.access = LV2_PATCH__writable,
 	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
+	.mode = PROP_MODE_STATIC,
+	.event_mask = PROP_EVENT_WRITE,
+	.event_cb = _intercept_filter_stiffness
 };
 
 static inline void
@@ -306,31 +330,31 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 			handle->tuio2.width = dim >> 16;
 			handle->tuio2.height = dim & 0xffff;
 
-			if(handle->stat.device_width != handle->tuio2.width)
+			if(handle->state.device_width != handle->tuio2.width)
 			{
-				handle->stat.device_width = handle->tuio2.width;
-				props_set(&handle->props, forge, handle->frames, handle->urid.device_width);
+				handle->state.device_width = handle->tuio2.width;
+				props_set(&handle->props, forge, handle->frames, handle->urid.device_width, &handle->ref);
 			}
 
-			if(handle->stat.device_height != handle->tuio2.height)
+			if(handle->state.device_height != handle->tuio2.height)
 			{
-				handle->stat.device_height = handle->tuio2.height;
-				props_set(&handle->props, forge, handle->frames, handle->urid.device_height);
+				handle->state.device_height = handle->tuio2.height;
+				props_set(&handle->props, forge, handle->frames, handle->urid.device_height, &handle->ref);
 			}
 			
 			const int n = handle->tuio2.width;
-			const float oct = handle->stat.octave;
-			const int sps = handle->stat.sensors_per_semitone; 
+			const float oct = handle->state.octave;
+			const int sps = handle->state.sensors_per_semitone; 
 
 			handle->ran = (float)n / sps;
 			handle->bot = oct*12.f - 0.5 - (n % (6*sps) / (2.f*sps));
 		}
 		
 		ptr = osc_deforge_string(oforge, forge, ptr, &source);
-		if(ptr && strcmp(handle->stat.device_name, source))
+		if(ptr && strcmp(handle->state.device_name, source))
 		{
-			strcpy(handle->stat.device_name, source);
-			props_set(&handle->props, forge, handle->frames, handle->urid.device_name);
+			strncpy(handle->state.device_name, source, MAX_STRLEN);
+			props_set(&handle->props, forge, handle->frames, handle->urid.device_name, &handle->ref);
 		}
 
 		// process this bundle
@@ -508,23 +532,6 @@ static const xpress_iface_t iface = {
 	.size = sizeof(target_t)
 };
 
-static inline void
-_stiffness_set(handle_t *handle, int32_t stiffness)
-{
-	handle->s = 1.f / 32.f; //FIXME make stiffness configurable
-	handle->sm1 = 1.f - handle->s;
-	handle->s *= 0.5;
-}
-
-static void
-_intercept_filter_stiffness(void *data, LV2_Atom_Forge *forge, int64_t frames,
-	props_event_t event, props_impl_t *impl)
-{
-	handle_t *handle = data;
-
-	_stiffness_set(handle, handle->stat.filter_stiffness);
-}
-
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
@@ -578,20 +585,16 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(  (handle->urid.device_width = props_register(&handle->props, &stat_tuio2_deviceWidth, PROP_EVENT_NONE, NULL,
-				&handle->stat.device_width))
-		&& (handle->urid.device_height = props_register(&handle->props, &stat_tuio2_deviceHeight, PROP_EVENT_NONE, NULL,
-				&handle->stat.device_height))
-		&& (handle->urid.device_name = props_register(&handle->props, &stat_tuio2_deviceName, PROP_EVENT_NONE, NULL,
-				&handle->stat.device_name))
+	if(  !(handle->urid.device_width = props_register(&handle->props, &stat_tuio2_deviceWidth, 
+			&handle->state.device_width, &handle->stash.device_width))
+		|| !(handle->urid.device_height = props_register(&handle->props, &stat_tuio2_deviceHeight, 
+			&handle->state.device_height, &handle->stash.device_height))
+		|| !(handle->urid.device_name = props_register(&handle->props, &stat_tuio2_deviceName, 
+			&handle->state.device_name, &handle->stash.device_name))
 
-		&& props_register(&handle->props, &stat_tuio2_octave, PROP_EVENT_NONE, NULL, &handle->stat.octave)
-		&& props_register(&handle->props, &stat_tuio2_sensorsPerSemitone, PROP_EVENT_NONE, NULL, &handle->stat.sensors_per_semitone)
-		&& props_register(&handle->props, &stat_tuio2_filterStiffness, PROP_EVENT_WRITE, _intercept_filter_stiffness, &handle->stat.filter_stiffness) )
-	{
-		props_sort(&handle->props);
-	}
-	else
+		|| !props_register(&handle->props, &stat_tuio2_octave, &handle->state.octave, &handle->stash.octave)
+		|| !props_register(&handle->props, &stat_tuio2_sensorsPerSemitone, &handle->state.sensors_per_semitone, &handle->stash.sensors_per_semitone)
+		|| !props_register(&handle->props, &stat_tuio2_filterStiffness, &handle->state.filter_stiffness, &handle->stash.filter_stiffness) )
 	{
 		free(handle);
 		return NULL;
@@ -623,9 +626,9 @@ activate(LV2_Handle instance)
 {
 	handle_t *handle = (handle_t *)instance;
 
-	handle->stat.device_width = 1;
-	handle->stat.device_height = 1;
-	handle->stat.device_name[0] = '\0';
+	handle->state.device_width = 1;
+	handle->state.device_height = 1;
+	handle->state.device_name[0] = '\0';
 }
 
 typedef int (*osc_method_func_t)(const char *path, const char *fmt,

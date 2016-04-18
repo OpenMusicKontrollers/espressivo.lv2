@@ -26,10 +26,15 @@
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
+typedef struct _state_t state_t;
 typedef struct _handle_t handle_t;
 
 struct _target_t {
 	xpress_uuid_t uuid;
+	int32_t zone_mask;
+};
+
+struct _state_t {
 	int32_t zone_mask;
 };
 
@@ -45,7 +50,8 @@ struct _handle_t {
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *event_out;
 
-	int32_t zone_mask;
+	state_t state;
+	state_t stash;
 };
 
 static const props_def_t stat_through_zone_mask = {
@@ -63,7 +69,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	target_t *src = target;
 	src->zone_mask = 1 << state->zone;
 
-	if(src->zone_mask & handle->zone_mask)
+	if(src->zone_mask & handle->state.zone_mask)
 	{
 		LV2_Atom_Forge *forge = &handle->forge;
 
@@ -84,7 +90,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	handle_t *handle = data;
 	target_t *src = target;
 
-	if(src->zone_mask & handle->zone_mask)
+	if(src->zone_mask & handle->state.zone_mask)
 	{
 		LV2_Atom_Forge *forge = &handle->forge;
 
@@ -103,7 +109,7 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	handle_t *handle = data;
 	target_t *src = target;
 
-	if(src->zone_mask & handle->zone_mask)
+	if(src->zone_mask & handle->state.zone_mask)
 	{
 		LV2_Atom_Forge *forge = &handle->forge;
 
@@ -164,11 +170,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(props_register(&handle->props, &stat_through_zone_mask, PROP_EVENT_NONE, NULL, &handle->zone_mask) )
-	{
-		props_sort(&handle->props);
-	}
-	else
+	if(!props_register(&handle->props, &stat_through_zone_mask,
+		&handle->state.zone_mask, &handle->stash.zone_mask) )
 	{
 		free(handle);
 		return NULL;

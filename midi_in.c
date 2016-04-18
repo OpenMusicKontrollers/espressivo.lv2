@@ -26,6 +26,7 @@
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
+typedef struct _state_t state_t;
 typedef struct _handle_t handle_t;
 
 struct _target_t {
@@ -36,6 +37,11 @@ struct _target_t {
 
 	uint8_t pressure_lsb;
 	uint8_t timbre_lsb;
+};
+
+struct _state_t {
+	int32_t range;
+	int32_t cents [12];
 };
 
 struct _handle_t {
@@ -49,13 +55,13 @@ struct _handle_t {
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *midi_out;
 
-	int32_t range;
-	int32_t cents [MAX_NPROPS];
-
 	PROPS_T(props, MAX_NPROPS);
 
 	XPRESS_T(xpress, MAX_NVOICES);
 	target_t target [MAX_NVOICES];
+
+	state_t state;
+	state_t stash;
 };
 
 static const props_def_t stat_midi_range = {
@@ -186,16 +192,13 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	LV2_URID urid = props_register(&handle->props, &stat_midi_range, PROP_EVENT_NONE, NULL, &handle->range);
+	LV2_URID urid = props_register(&handle->props, &stat_midi_range, &handle->state.range, &handle->stash.range);
 	for(unsigned z=0; (z<12) && urid; z++)
 	{
-		urid = props_register(&handle->props, &stat_midi_cents[z], PROP_EVENT_NONE, NULL, &handle->cents[z]);
+		urid = props_register(&handle->props, &stat_midi_cents[z], &handle->state.cents[z], &handle->stash.cents[z]);
 	}
-	if(urid)
-	{
-		props_sort(&handle->props);
-	}
-	else
+
+	if(!urid)
 	{
 		free(handle);
 		return NULL;
@@ -312,7 +315,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 			else if(comm == LV2_MIDI_MSG_BENDER)
 			{
 				const int16_t bender = (((int16_t)m[2] << 7) | m[1]) - 0x2000;
-				const float offset = bender * 0x1p-13 * handle->range * 0.01f;
+				const float offset = bender * 0x1p-13 * handle->state.range * 0.01f;
 
 				XPRESS_VOICE_FOREACH(&handle->xpress, voice)
 				{
