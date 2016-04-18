@@ -80,6 +80,13 @@ esp:mpe_zones
 	lv2:minimum 1 ;
 	lv2:maximum 8 .
 
+esp:mpe_velocity
+	a lv2:Parameter ;
+	rdfs:label "Velocity" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+
 esp:mpe_master_range_1
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 1" ;
@@ -343,6 +350,7 @@ esp:mpe_out
 
 	patch:writable
 		esp:mpe_zones ,
+		esp:mpe_velocity ,
 		esp:mpe_master_range_1 ,
 		esp:mpe_master_range_2 ,
 		esp:mpe_master_range_3 ,
@@ -378,6 +386,7 @@ esp:mpe_out
 	
 	state:state [
 		esp:mpe_zones 1 ;
+		esp:mpe_velocity 64 ;
 		esp:mpe_master_range_1 2 ;	
 		esp:mpe_master_range_2 2 ;	
 		esp:mpe_master_range_3 2 ;	

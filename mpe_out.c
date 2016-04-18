@@ -24,7 +24,7 @@
 
 #define CHAN_MAX 16
 #define ZONE_MAX (CHAN_MAX / 2)
-#define MAX_NPROPS (1 + ZONE_MAX*4)
+#define MAX_NPROPS (2 + ZONE_MAX*4)
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
@@ -41,6 +41,7 @@ struct _target_t {
 
 struct _state_t {
 	int32_t zones;
+	int32_t velocity;
 	int32_t master_range [ZONE_MAX];
 	int32_t voice_range [ZONE_MAX];
 	int32_t pressure_controller [ZONE_MAX];
@@ -358,6 +359,13 @@ static const props_def_t stat_mpe_zones = {
 	.event_cb = _intercept_zones
 };
 
+static const props_def_t stat_mpe_velocity = {
+	.property = ESPRESSIVO_URI"#mpe_velocity",
+	.access = LV2_PATCH__writable,
+	.type = LV2_ATOM__Int,
+	.mode = PROP_MODE_STATIC
+};
+
 #define MASTER_RANGE(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_master_range_"#NUM, \
@@ -479,7 +487,10 @@ _set(handle_t *handle, int64_t frames, const xpress_state_t *state,
 		handle->ref = _midi_event(handle, frames, pressure_msb, 3);
 
 	// timbre
-	const uint16_t vx = (state->position[2] * 0x2000) + 0x1fff; //TODO limit
+	float pos2 = state->position[2];
+	if(pos2 < -1.f) pos2 = -1.f;
+	else if(pos2 > 1.f) pos2 = 1.f;
+	const uint16_t vx = (pos2 * 0x2000) + 0x1fff;
 	const uint8_t vx_msb = vx >> 7;
 	const uint8_t vx_lsb = vx & 0x7f;
 
@@ -502,7 +513,10 @@ _set(handle_t *handle, int64_t frames, const xpress_state_t *state,
 
 	// timbre 2
 	/* FIXME
-	const uint16_t vz = (state->velocity[0] * 0x2000) + 0x1fff; //TODO limit
+	float vel0 = state->velocity[0];
+	if(vel0 < -1.f) vel0 = -1.f;
+	if(vel0 > 1.f) vel0 = 1.f;
+	const uint16_t vz = (vel0 * 0x2000) + 0x1fff;
 	const uint8_t vz_msb = vz >> 7;
 	const uint8_t vz_lsb = vz & 0x7f;
 
@@ -537,7 +551,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	src->chan = mpe_acquire(&handle->mpe, state->zone);
 	src->zone = state->zone;
 	src->key = floor(val);
-	const uint8_t vel = 0x7f; //TODO make configurable
+	const uint8_t vel = handle->state.velocity;
 
 	const uint8_t note_on [3] = {
 		LV2_MIDI_MSG_NOTE_ON | src->chan,
@@ -570,7 +584,7 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	handle_t *handle = data;
 	target_t *src = target;
 
-	const uint8_t vel = 0x7f; //TODO make configurable
+	const uint8_t vel = handle->state.velocity;
 
 	const uint8_t note_off [3] = {
 		LV2_MIDI_MSG_NOTE_OFF | src->chan,
@@ -639,6 +653,10 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	LV2_URID urid = props_register(&handle->props, &stat_mpe_zones,
 		&handle->state.zones, &handle->stash.zones);
+
+	if(urid)
+		urid = props_register(&handle->props, &stat_mpe_velocity,
+			&handle->state.velocity, &handle->stash.velocity);
 
 	for(unsigned z=0; urid && (z<ZONE_MAX); z++)
 		urid = props_register(&handle->props, &stat_mpe_master_range[z],
