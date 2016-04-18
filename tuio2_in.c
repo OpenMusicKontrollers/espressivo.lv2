@@ -66,7 +66,7 @@ struct _target_t {
 struct _state_t {
 	int32_t device_width;
 	int32_t device_height;
-	char device_name [128];
+	char device_name [MAX_STRLEN];
 	int32_t octave;
 	int32_t sensors_per_semitone;
 	int32_t filter_stiffness;
@@ -159,7 +159,7 @@ static const props_def_t stat_tuio2_sensorsPerSemitone = {
 static inline void
 _stiffness_set(handle_t *handle, int32_t stiffness)
 {
-	handle->s = 1.f / 32.f; //FIXME make stiffness configurable
+	handle->s = 1.f / stiffness;
 	handle->sm1 = 1.f - handle->s;
 	handle->s *= 0.5;
 }
@@ -590,7 +590,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		|| !(handle->urid.device_height = props_register(&handle->props, &stat_tuio2_deviceHeight, 
 			&handle->state.device_height, &handle->stash.device_height))
 		|| !(handle->urid.device_name = props_register(&handle->props, &stat_tuio2_deviceName, 
-			&handle->state.device_name, &handle->stash.device_name))
+			handle->state.device_name, handle->stash.device_name))
 
 		|| !props_register(&handle->props, &stat_tuio2_octave, &handle->state.octave, &handle->stash.octave)
 		|| !props_register(&handle->props, &stat_tuio2_sensorsPerSemitone, &handle->state.sensors_per_semitone, &handle->stash.sensors_per_semitone)
