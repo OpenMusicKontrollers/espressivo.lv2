@@ -17,7 +17,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <bsd/string.h>
 
 #include <espressivo.h>
 #include <lv2_osc.h>
