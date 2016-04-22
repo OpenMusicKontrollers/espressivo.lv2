@@ -28,19 +28,20 @@
 #define MAX_ZONES 8
 #define MAX_CHANNELS 16
 
-typedef struct _zone_t zone_t;
+typedef struct _slot_t slot_t;
 typedef struct _target_t target_t;
 typedef struct _state_t state_t;
 typedef struct _handle_t handle_t;
 
-struct _zone_t {
-	uint8_t index;
-	uint8_t offset;
-	uint8_t width;
+struct _slot_t {
 	uint8_t master_bend_range;
 	uint8_t voice_bend_range;
+
 	int16_t master_bender;
 	int16_t voice_bender;
+
+	int16_t voice_pressure;
+	int16_t voice_timbre;
 };
 
 struct _target_t {
@@ -78,8 +79,8 @@ struct _handle_t {
 	uint16_t data;
 	uint16_t rpn;
 
-	zone_t zones [MAX_ZONES];
-	zone_t *slots [MAX_CHANNELS];
+	slot_t slots [MAX_CHANNELS];
+	int index [MAX_CHANNELS];
 
 	state_t state;
 	state_t stash;
@@ -93,101 +94,111 @@ static const props_def_t stat_mpe_zones = {
 };
 
 static inline void
-_zone_init(zone_t *zone, uint8_t index, uint8_t offset, uint8_t width)
+_slot_init(slot_t *slot)
 {
-	zone->index = index;
-	zone->offset = offset;
-	zone->width = width;
-	zone->master_bend_range = 2;
-	zone->voice_bend_range = 48;
-	zone->master_bender = 0;
-	zone->voice_bender = 0;
-}
+	slot->master_bend_range = 2;
+	slot->voice_bend_range = 48;
 
-static inline bool
-_zone_is_master(zone_t *zone, uint8_t chan)
-{
-	return zone->offset == chan;
-}
-
-static inline bool
-_zone_is_first_voice(zone_t *zone, uint8_t chan)
-{
-	return zone->offset + 1 == chan;
-}
-
-static inline bool
-_zone_is_any_voice(zone_t *zone, uint8_t chan)
-{
-	return (zone->offset + 1 <= chan) && (zone->offset + zone->width >= chan);
+	slot->master_bender = 0;
+	slot->voice_bender = 0;
 }
 
 static inline void
 _slots_init(handle_t *handle)
 {
-	for(unsigned i=0; i<MAX_ZONES; i++)
-	{
-		zone_t *zone = &handle->zones[i];
-
-		_zone_init(zone, i, i*2 + 1, i == 0 ? 7 : 0);
-	}
-
-	for(unsigned j=0; j<MAX_CHANNELS; j++)
-		handle->slots[j] = &handle->zones[0];
+	for(unsigned i=0; i<MAX_CHANNELS; i++)
+		_slot_init(&handle->slots[i]);
 }
 
 static inline void
-_slots_update(handle_t *handle)
+_index_init(int *index)
 {
-	memset(handle->slots, 0x0, MAX_CHANNELS * sizeof(zone_t *));
-
-	unsigned offset = 0;
-	for(unsigned i=0; i<MAX_ZONES; i++)
-	{
-		zone_t *zone = &handle->zones[i];
-
-		if(zone->width)
-		{
-			zone->offset = offset;
-			offset += 1 + zone->width;
-
-			for(unsigned j=0; j<=zone->width; j++)
-				handle->slots[zone->offset + j] = zone;
-		}
-	}
+	for(unsigned i=0; i<MAX_CHANNELS; i++)
+		index[i] = 0;
 }
 
 static inline void
-_slots_zone_set(handle_t *handle, uint8_t offset, uint8_t width)
+_index_dump(int *slots)
 {
-	zone_t *zone = handle->slots[offset];
+	for(unsigned i=0; i<MAX_CHANNELS; i++)
+		printf("%3i ", slots[i]);
+	printf("\n");
+}
 
-	if(zone)
+static inline void
+_index_update(handle_t *handle, unsigned chan, unsigned width)
+{
+	const unsigned from = chan;
+	const unsigned to = chan + 1 + width;
+	int idx = -1;
+
+	// find pre zone index 
+	for(unsigned i=0; i<from; i++)
 	{
-		for(unsigned idx=0; idx<zone->index; idx++)
-		{
-			zone_t *src = &handle->zones[idx];
-
-			//FIXME
-		}
-
-		zone->offset = offset;
-		zone->width = width;
+		if(handle->index[i] > idx)
+			idx = handle->index[i];
 	}
-	else // !zone
+
+	// invalidate overwritten master/first voice
+	for(unsigned i=from; i<to; i++)
 	{
-		for(unsigned i=0; i<MAX_ZONES; i++)
+		if(handle->index[i] > idx) // beginning of new zone
 		{
-			zone = &handle->zones[i];
-			if(!zone->width)
+			const int slot_i= handle->index[i];
+
+			for(unsigned j=i; j<MAX_CHANNELS; j++)
 			{
-				zone->width = width;
-				break;
+				if(handle->index[j] == slot_i)
+					handle->index[j] = -1; // invalidate
+				else
+					handle->index[j] -= 1; // decrease
 			}
 		}
 	}
 
-	_slots_update(handle);
+	// set own zone index, init slot
+	idx += 1;
+	for(unsigned i=from; i<to; i++)
+	{
+		handle->index[i] = idx;
+		_slot_init(&handle->slots[i]);
+	}
+
+	// invalidate/increase post zone indeces
+	for(unsigned i=to; i<MAX_CHANNELS; i++)
+	{
+		if(handle->index[i] >= idx)
+			handle->index[i] += 1; // increase
+		else
+			handle->index[i] = -1; // invalidate
+	}
+}
+
+static inline bool
+_channel_is_master(handle_t *handle, unsigned chan)
+{
+	if(chan == 0)
+		return true;
+
+	if(handle->index[chan - 1] != handle->index[chan])
+		return true;
+
+	return false;
+}
+
+static inline bool
+_channel_is_first(handle_t *handle, unsigned chan)
+{
+	if(chan == 0)
+		return false;
+
+	if(handle->index[chan - 1] == handle->index[chan])
+	{
+		if( (chan == 1) || (handle->index[chan - 2] != handle->index[chan]) )
+			return true;
+	}
+
+	return false;
 }
 
 static LV2_Handle
@@ -242,6 +253,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
+	_index_init(handle->index);
 	_slots_init(handle);
 
 	return handle;
@@ -263,23 +275,6 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 		default:
 			break;
 	}
-}
-
-static inline LV2_Atom_Forge_Ref
-_midi_event(handle_t *handle, int64_t frames, const uint8_t *m, size_t len)
-{
-	LV2_Atom_Forge *forge = &handle->forge;
-	LV2_Atom_Forge_Ref ref;
-		
-	ref = lv2_atom_forge_frame_time(forge, frames);
-	if(ref)
-		ref = lv2_atom_forge_atom(forge, len, handle->uris.midi_MidiEvent);
-	if(ref)
-		ref = lv2_atom_forge_raw(forge, m, len);
-	if(ref)
-		lv2_atom_forge_pad(forge, len);
-
-	return ref;
 }
 
 static void
@@ -305,21 +300,42 @@ run(LV2_Handle instance, uint32_t nsamples)
 			const uint8_t comm = m[0] & 0xf0;
 			const uint8_t chan = m[0] & 0x0f;
 
+
 			if(comm == LV2_MIDI_MSG_NOTE_ON)
 			{
-				//FIXME
+				const int idx = handle->index[chan];
+
+				if(idx != -1)
+				{
+					//FIXME
+				}
 			}
 			else if(comm == LV2_MIDI_MSG_NOTE_OFF)
 			{
-				//FIXME
+				const int idx = handle->index[chan];
+
+				if(idx != -1)
+				{
+					//FIXME
+				}
 			}
 			else if(comm == LV2_MIDI_MSG_CHANNEL_PRESSURE)
 			{
-				//FIXME
+				const int idx = handle->index[chan];
+
+				if(idx != -1)
+				{
+					//FIXME
+				}
 			}
 			else if(comm == LV2_MIDI_MSG_BENDER)
 			{
-				//FIXME
+				const int idx = handle->index[chan];
+
+				if(idx != -1)
+				{
+					//FIXME
+				}
 			}
 			else if(comm == LV2_MIDI_MSG_CONTROLLER)
 			{
@@ -336,13 +352,41 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 						if(handle->rpn == 6)
 						{
-							printf("setting zone width: %"PRIu8" %"PRIu16"\n", chan, handle->data >> 7);
-							//TODO zone pitch bend range
+							const uint8_t zone_width = handle->data >> 7;
+							//printf("setting zone width: %"PRIu8" %"PRIu8"\n", chan, zone_width);
+
+							_index_update(handle, chan, zone_width);
 						}
 						else if(handle->rpn == 0)
 						{
-							printf("setting pitch bend range: %"PRIu8" %"PRIu16"\n", chan, handle->data >> 7);
-							//TODO voice pitch bend range
+							const uint8_t bend_range = handle->data >> 7;
+							const int idx = handle->index[chan];
+
+							if(idx != -1)
+							{
+								if(_channel_is_master(handle, chan))
+								{
+									for(unsigned i=chan; i<MAX_CHANNELS; i++)
+									{
+										if(handle->index[i] == idx)
+											handle->slots[i].master_bend_range = bend_range; //TODO check
+									}
+								}
+								else if(_channel_is_first(handle, chan))
+								{
+									for(unsigned i=chan-1; i<MAX_CHANNELS; i++)
+									{
+										if(handle->index[i] == idx)
+											handle->slots[i].voice_bend_range = bend_range; //TODO check
+									}
+								}
+							}
+
+							/* FIXME
+							for(unsigned i=0; i<MAX_CHANNELS; i++)
+								printf("%u %i %i\n", i, handle->slots[i].master_bend_range, handle->slots[i].voice_bend_range);
+							printf("\n");
+							*/
 						}
 						break;
 					case LV2_MIDI_CTL_RPN_LSB:
@@ -351,6 +395,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 					case LV2_MIDI_CTL_RPN_MSB:
 						handle->rpn = (handle->rpn & 0x7f) | ((uint16_t)value << 7);
 						break;
+					//FIXME SC5
 				}
 			}
 		}
