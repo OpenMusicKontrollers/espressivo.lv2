@@ -21,7 +21,7 @@
 
 #include <espressivo.h>
 #include <props.h>
-#include <lv2_osc.h>
+#include <osc.lv2/forge.h>
 
 #define MAX_NPROPS 6
 #define MAX_NVOICES 64
@@ -51,7 +51,7 @@ struct _handle_t {
 	LV2_URID_Map *map;
 	LV2_Atom_Forge forge;
 	LV2_Atom_Forge_Ref ref;
-	osc_forge_t oforge;
+	LV2_OSC_URID osc_urid;
 	osc_schedule_t *osc_sched;
 
 	PROPS_T(props, MAX_NPROPS);
@@ -153,7 +153,7 @@ _frm(handle_t *handle, uint64_t ttag)
 		/tuio2/frm int32 ttag int32 string
 	*/
 
-	return osc_forge_message_vararg(&handle->oforge, &handle->forge,
+	return lv2_osc_forge_message_vararg(&handle->forge, &handle->osc_urid,
 		"/tuio2/frm", "itis",
 		++handle->fid, ttag, handle->dim, handle->state.device_name);
 }
@@ -172,7 +172,7 @@ _tok_2d(handle_t *handle, xpress_uuid_t uuid, const xpress_state_t *state)
 	const float macc = sqrtf(state->acceleration[0]*state->acceleration[0]
 		+ state->acceleration[1]*state->acceleration[1]);
 
-	return osc_forge_message_vararg(&handle->oforge, &handle->forge,
+	return lv2_osc_forge_message_vararg(&handle->forge, &handle->osc_urid,
 		"/tuio2/tok", "iiiffffffff",
 		sid, tuid, gid,
 		state->position[0], state->position[1], 0.f,
@@ -191,28 +191,19 @@ _alv(handle_t *handle)
 	LV2_Atom_Forge_Ref ref;
 	LV2_Atom_Forge_Frame msg_frame [2];
 
-	char fmt [MAX_NVOICES + 1];
-	char *ptr= fmt;
-
-	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
-	{
-		*ptr++ = 'i';
-	}
-	*ptr = '\0';
-
-	ref = osc_forge_message_push(&handle->oforge, &handle->forge, msg_frame,
-		"/tuio2/alv", fmt);
+	ref = lv2_osc_forge_message_head(&handle->forge, &handle->osc_urid, msg_frame,
+		"/tuio2/alv");
 
 	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
 	{
 		target_t *src = voice->target;
 
 		if(ref)
-			ref = osc_forge_int32(&handle->oforge, &handle->forge, src->uuid);
+			ref = lv2_osc_forge_int(&handle->oforge, &handle->forge, src->uuid);
 	}
 
 	if(ref)
-		osc_forge_message_pop(&handle->oforge, &handle->forge, msg_frame);
+		lv2_osc_forge_pop(&handle->oforge, &handle->forge, msg_frame);
 
 	return ref;
 }
@@ -225,7 +216,7 @@ _tuio2_2d(handle_t *handle, int64_t from, int64_t to)
 	LV2_Atom_Forge_Ref ref;
 
 	uint64_t ttag0 = 1ULL; // immediate
-	uint64_t ttag1= 1ULL; // immediate
+	LV2_OSC_Timetag ttag1 = {.integral = 0, .fraction = 1};
 	if(handle->osc_sched)
 	{
 		// get timetag corresponding to frame time
@@ -246,13 +237,14 @@ _tuio2_2d(handle_t *handle, int64_t from, int64_t to)
 				sec += 1;
 				frac -= 1.0;
 			}
-			ttag1 = (sec << 32) | (uint32_t)(frac * 0x1p32);
+			ttag1.integral = sec;
+			ttag1.fraction = frac * 0x1p32;
 		}
 	}
 
 	ref = lv2_atom_forge_frame_time(&handle->forge, from);
 	if(ref)
-		ref = osc_forge_bundle_push(&handle->oforge, &handle->forge, bndl_frame, ttag1);
+		ref = lv2_osc_forge_bundle_head(&handle->oforge, &handle->forge, bndl_frame, ttag1);
 	if(ref)
 		ref = _frm(handle, ttag0);
 
@@ -272,7 +264,7 @@ _tuio2_2d(handle_t *handle, int64_t from, int64_t to)
 	if(ref)
 		ref = _alv(handle);
 	if(ref)
-		osc_forge_bundle_pop(&handle->oforge, &handle->forge, bndl_frame);
+		lv2_osc_forge_pop(&handle->oforge, &handle->forge, bndl_frame);
 
 	return ref;
 }
@@ -377,7 +369,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	}
 
 	lv2_atom_forge_init(&handle->forge, handle->map);
-	osc_forge_init(&handle->oforge, handle->map);
+	lv2_osc_urid_init(&handle->osc_urid, handle->map);
 
 	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
 			XPRESS_EVENT_ALL, &iface, handle->target, handle))

@@ -20,7 +20,7 @@
 #include <string.h>
 
 #include <espressivo.h>
-#include <lv2_osc.h>
+#include <osc.lv2/util.h>
 #include <props.h>
 
 #define MAX_NPROPS 6
@@ -75,7 +75,7 @@ struct _state_t {
 struct _handle_t {
 	LV2_URID_Map *map;
 	LV2_Atom_Forge forge;
-	osc_forge_t oforge;
+	LV2_OSC_URID osc_urid;
 
 	LV2_Log_Log *log;
 	LV2_Log_Logger logger;
@@ -286,7 +286,7 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	void *data)
 {
 	handle_t *handle = data;
-	osc_forge_t *oforge = &handle->oforge;
+	LV2_OSC_URID *osc_urid= &handle->osc_urid;
 	LV2_Atom_Forge *forge = &handle->forge;
 
 	const LV2_Atom *ptr = lv2_atom_tuple_begin(args);
@@ -400,7 +400,7 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	void *data)
 {
 	handle_t *handle = data;
-	osc_forge_t *oforge = &handle->oforge;
+	LV2_OSC_URID *osc_urid= &handle->osc_urid;
 	LV2_Atom_Forge *forge = &handle->forge;
 
 	pos_t pos;
@@ -458,7 +458,7 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	void *data)
 {
 	handle_t *handle = data;
-	osc_forge_t *oforge = &handle->oforge;
+	LV2_OSC_URID *osc_urid= &handle->osc_urid;
 	LV2_Atom_Forge *forge = &handle->forge;
 
 	if(handle->tuio2.ignore)
@@ -566,7 +566,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	}
 
 	lv2_atom_forge_init(&handle->forge, handle->map);
-	osc_forge_init(&handle->oforge, handle->map);
+	lv2_osc_urid_init(&handle->osc_urid, handle->map);
 
 	if(handle->log)
 		lv2_log_logger_init(&handle->logger, handle->map, handle->log);
@@ -637,32 +637,27 @@ typedef struct _method_t method_t;
 
 struct _method_t {
 	const char *path;
-	const char *fmt;
 	osc_method_func_t cb;
 };
 
 static const method_t methods [] = {
-	{"/tuio2/frm", "itis", _tuio2_frm},
-	{"/tuio2/tok", "iiifff", _tuio2_tok},
-	{"/tuio2/tok", "iiiffffffff", _tuio2_tok},
+	{"/tuio2/frm", _tuio2_frm},
+	{"/tuio2/tok", _tuio2_tok},
+	{"/tuio2/tok", _tuio2_tok},
 	{"/tuio2/alv", NULL, _tuio2_alv},
 
-	{NULL, NULL, NULL}
+	{NULL, NULL}
 };
 
 static void
-_message_cb(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
-	void *data)
+_message_cb(const char *path, const LV2_Atom_Tuple *args, void *data)
 {
 	for(const method_t *meth = methods; meth->cb; meth++)
 	{
 		if(path && (!meth->path || !strcmp(meth->path, path)) )
 		{
-			if(fmt && (!meth->fmt || !strcmp(meth->fmt, fmt)) )
-			{
-				if(meth->cb(path, fmt, args, data))
-					break; // event handled, break
-			}
+			if(meth->cb(path, fmt, args, data))
+				break; // event handled, break
 		}
 	}
 }
@@ -685,7 +680,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 		handle->frames = ev->time.frames;
 
 		if(!props_advance(&handle->props, forge, handle->frames, obj, &handle->ref))
-			osc_atom_event_unroll(&handle->oforge, obj, NULL, NULL, _message_cb, handle);
+			lv2_osc_unroll(&handle->osc_urid, obj, _message_cb, handle);
 	}
 
 	if(handle->ref)

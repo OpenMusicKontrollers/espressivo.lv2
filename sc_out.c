@@ -19,7 +19,7 @@
 #include <stdlib.h>
 
 #include <espressivo.h>
-#include <lv2_osc.h>
+#include <osc.lv2/forge.h>
 #include <props.h>
 
 #define SYNTH_NAMES 8
@@ -50,7 +50,7 @@ struct _state_t {
 
 struct _handle_t {
 	LV2_URID_Map *map;
-	osc_forge_t oforge;
+	LV2_OSC_URID osc_urid;
 	LV2_Atom_Forge forge;
 	LV2_Atom_Forge_Ref ref;
 
@@ -186,7 +186,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 		if(handle->state.gate)
 		{
 			if(handle->ref)
-				handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+				handle->ref = lv2_osc_forge_message_vararg(forge, &handle->osc_urid,
 					"/s_new", "siiiiisisi",
 					handle->state.synth_name[state->zone], id, 0, gid,
 					handle->state.arg_offset + 4, 128,
@@ -196,7 +196,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 		else // !handle->state.gate
 		{
 			if(handle->ref)
-				handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+				handle->ref = lv2_osc_forge_message_vararg(forge, &handle->osc_urid,
 					"/s_new", "siiiiisi",
 					handle->state.synth_name[state->zone], id, 0, gid,
 					handle->state.arg_offset + 4, 128,
@@ -208,7 +208,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 		if(handle->ref)
 			handle->ref = lv2_atom_forge_frame_time(forge, frames);
 		if(handle->ref)
-			handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+			handle->ref = lv2_osc_forge_message_vararg(forge, &handle->osc_urid,
 				"/n_set", "isi",
 				id,
 				"gate", 1);
@@ -217,7 +217,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	if(handle->ref)
 		handle->ref = lv2_atom_forge_frame_time(forge, frames);
 	if(handle->ref)
-		handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+		handle->ref = lv2_osc_forge_message_vararg(forge, &handle->osc_urid,
 			"/n_setn", "iiiffff",
 			id, handle->state.arg_offset, arg_num,
 			_midi2cps(state->position[0]), state->position[1],
@@ -240,7 +240,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	if(handle->ref)
 		handle->ref = lv2_atom_forge_frame_time(forge, frames);
 	if(handle->ref)
-		handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+		handle->ref = lv2_osc_forge_message_vararg(forge, &handle->osc_urid,
 			"/n_setn", "iiiffff",
 			id, handle->state.arg_offset, arg_num,
 			_midi2cps(state->position[0]), state->position[1],
@@ -264,7 +264,7 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 		if(handle->ref)
 			handle->ref = lv2_atom_forge_frame_time(forge, frames);
 		if(handle->ref)
-			handle->ref = osc_forge_message_vararg(&handle->oforge, forge,
+			handle->ref = lv2_osc_forge_message_vararg(forge, &handle->osc_urid,
 				"/n_set", "isi",
 				id,
 				"gate", 0);
@@ -308,7 +308,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	}
 
 	lv2_atom_forge_init(&handle->forge, handle->map);
-	osc_forge_init(&handle->oforge, handle->map);
+	lv2_osc_urid_init(&handle->osc_urid, handle->map);
 
 	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
 			XPRESS_EVENT_ALL, &iface, handle->target, handle) )
