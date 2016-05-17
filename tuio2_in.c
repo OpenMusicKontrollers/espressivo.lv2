@@ -282,7 +282,7 @@ uint64_t last_last = 0ULL;
 
 // rt
 static int
-_tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
+_tuio2_frm(const char *path, const LV2_Atom_Tuple *args,
 	void *data)
 {
 	handle_t *handle = data;
@@ -293,8 +293,10 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	uint32_t fid;
 	uint64_t last;
 
-	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&fid);
-	ptr = osc_deforge_timestamp(oforge, forge, ptr, &handle->stamp);
+	ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&fid);
+	LV2_OSC_Timetag stamp;
+	ptr = lv2_osc_timetag_get(osc_urid, ptr, &stamp);
+	handle->stamp = lv2_osc_timetag_parse(&stamp);
 
 	if(!ptr)
 		return 1;
@@ -324,7 +326,7 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		handle->tuio2.fid = fid;
 		handle->tuio2.last = last;
 
-		ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&dim);
+		ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&dim);
 		if(ptr)
 		{
 			handle->tuio2.width = dim >> 16;
@@ -350,7 +352,7 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 			handle->bot = oct*12.f - 0.5 - (n % (6*sps) / (2.f*sps));
 		}
 		
-		ptr = osc_deforge_string(oforge, forge, ptr, &source);
+		ptr = lv2_osc_string_get(osc_urid, ptr, &source);
 		if(ptr && strcmp(handle->state.device_name, source))
 		{
 			strncpy(handle->state.device_name, source, MAX_STRLEN);
@@ -396,7 +398,7 @@ _tuio2_frm(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 
 // rt
 static int
-_tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
+_tuio2_tok(const char *path, const LV2_Atom_Tuple *args,
 	void *data)
 {
 	handle_t *handle = data;
@@ -406,7 +408,10 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	pos_t pos;
 	_pos_init(&pos, handle->stamp);
 
-	int has_derivatives = strlen(fmt) == 11;
+	unsigned n = 0;
+	LV2_ATOM_TUPLE_FOREACH(args, atom)
+		n++;
+	const bool has_derivatives = n == 1;
 
 	const LV2_Atom *ptr = lv2_atom_tuple_begin(args);
 
@@ -414,7 +419,7 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		return 1;
 
 	uint32_t sid;
-	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&sid);
+	ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&sid);
 	if(!ptr)
 		return 1;
 
@@ -427,19 +432,19 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 		src->uuid = xpress_map(&handle->xpress);
 	}
 
-	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&src->tuid);
-	ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&src->gid);
-	ptr = osc_deforge_float(oforge, forge, ptr, &pos.x);
-	ptr = osc_deforge_float(oforge, forge, ptr, &pos.z);
-	ptr = osc_deforge_float(oforge, forge, ptr, &pos.a);
+	ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&src->tuid);
+	ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&src->gid);
+	ptr = lv2_osc_float_get(osc_urid, ptr, &pos.x);
+	ptr = lv2_osc_float_get(osc_urid, ptr, &pos.z);
+	ptr = lv2_osc_float_get(osc_urid, ptr, &pos.a);
 
 	if(has_derivatives)
 	{
-		ptr = osc_deforge_float(oforge, forge, ptr, &pos.vx.f11);
-		ptr = osc_deforge_float(oforge, forge, ptr, &pos.vz.f11);
-		ptr = osc_deforge_float(oforge, forge, ptr, &pos.A);
-		ptr = osc_deforge_float(oforge, forge, ptr, &pos.m);
-		ptr = osc_deforge_float(oforge, forge, ptr, &pos.R);
+		ptr = lv2_osc_float_get(osc_urid, ptr, &pos.vx.f11);
+		ptr = lv2_osc_float_get(osc_urid, ptr, &pos.vz.f11);
+		ptr = lv2_osc_float_get(osc_urid, ptr, &pos.A);
+		ptr = lv2_osc_float_get(osc_urid, ptr, &pos.m);
+		ptr = lv2_osc_float_get(osc_urid, ptr, &pos.R);
 		(void)ptr;
 	}
 	else // !has_derivatives
@@ -454,7 +459,7 @@ _tuio2_tok(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 
 // rt
 static int
-_tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
+_tuio2_alv(const char *path, const LV2_Atom_Tuple *args,
 	void *data)
 {
 	handle_t *handle = data;
@@ -464,14 +469,16 @@ _tuio2_alv(const char *path, const char *fmt, const LV2_Atom_Tuple *args,
 	if(handle->tuio2.ignore)
 		return 1;
 
-	const unsigned n = strlen(fmt);
+	unsigned n = 0;
+	LV2_ATOM_TUPLE_FOREACH(args, atom)
+		n++;
 
 	const LV2_Atom *ptr = lv2_atom_tuple_begin(args);
 	for(unsigned i=0; (i<n) && ptr; i++)
 	{
 		uint32_t sid;
 
-		ptr = osc_deforge_int32(oforge, forge, ptr, (int32_t *)&sid);
+		ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&sid);
 
 		// already registered in this step?
 		target_t *src = xpress_get(&handle->xpress, sid);
@@ -631,7 +638,7 @@ activate(LV2_Handle instance)
 	handle->state.device_name[0] = '\0';
 }
 
-typedef int (*osc_method_func_t)(const char *path, const char *fmt,
+typedef int (*osc_method_func_t)(const char *path,
 	const LV2_Atom_Tuple *arguments, void *data);
 typedef struct _method_t method_t;
 
@@ -644,7 +651,7 @@ static const method_t methods [] = {
 	{"/tuio2/frm", _tuio2_frm},
 	{"/tuio2/tok", _tuio2_tok},
 	{"/tuio2/tok", _tuio2_tok},
-	{"/tuio2/alv", NULL, _tuio2_alv},
+	{"/tuio2/alv", _tuio2_alv},
 
 	{NULL, NULL}
 };
@@ -656,7 +663,7 @@ _message_cb(const char *path, const LV2_Atom_Tuple *args, void *data)
 	{
 		if(path && (!meth->path || !strcmp(meth->path, path)) )
 		{
-			if(meth->cb(path, fmt, args, data))
+			if(meth->cb(path, args, data))
 				break; // event handled, break
 		}
 	}

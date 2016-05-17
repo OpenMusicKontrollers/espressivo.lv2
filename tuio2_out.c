@@ -52,7 +52,7 @@ struct _handle_t {
 	LV2_Atom_Forge forge;
 	LV2_Atom_Forge_Ref ref;
 	LV2_OSC_URID osc_urid;
-	osc_schedule_t *osc_sched;
+	LV2_OSC_Schedule *osc_sched;
 
 	PROPS_T(props, MAX_NPROPS);
 	XPRESS_T(xpress, MAX_NVOICES);
@@ -199,11 +199,11 @@ _alv(handle_t *handle)
 		target_t *src = voice->target;
 
 		if(ref)
-			ref = lv2_osc_forge_int(&handle->oforge, &handle->forge, src->uuid);
+			ref = lv2_osc_forge_int(&handle->forge, &handle->osc_urid, src->uuid);
 	}
 
 	if(ref)
-		lv2_osc_forge_pop(&handle->oforge, &handle->forge, msg_frame);
+		lv2_osc_forge_pop(&handle->forge,  msg_frame);
 
 	return ref;
 }
@@ -225,7 +225,7 @@ _tuio2_2d(handle_t *handle, int64_t from, int64_t to)
 		// calculate bundle timetag
 		if(handle->state.timestamp_offset == 0.f)
 		{
-			ttag1 = ttag0;
+			lv2_osc_timetag_create(&ttag1, ttag0);
 		}
 		else
 		{
@@ -244,7 +244,7 @@ _tuio2_2d(handle_t *handle, int64_t from, int64_t to)
 
 	ref = lv2_atom_forge_frame_time(&handle->forge, from);
 	if(ref)
-		ref = lv2_osc_forge_bundle_head(&handle->oforge, &handle->forge, bndl_frame, ttag1);
+		ref = lv2_osc_forge_bundle_head(&handle->forge, &handle->osc_urid, bndl_frame, &ttag1);
 	if(ref)
 		ref = _frm(handle, ttag0);
 
@@ -264,7 +264,7 @@ _tuio2_2d(handle_t *handle, int64_t from, int64_t to)
 	if(ref)
 		ref = _alv(handle);
 	if(ref)
-		lv2_osc_forge_pop(&handle->oforge, &handle->forge, bndl_frame);
+		lv2_osc_forge_pop(&handle->forge, bndl_frame);
 
 	return ref;
 }
@@ -354,7 +354,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 			handle->map = features[i]->data;
 		else if(!strcmp(features[i]->URI, XPRESS_VOICE_MAP))
 			voice_map = features[i]->data;
-		else if(!strcmp(features[i]->URI, OSC__schedule))
+		else if(!strcmp(features[i]->URI, LV2_OSC__schedule))
 			handle->osc_sched = features[i]->data;
 	}
 
