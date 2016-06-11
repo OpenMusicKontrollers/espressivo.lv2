@@ -9,15 +9,22 @@ include_directories(${PROJECT_SOURCE_DIR}/xpress.lv2)
 
 set(CMAKE_C_FLAGS "-std=gnu11 -Wextra -Wno-unused-parameter -ffast-math -fvisibility=hidden ${CMAKE_C_FLAGS}")
 set(CMAKE_C_FLAGS "-Wshadow -Wimplicit-function-declaration -Wmissing-prototypes -Wstrict-prototypes ${CMAKE_C_FLAGS}")
-set(CMAKE_MODULE_LINKER_FLAGS "-Wl,-z,nodelete ${CMAKE_MODULE_LINKER_FLAGS}")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+	set(CMAKE_MODULE_LINKER_FLAGS "-Wl,-z,defs ${CMAKE_MODULE_LINKER_FLAGS}")
+	set(CMAKE_MODULE_LINKER_FLAGS "-Wl,-z,nodelete ${CMAKE_MODULE_LINKER_FLAGS}")
+endif()
 add_definitions("-D_GNU_SOURCE=1") # asprintf
 
-set(ESPRESSIVO_MAJOR_VERSION 0)
-set(ESPRESSIVO_MINOR_VERSION 1)
-set(ESPRESSIVO_MICRO_VERSION 1)
-set(ESPRESSIVO_VERSION "${ESPRESSIVO_MAJOR_VERSION}.${ESPRESSIVO_MINOR_VERSION}.${ESPRESSIVO_MICRO_VERSION}")
+file(STRINGS "VERSION" ESPRESSIVO_VERSION)
+string(REPLACE "." ";" VERSION_LIST ${ESPRESSIVO_VERSION})
+list(GET VERSION_LIST 0 ESPRESSIVO_MAJOR_VERSION)
+list(GET VERSION_LIST 1 ESPRESSIVO_MINOR_VERSION)
+list(GET VERSION_LIST 2 ESPRESSIVO_MICRO_VERSION)
+add_definitions("-DESPRESSIVO_VERSION=\"${ESPRESSIVO_VERSION}\"")
 
-set(DEST lib/lv2/espressivo.lv2)
+if(NOT DEFINED PLUGIN_DEST)
+	set(PLUGIN_DEST lib/lv2/orbit.lv2)
+endif()
 
 find_package(PkgConfig) # ${PKG_CONFIG_FOUND}
 
@@ -41,9 +48,9 @@ add_library(espressivo MODULE
 	sc_out.c)
 target_link_libraries(espressivo ${LIBS})
 set_target_properties(espressivo PROPERTIES PREFIX "")
-install(TARGETS espressivo DESTINATION ${DEST})
+install(TARGETS espressivo DESTINATION ${PLUGIN_DEST})
 
 configure_file(${PROJECT_SOURCE_DIR}/manifest.ttl.in
 	${PROJECT_BINARY_DIR}/manifest.ttl)
-install(FILES ${PROJECT_BINARY_DIR}/manifest.ttl DESTINATION ${DEST})
-install(FILES ${PROJECT_SOURCE_DIR}/espressivo.ttl DESTINATION ${DEST})
+install(FILES ${PROJECT_BINARY_DIR}/manifest.ttl DESTINATION ${PLUGIN_DEST})
+install(FILES ${PROJECT_SOURCE_DIR}/espressivo.ttl DESTINATION ${PLUGIN_DEST})
