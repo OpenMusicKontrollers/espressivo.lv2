@@ -23,7 +23,7 @@ list(GET VERSION_LIST 2 ESPRESSIVO_MICRO_VERSION)
 add_definitions("-DESPRESSIVO_VERSION=\"${ESPRESSIVO_VERSION}\"")
 
 if(NOT DEFINED PLUGIN_DEST)
-	set(PLUGIN_DEST lib/lv2/orbit.lv2)
+	set(PLUGIN_DEST lib/lv2/espressivo.lv2)
 endif()
 
 find_package(PkgConfig) # ${PKG_CONFIG_FOUND}

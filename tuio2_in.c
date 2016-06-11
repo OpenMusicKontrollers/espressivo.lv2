@@ -86,7 +86,6 @@ struct _plughandle_t {
 	float rate;
 	float s;
 	float sm1;
-	uint64_t stamp;
 
 	int64_t frames;
 
@@ -278,8 +277,6 @@ _tuio2_reset(plughandle_t *handle)
 	handle->tuio2.n = 0;
 }
 
-uint64_t last_last = 0ULL;
-
 // rt
 static int
 _tuio2_frm(const char *path, const LV2_Atom_Tuple *args,
@@ -296,7 +293,7 @@ _tuio2_frm(const char *path, const LV2_Atom_Tuple *args,
 	ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&fid);
 	LV2_OSC_Timetag stamp;
 	ptr = lv2_osc_timetag_get(osc_urid, ptr, &stamp);
-	handle->stamp = lv2_osc_timetag_parse(&stamp);
+	last = lv2_osc_timetag_parse(&stamp);
 
 	if(!ptr)
 		return 1;
@@ -406,7 +403,7 @@ _tuio2_tok(const char *path, const LV2_Atom_Tuple *args,
 	LV2_Atom_Forge *forge = &handle->forge;
 
 	pos_t pos;
-	_pos_init(&pos, handle->stamp);
+	_pos_init(&pos, handle->tuio2.last);
 
 	unsigned n = 0;
 	LV2_ATOM_TUPLE_FOREACH(args, atom)
