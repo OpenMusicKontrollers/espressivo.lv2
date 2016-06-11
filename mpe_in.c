@@ -31,7 +31,7 @@
 typedef struct _slot_t slot_t;
 typedef struct _target_t target_t;
 typedef struct _state_t state_t;
-typedef struct _handle_t handle_t;
+typedef struct _plughandle_t plughandle_t;
 
 struct _slot_t {
 	uint8_t master_bend_range;
@@ -60,7 +60,7 @@ struct _state_t {
 	int32_t num_zones;
 };
 
-struct _handle_t {
+struct _plughandle_t {
 	LV2_URID_Map *map;
 	struct {
 		LV2_URID midi_MidiEvent;
@@ -104,7 +104,7 @@ _slot_init(slot_t *slot)
 }
 
 static inline void
-_slots_init(handle_t *handle)
+_slots_init(plughandle_t *handle)
 {
 	for(unsigned i=0; i<MAX_CHANNELS; i++)
 		_slot_init(&handle->slots[i]);
@@ -126,7 +126,7 @@ _index_dump(int *slots)
 }
 
 static inline void
-_index_update(handle_t *handle, unsigned chan, unsigned width)
+_index_update(plughandle_t *handle, unsigned chan, unsigned width)
 {
 	const unsigned from = chan;
 	const unsigned to = chan + 1 + width;
@@ -175,7 +175,7 @@ _index_update(handle_t *handle, unsigned chan, unsigned width)
 }
 
 static inline bool
-_channel_is_master(handle_t *handle, unsigned chan)
+_channel_is_master(plughandle_t *handle, unsigned chan)
 {
 	if(chan == 0)
 		return true;
@@ -187,7 +187,7 @@ _channel_is_master(handle_t *handle, unsigned chan)
 }
 
 static inline bool
-_channel_is_first(handle_t *handle, unsigned chan)
+_channel_is_first(plughandle_t *handle, unsigned chan)
 {
 	if(chan == 0)
 		return false;
@@ -205,7 +205,7 @@ static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
 {
-	handle_t *handle = calloc(1, sizeof(handle_t));
+	plughandle_t *handle = calloc(1, sizeof(plughandle_t));
 	if(!handle)
 		return NULL;
 
@@ -262,7 +262,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 static void
 connect_port(LV2_Handle instance, uint32_t port, void *data)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	switch(port)
 	{
@@ -280,7 +280,7 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	// prepare midi atom forge
 	const uint32_t capacity = handle->midi_out->atom.size;
@@ -414,7 +414,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 static void
 cleanup(LV2_Handle instance)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	if(handle)
 		free(handle);
@@ -425,7 +425,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_save(&handle->props, &handle->forge, store, state, flags, features);
 }
@@ -435,7 +435,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
 }

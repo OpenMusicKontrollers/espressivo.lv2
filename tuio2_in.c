@@ -30,7 +30,7 @@
 typedef struct _pos_t pos_t;
 typedef struct _target_t target_t;
 typedef struct _state_t state_t;
-typedef struct _handle_t handle_t;
+typedef struct _plughandle_t plughandle_t;
 
 struct _pos_t {
 	uint64_t stamp;
@@ -72,7 +72,7 @@ struct _state_t {
 	int32_t filter_stiffness;
 };
 
-struct _handle_t {
+struct _plughandle_t {
 	LV2_URID_Map *map;
 	LV2_Atom_Forge forge;
 	LV2_OSC_URID osc_urid;
@@ -157,7 +157,7 @@ static const props_def_t stat_tuio2_sensorsPerSemitone = {
 };
 
 static inline void
-_stiffness_set(handle_t *handle, int32_t stiffness)
+_stiffness_set(plughandle_t *handle, int32_t stiffness)
 {
 	handle->s = 1.f / stiffness;
 	handle->sm1 = 1.f - handle->s;
@@ -168,7 +168,7 @@ static void
 _intercept_filter_stiffness(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	props_event_t event, props_impl_t *impl)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 
 	_stiffness_set(handle, handle->state.filter_stiffness);
 }
@@ -221,7 +221,7 @@ _pos_clone(pos_t *dst, pos_t *src)
 }
 
 static inline void
-_pos_deriv(handle_t *handle, pos_t *neu, pos_t *old)
+_pos_deriv(plughandle_t *handle, pos_t *neu, pos_t *old)
 {
 	if(neu->stamp <= old->stamp)
 	{
@@ -264,7 +264,7 @@ _pos_deriv(handle_t *handle, pos_t *neu, pos_t *old)
 }
 
 static void
-_tuio2_reset(handle_t *handle)
+_tuio2_reset(plughandle_t *handle)
 {
 	XPRESS_VOICE_FREE(&handle->xpress, voice)
 	{}
@@ -285,7 +285,7 @@ static int
 _tuio2_frm(const char *path, const LV2_Atom_Tuple *args,
 	void *data)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	LV2_OSC_URID *osc_urid= &handle->osc_urid;
 	LV2_Atom_Forge *forge = &handle->forge;
 
@@ -401,7 +401,7 @@ static int
 _tuio2_tok(const char *path, const LV2_Atom_Tuple *args,
 	void *data)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	LV2_OSC_URID *osc_urid= &handle->osc_urid;
 	LV2_Atom_Forge *forge = &handle->forge;
 
@@ -462,7 +462,7 @@ static int
 _tuio2_alv(const char *path, const LV2_Atom_Tuple *args,
 	void *data)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	LV2_OSC_URID *osc_urid= &handle->osc_urid;
 	LV2_Atom_Forge *forge = &handle->forge;
 
@@ -543,7 +543,7 @@ static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
 {
-	handle_t *handle = calloc(1, sizeof(handle_t));
+	plughandle_t *handle = calloc(1, sizeof(plughandle_t));
 	if(!handle)
 		return NULL;
 
@@ -613,7 +613,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 static void
 connect_port(LV2_Handle instance, uint32_t port, void *data)
 {
-	handle_t *handle = (handle_t *)instance;
+	plughandle_t *handle = (plughandle_t *)instance;
 
 	switch(port)
 	{
@@ -631,7 +631,7 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 static void
 activate(LV2_Handle instance)
 {
-	handle_t *handle = (handle_t *)instance;
+	plughandle_t *handle = (plughandle_t *)instance;
 
 	handle->state.device_width = 1;
 	handle->state.device_height = 1;
@@ -672,7 +672,7 @@ _message_cb(const char *path, const LV2_Atom_Tuple *args, void *data)
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
-	handle_t *handle = (handle_t *)instance;
+	plughandle_t *handle = (plughandle_t *)instance;
 	
 	LV2_Atom_Forge *forge = &handle->forge;
 	uint32_t capacity = handle->event_out->atom.size;
@@ -699,7 +699,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 static void
 cleanup(LV2_Handle instance)
 {
-	handle_t *handle = (handle_t *)instance;
+	plughandle_t *handle = (plughandle_t *)instance;
 
 	if(handle)
 		free(handle);
@@ -710,7 +710,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_save(&handle->props, &handle->forge, store, state, flags, features);
 }
@@ -720,7 +720,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
 }

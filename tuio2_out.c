@@ -29,7 +29,7 @@
 
 typedef struct _target_t target_t;
 typedef struct _state_t state_t;
-typedef struct _handle_t handle_t;
+typedef struct _plughandle_t plughandle_t;
 
 struct _target_t {
 	xpress_uuid_t uuid;
@@ -47,7 +47,7 @@ struct _state_t {
 	float timestamp_offset;
 };
 
-struct _handle_t {
+struct _plughandle_t {
 	LV2_URID_Map *map;
 	LV2_Atom_Forge forge;
 	LV2_Atom_Forge_Ref ref;
@@ -76,7 +76,7 @@ static void
 _intercept(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	props_event_t event, props_impl_t *impl)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 
 	int32_t w = handle->state.device_width;
 	const int32_t h = handle->state.device_height;
@@ -146,7 +146,7 @@ static const props_def_t stat_tuio2_timestampOffset = {
 };
 
 static inline LV2_Atom_Forge_Ref
-_frm(handle_t *handle, uint64_t ttag)
+_frm(plughandle_t *handle, uint64_t ttag)
 {
 	/*
 		/tuio2/frm f_id time dim source
@@ -159,7 +159,7 @@ _frm(handle_t *handle, uint64_t ttag)
 }
 
 static inline LV2_Atom_Forge_Ref
-_tok_2d(handle_t *handle, xpress_uuid_t uuid, const xpress_state_t *state)
+_tok_2d(plughandle_t *handle, xpress_uuid_t uuid, const xpress_state_t *state)
 {
 	/*
 		/tuio2/tok s_id tu_id c_id x_pos y_pos angle [x_vel y_vel a_vel m_acc r_acc]
@@ -181,7 +181,7 @@ _tok_2d(handle_t *handle, xpress_uuid_t uuid, const xpress_state_t *state)
 }
 
 static inline LV2_Atom_Forge_Ref
-_alv(handle_t *handle)
+_alv(plughandle_t *handle)
 {
 	/*
 		/tuio2/alv s_id0 ... s_idN
@@ -209,7 +209,7 @@ _alv(handle_t *handle)
 }
 
 static inline LV2_Atom_Forge_Ref
-_tuio2_2d(handle_t *handle, int64_t from, int64_t to)
+_tuio2_2d(plughandle_t *handle, int64_t from, int64_t to)
 {
 	LV2_Atom_Forge_Frame bndl_frame [2];
 	LV2_Atom_Forge_Frame msg_frame [2];
@@ -270,7 +270,7 @@ _tuio2_2d(handle_t *handle, int64_t from, int64_t to)
 }
 
 static inline void
-_upd(handle_t *handle, int64_t frames)
+_upd(plughandle_t *handle, int64_t frames)
 {
 	if(handle->dirty && (frames > handle->last) )
 	{
@@ -286,7 +286,7 @@ static void
 _add(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	target_t *src = target;
 
 	_upd(handle, frames);
@@ -305,7 +305,7 @@ static void
 _put(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	target_t *src = target;
 
 	_upd(handle, frames);
@@ -322,7 +322,7 @@ static void
 _del(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	target_t *src = target;
 
 	_upd(handle, frames);
@@ -342,7 +342,7 @@ static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
 {
-	handle_t *handle = calloc(1, sizeof(handle_t));
+	plughandle_t *handle = calloc(1, sizeof(plughandle_t));
 	if(!handle)
 		return NULL;
 
@@ -408,7 +408,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 static void
 connect_port(LV2_Handle instance, uint32_t port, void *data)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	switch(port)
 	{
@@ -426,7 +426,7 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	// prepare midi atom forge
 	const uint32_t capacity = handle->event_out->atom.size;
@@ -460,7 +460,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 static void
 cleanup(LV2_Handle instance)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	if(handle)
 		free(handle);
@@ -471,7 +471,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_save(&handle->props, &handle->forge, store, state, flags, features);
 }
@@ -481,7 +481,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
 }

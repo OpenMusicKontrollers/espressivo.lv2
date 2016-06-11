@@ -29,7 +29,7 @@
 
 typedef struct _target_t target_t;
 typedef struct _state_t state_t;
-typedef struct _handle_t handle_t;
+typedef struct _plughandle_t plughandle_t;
 
 struct _target_t {
 	int32_t sid;
@@ -48,7 +48,7 @@ struct _state_t {
 	int32_t group;
 };
 
-struct _handle_t {
+struct _plughandle_t {
 	LV2_URID_Map *map;
 	LV2_OSC_URID osc_urid;
 	LV2_Atom_Forge forge;
@@ -141,7 +141,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_save(&handle->props, &handle->forge, store, state, flags, features);
 }
@@ -151,7 +151,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
 }
@@ -165,7 +165,7 @@ static void
 _add(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	LV2_Atom_Forge *forge = &handle->forge;
 	target_t *src = target;
 
@@ -228,7 +228,7 @@ static void
 _put(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	LV2_Atom_Forge *forge = &handle->forge;
 	target_t *src = target;
 
@@ -251,7 +251,7 @@ static void
 _del(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	LV2_Atom_Forge *forge = &handle->forge;
 	target_t *src = target;
 
@@ -283,7 +283,7 @@ static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
 {
-	handle_t *handle = calloc(1, sizeof(handle_t));
+	plughandle_t *handle = calloc(1, sizeof(plughandle_t));
 	if(!handle)
 		return NULL;
 
@@ -348,7 +348,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 static void
 connect_port(LV2_Handle instance, uint32_t port, void *data)
 {
-	handle_t *handle = (handle_t *)instance;
+	plughandle_t *handle = (plughandle_t *)instance;
 
 	switch(port)
 	{
@@ -366,7 +366,7 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
-	handle_t *handle = (handle_t *)instance;
+	plughandle_t *handle = (plughandle_t *)instance;
 	
 	// prepare osc atom forge
 	const uint32_t capacity = handle->osc_out->atom.size;
@@ -395,7 +395,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 static void
 cleanup(LV2_Handle instance)
 {
-	handle_t *handle = (handle_t *)instance;
+	plughandle_t *handle = (plughandle_t *)instance;
 
 	if(handle)
 		free(handle);

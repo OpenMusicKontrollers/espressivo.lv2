@@ -31,7 +31,7 @@ typedef struct _target_t target_t;
 typedef struct _state_t state_t;
 typedef struct _zone_t zone_t;
 typedef struct _mpe_t mpe_t;
-typedef struct _handle_t handle_t;
+typedef struct _plughandle_t plughandle_t;
 
 struct _target_t {
 	uint8_t chan;
@@ -62,7 +62,7 @@ struct _mpe_t {
 	int8_t channels [CHAN_MAX];
 };
 
-struct _handle_t {
+struct _plughandle_t {
 	struct {
 		LV2_URID midi_MidiEvent;
 	} uris;
@@ -170,7 +170,7 @@ mpe_release(mpe_t *mpe, uint8_t zone_idx, uint8_t ch)
 }
 
 static inline LV2_Atom_Forge_Ref
-_midi_event(handle_t *handle, int64_t frames, const uint8_t *m, size_t len)
+_midi_event(plughandle_t *handle, int64_t frames, const uint8_t *m, size_t len)
 {
 	LV2_Atom_Forge *forge = &handle->forge;
 	LV2_Atom_Forge_Ref ref;
@@ -187,7 +187,7 @@ _midi_event(handle_t *handle, int64_t frames, const uint8_t *m, size_t len)
 }
 
 static inline LV2_Atom_Forge_Ref
-_zone_span_update(handle_t *handle, int64_t frames, unsigned zone_idx)
+_zone_span_update(plughandle_t *handle, int64_t frames, unsigned zone_idx)
 {
 	LV2_Atom_Forge_Ref fref;
 	mpe_t *mpe = &handle->mpe;
@@ -222,7 +222,7 @@ _zone_span_update(handle_t *handle, int64_t frames, unsigned zone_idx)
 }
 
 static inline LV2_Atom_Forge_Ref
-_master_range_update(handle_t *handle, int64_t frames, unsigned zone_idx)
+_master_range_update(plughandle_t *handle, int64_t frames, unsigned zone_idx)
 {
 	LV2_Atom_Forge_Ref fref;
 	mpe_t *mpe = &handle->mpe;
@@ -256,7 +256,7 @@ _master_range_update(handle_t *handle, int64_t frames, unsigned zone_idx)
 }
 
 static inline LV2_Atom_Forge_Ref
-_voice_range_update(handle_t *handle, int64_t frames, unsigned zone_idx)
+_voice_range_update(plughandle_t *handle, int64_t frames, unsigned zone_idx)
 {
 	LV2_Atom_Forge_Ref fref;
 	mpe_t *mpe = &handle->mpe;
@@ -290,7 +290,7 @@ _voice_range_update(handle_t *handle, int64_t frames, unsigned zone_idx)
 }
 
 static inline LV2_Atom_Forge_Ref
-_full_update(handle_t *handle, int64_t frames)
+_full_update(plughandle_t *handle, int64_t frames)
 {
 	LV2_Atom_Forge_Ref fref = 1;
 	mpe_t *mpe = &handle->mpe;
@@ -312,7 +312,7 @@ static void
 _intercept_zones(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	props_event_t event, props_impl_t *impl)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 
 	mpe_populate(&handle->mpe, handle->state.zones);
 	if(handle->ref)
@@ -326,7 +326,7 @@ static void
 _intercept_master(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	props_event_t event, props_impl_t *impl)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 
 	int zone_idx = impl->def - stat_mpe_master_range;
 	if(zone_idx < handle->state.zones) // update active zones only
@@ -340,7 +340,7 @@ static void
 _intercept_voice(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	props_event_t event, props_impl_t *impl)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 
 	int zone_idx = impl->def - stat_mpe_voice_range;
 	if(zone_idx < handle->state.zones) // update active zones only
@@ -447,7 +447,7 @@ static const props_def_t stat_mpe_timbre_controller [ZONE_MAX] = {
 };
 
 static inline void
-_set(handle_t *handle, int64_t frames, const xpress_state_t *state,
+_set(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 	float val, target_t *src)
 {
 	// bender
@@ -543,7 +543,7 @@ static void
 _add(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	target_t *src = target;
 
 	const float val = state->position[0];
@@ -569,7 +569,7 @@ static void
 _put(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	target_t *src = target;
 
 	const float val = state->position[0];
@@ -581,7 +581,7 @@ static void
 _del(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
-	handle_t *handle = data;
+	plughandle_t *handle = data;
 	target_t *src = target;
 
 	const uint8_t vel = handle->state.velocity;
@@ -610,7 +610,7 @@ static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
 	const char *bundle_path, const LV2_Feature *const *features)
 {
-	handle_t *handle = calloc(1, sizeof(handle_t));
+	plughandle_t *handle = calloc(1, sizeof(plughandle_t));
 	if(!handle)
 		return NULL;
 
@@ -683,7 +683,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 static void
 connect_port(LV2_Handle instance, uint32_t port, void *data)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	switch(port)
 	{
@@ -701,7 +701,7 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 static void
 activate(LV2_Handle instance)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	const uint8_t n_zones = 1;
 	mpe_populate(&handle->mpe, n_zones);
@@ -710,7 +710,7 @@ activate(LV2_Handle instance)
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	// prepare midi atom forge
 	const uint32_t capacity = handle->midi_out->atom.size;
@@ -739,7 +739,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 static void
 cleanup(LV2_Handle instance)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	if(handle)
 		free(handle);
@@ -750,7 +750,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_save(&handle->props, &handle->forge, store, state, flags, features);
 }
@@ -760,7 +760,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 	LV2_State_Handle state, uint32_t flags,
 	const LV2_Feature *const *features)
 {
-	handle_t *handle = instance;
+	plughandle_t *handle = instance;
 
 	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
 }
