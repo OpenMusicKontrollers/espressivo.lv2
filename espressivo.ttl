@@ -46,6 +46,18 @@ osc:Event
 	rdfs:label "OSC Event" ;
 	rdfs:subClassOf atom:Atom .
 
+lv2:parameterProperty
+	a rdf:Property ,
+		owl:ObjectProperty ;
+	rdfs:domain lv2:Parameter ;
+	rdfs:range lv2:PortProperty ;
+	rdfs:label "parameter property" ;
+	rdfs:comment """Relates Parameters to PortProperties. The PortProperty may be ignored without catastrophic effects, though it may be useful e.g. for providing a sensible interface for the parameter.""" .
+
+lv2:isBitmask
+	a lv2:PortProperty ;
+	rdfs:label "bitmask" .
+
 xpress:voiceMap
 	a lv2:Feature .
 
@@ -553,8 +565,8 @@ esp:tuio2_timestampOffset
 	rdfs:label "Timestamp offset" ;
 	rdfs:range atom:Float ;
 	units:unit units:ms;
-	lv2:minimum 0 ;
-	lv2:maximum 200 .
+	lv2:minimum 0.0 ;
+	lv2:maximum 200.0 .
 
 # TUIO2 Output Plugin
 esp:tuio2_out
@@ -603,7 +615,7 @@ esp:tuio2_out
 		esp:tuio2_deviceName "LV2:0@0x0" ;
 		esp:tuio2_octave 2 ;
 		esp:tuio2_sensorsPerSemitone 3 ;	
-		esp:tuio2_timestampOffset 2 ;	
+		esp:tuio2_timestampOffset "2.0"^^xsd:float ;	
 	] .
 
 esp:midi_range
