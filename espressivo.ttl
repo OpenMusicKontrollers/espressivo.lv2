@@ -88,6 +88,7 @@ proj:espressivo
 esp:mpe_zones
 	a lv2:Parameter ;
 	rdfs:label "Zones" ;
+	rdfs:comment "number of zones" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 1 ;
 	lv2:maximum 8 .
@@ -95,6 +96,7 @@ esp:mpe_zones
 esp:mpe_velocity
 	a lv2:Parameter ;
 	rdfs:label "Velocity" ;
+	rdfs:comment "set MIDI velocity" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
 	lv2:maximum 127 .
@@ -102,6 +104,7 @@ esp:mpe_velocity
 esp:mpe_master_range_1
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 1" ;
+	rdfs:comment "master MIDI bend range for zone 1" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -109,6 +112,7 @@ esp:mpe_master_range_1
 esp:mpe_master_range_2
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 2" ;
+	rdfs:comment "master MIDI bend range for zone 2" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -116,6 +120,7 @@ esp:mpe_master_range_2
 esp:mpe_master_range_3
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 3" ;
+	rdfs:comment "master MIDI bend range for zone 3" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -123,6 +128,7 @@ esp:mpe_master_range_3
 esp:mpe_master_range_4
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 4" ;
+	rdfs:comment "master MIDI bend range for zone 4" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -130,6 +136,7 @@ esp:mpe_master_range_4
 esp:mpe_master_range_5
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 5" ;
+	rdfs:comment "master MIDI bend range for zone 5" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -137,6 +144,7 @@ esp:mpe_master_range_5
 esp:mpe_master_range_6
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 6" ;
+	rdfs:comment "master MIDI bend range for zone 6" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -144,6 +152,7 @@ esp:mpe_master_range_6
 esp:mpe_master_range_7
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 7" ;
+	rdfs:comment "master MIDI bend range for zone 7" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -151,6 +160,7 @@ esp:mpe_master_range_7
 esp:mpe_master_range_8
 	a lv2:Parameter ;
 	rdfs:label "Master Bend Range 8" ;
+	rdfs:comment "master MIDI bend range for zone 8" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -159,6 +169,7 @@ esp:mpe_master_range_8
 esp:mpe_voice_range_1
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 1" ;
+	rdfs:comment "voice MIDI bend range for zone 1" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -166,6 +177,7 @@ esp:mpe_voice_range_1
 esp:mpe_voice_range_2
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 2" ;
+	rdfs:comment "voice MIDI bend range for zone 2" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -173,6 +185,7 @@ esp:mpe_voice_range_2
 esp:mpe_voice_range_3
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 3" ;
+	rdfs:comment "voice MIDI bend range for zone 3" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -180,6 +193,7 @@ esp:mpe_voice_range_3
 esp:mpe_voice_range_4
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 4" ;
+	rdfs:comment "voice MIDI bend range for zone 4" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -187,6 +201,7 @@ esp:mpe_voice_range_4
 esp:mpe_voice_range_5
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 5" ;
+	rdfs:comment "voice MIDI bend range for zone 5" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -194,6 +209,7 @@ esp:mpe_voice_range_5
 esp:mpe_voice_range_6
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 6" ;
+	rdfs:comment "voice MIDI bend range for zone 6" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -201,6 +217,7 @@ esp:mpe_voice_range_6
 esp:mpe_voice_range_7
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 7" ;
+	rdfs:comment "voice MIDI bend range for zone 7" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -208,6 +225,7 @@ esp:mpe_voice_range_7
 esp:mpe_voice_range_8
 	a lv2:Parameter ;
 	rdfs:label "Voice Bend Range 8" ;
+	rdfs:comment "voice MIDI bend range for zone 8" ;
 	rdfs:range atom:Int ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 1 ;
@@ -216,6 +234,7 @@ esp:mpe_voice_range_8
 esp:mpe_pressure_controller_1
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 1" ;
+	rdfs:comment "MIDI controller to use as voice pressure for zone 1" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -223,6 +242,7 @@ esp:mpe_pressure_controller_1
 esp:mpe_pressure_controller_2
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 2" ;
+	rdfs:comment "MIDI controller to use as voice pressure for zone 2" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -230,6 +250,7 @@ esp:mpe_pressure_controller_2
 esp:mpe_pressure_controller_3
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 3" ;
+	rdfs:comment "MIDI controller to use as voice pressure for zone 3" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -237,6 +258,7 @@ esp:mpe_pressure_controller_3
 esp:mpe_pressure_controller_4
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 4" ;
+	rdfs:comment "MIDI controller to use as voice pressure for zone 4" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -244,6 +266,7 @@ esp:mpe_pressure_controller_4
 esp:mpe_pressure_controller_5
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 5" ;
+	rdfs:comment "MIDI controller to use as voice pressure for zone 5" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -251,6 +274,7 @@ esp:mpe_pressure_controller_5
 esp:mpe_pressure_controller_6
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 6" ;
+	rdfs:comment "MIDI controller to use as voice pressure for zone 6" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -258,6 +282,7 @@ esp:mpe_pressure_controller_6
 esp:mpe_pressure_controller_7
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 7" ;
+	rdfs:comment "MIDI controller to use as voice pressure for zone 7" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -265,6 +290,7 @@ esp:mpe_pressure_controller_7
 esp:mpe_pressure_controller_8
 	a lv2:Parameter ;
 	rdfs:label "Pressure Controller 8" ;
+	rdfs:comment "MIDI controller to use as voice pressure for zone 8" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -273,6 +299,7 @@ esp:mpe_pressure_controller_8
 esp:mpe_timbre_controller_1
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 1" ;
+	rdfs:comment "MIDI controller to use as voice timbre for zone 1" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -280,6 +307,7 @@ esp:mpe_timbre_controller_1
 esp:mpe_timbre_controller_2
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 2" ;
+	rdfs:comment "MIDI controller to use as voice timbre for zone 2" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -287,6 +315,7 @@ esp:mpe_timbre_controller_2
 esp:mpe_timbre_controller_3
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 3" ;
+	rdfs:comment "MIDI controller to use as voice timbre for zone 3" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -294,6 +323,7 @@ esp:mpe_timbre_controller_3
 esp:mpe_timbre_controller_4
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 4" ;
+	rdfs:comment "MIDI controller to use as voice timbre for zone 4" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -301,6 +331,7 @@ esp:mpe_timbre_controller_4
 esp:mpe_timbre_controller_5
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 5" ;
+	rdfs:comment "MIDI controller to use as voice timbre for zone 5" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -308,6 +339,7 @@ esp:mpe_timbre_controller_5
 esp:mpe_timbre_controller_6
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 6" ;
+	rdfs:comment "MIDI controller to use as voice timbre for zone 6" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -315,6 +347,7 @@ esp:mpe_timbre_controller_6
 esp:mpe_timbre_controller_7
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 7" ;
+	rdfs:comment "MIDI controller to use as voice timbre for zone 7" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -322,6 +355,7 @@ esp:mpe_timbre_controller_7
 esp:mpe_timbre_controller_8
 	a lv2:Parameter ;
 	rdfs:label "Timbre Controller 8" ;
+	rdfs:comment "MIDI controller to use as voice timbre for zone 8" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
 	lv2:minimum 0 ;
@@ -472,6 +506,7 @@ esp:mpe_in
 esp:tuio2_deviceWidth
 	a lv2:Parameter ;
 	rdfs:label "Device width" ;
+	rdfs:comment "device width in number of pixels or sensors" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 1 ;
 	lv2:maximum 65535 .
@@ -479,6 +514,7 @@ esp:tuio2_deviceWidth
 esp:tuio2_deviceHeight
 	a lv2:Parameter ;
 	rdfs:label "Device height" ;
+	rdfs:comment "device height in number of pixels or sensors" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 1 ;
 	lv2:maximum 65535 .
@@ -486,11 +522,13 @@ esp:tuio2_deviceHeight
 esp:tuio2_deviceName
 	a lv2:Parameter ;
 	rdfs:label "Device name" ;
+	rdfs:comment "device name, e.g. REAC:0@0x7F000001" ;
 	rdfs:range atom:String .
 
 esp:tuio2_octave
 	a lv2:Parameter ;
 	rdfs:label "Octave" ;
+	rdfs:comment "reference octave for fractional MIDI mapping" ;
 	rdfs:range atom:Int ;
 	units:unit units:oct ;
 	lv2:minimum 0 ;
@@ -499,6 +537,7 @@ esp:tuio2_octave
 esp:tuio2_sensorsPerSemitone
 	a lv2:Parameter ;
 	rdfs:label "Sensors per Semitone" ;
+	rdfs:comment "sensors per semitone for fractional MIDI mapping" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 1 ;
 	lv2:maximum 160 .
@@ -506,6 +545,7 @@ esp:tuio2_sensorsPerSemitone
 esp:tuio2_filterStiffness
 	a lv2:Parameter ;
 	rdfs:label "Filter stiffness" ;
+	rdfs:comment "stiffness of IIR filter for velocity signal derivation" ;
 	rdfs:range atom:Int ;
 	units:unit units:frame ;
 	lv2:minimum 1 ;
@@ -563,6 +603,7 @@ esp:tuio2_in
 esp:tuio2_timestampOffset
 	a lv2:Parameter ;
 	rdfs:label "Timestamp offset" ;
+	rdfs:comment "timestamp offset of outgoing OSC bundles" ;
 	rdfs:range atom:Float ;
 	units:unit units:ms;
 	lv2:minimum 0.0 ;
@@ -621,6 +662,7 @@ esp:tuio2_out
 esp:midi_range
 	a lv2:Parameter ;
 	rdfs:label "Bend Range" ;
+	rdfs:comment "MIDI pitch bend range" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 100 ;
@@ -629,6 +671,7 @@ esp:midi_range
 esp:midi_cents_1
 	a lv2:Parameter ;
 	rdfs:label "Note 1 Offset" ;
+	rdfs:comment "pitch offset for note 1" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -636,6 +679,7 @@ esp:midi_cents_1
 esp:midi_cents_2
 	a lv2:Parameter ;
 	rdfs:label "Note 2 Offset" ;
+	rdfs:comment "pitch offset for note 2" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -643,6 +687,7 @@ esp:midi_cents_2
 esp:midi_cents_3
 	a lv2:Parameter ;
 	rdfs:label "Note 3 Offset" ;
+	rdfs:comment "pitch offset for note 3" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -650,6 +695,7 @@ esp:midi_cents_3
 esp:midi_cents_4
 	a lv2:Parameter ;
 	rdfs:label "Note 4 Offset" ;
+	rdfs:comment "pitch offset for note 4" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -657,6 +703,7 @@ esp:midi_cents_4
 esp:midi_cents_5
 	a lv2:Parameter ;
 	rdfs:label "Note 5 Offset" ;
+	rdfs:comment "pitch offset for note 5" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -664,6 +711,7 @@ esp:midi_cents_5
 esp:midi_cents_6
 	a lv2:Parameter ;
 	rdfs:label "Note 6 Offset" ;
+	rdfs:comment "pitch offset for note 6" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -671,6 +719,7 @@ esp:midi_cents_6
 esp:midi_cents_7
 	a lv2:Parameter ;
 	rdfs:label "Note 7 Offset" ;
+	rdfs:comment "pitch offset for note 7" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -678,6 +727,7 @@ esp:midi_cents_7
 esp:midi_cents_8
 	a lv2:Parameter ;
 	rdfs:label "Note 8 Offset" ;
+	rdfs:comment "pitch offset for note 8" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -685,6 +735,7 @@ esp:midi_cents_8
 esp:midi_cents_9
 	a lv2:Parameter ;
 	rdfs:label "Note 9 Offset" ;
+	rdfs:comment "pitch offset for note 9" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -692,6 +743,7 @@ esp:midi_cents_9
 esp:midi_cents_10
 	a lv2:Parameter ;
 	rdfs:label "Note 10 Offset" ;
+	rdfs:comment "pitch offset for note 10" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -699,6 +751,7 @@ esp:midi_cents_10
 esp:midi_cents_11
 	a lv2:Parameter ;
 	rdfs:label "Note 11 Offset" ;
+	rdfs:comment "pitch offset for note 11" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -706,6 +759,7 @@ esp:midi_cents_11
 esp:midi_cents_12
 	a lv2:Parameter ;
 	rdfs:label "Note 12 Offset" ;
+	rdfs:comment "pitch offset for note 12" ;
 	rdfs:range atom:Int ;
 	units:unit units:cent ;
 	lv2:minimum 0 ;
@@ -778,22 +832,27 @@ esp:midi_in
 esp:snh_sample
 	a lv2:Parameter ;
 	rdfs:label "Sample" ;
+	rdfs:comment "toggle to switch between sample'n'hold or release" ;
 	rdfs:range atom:Bool .
 esp:snh_hold_dimension_0
 	a lv2:Parameter ;
 	rdfs:label "Hold Dimension 0" ;
+	rdfs:comment "toggle to sample'n'hold dimensions 0" ;
 	rdfs:range atom:Bool .
 esp:snh_hold_dimension_1
 	a lv2:Parameter ;
 	rdfs:label "Hold Dimension 1" ;
+	rdfs:comment "toggle to sample'n'hold dimensions 1" ;
 	rdfs:range atom:Bool .
 esp:snh_hold_dimension_2
 	a lv2:Parameter ;
 	rdfs:label "Hold Dimension 2" ;
+	rdfs:comment "toggle to sample'n'hold dimensions 2" ;
 	rdfs:range atom:Bool .
 esp:snh_hold_dimension_3
 	a lv2:Parameter ;
 	rdfs:label "Hold Dimension 3" ;
+	rdfs:comment "toggle to sample'n'hold dimensions 3" ;
 	rdfs:range atom:Bool .
 
 # Sample and Hold Filter Plugin
@@ -848,6 +907,7 @@ esp:snh
 esp:through_zone_mask
 	a lv2:Parameter ;
 	rdfs:label "Zone Mask" ;
+	rdfs:comment "bitmask denoting zones to let through or block" ;
 	rdfs:range atom:Int ;
 	lv2:parameterProperty lv2:isBitmask ;
 	lv2:minimum 0 ;
@@ -896,6 +956,7 @@ esp:through
 esp:reducto_position_threshold
 	a lv2:Parameter ;
 	rdfs:label "Position threshold" ;
+	rdfs:comment "threshold of position change to trigger new events" ;
 	rdfs:range atom:Float ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 0.0 ;
@@ -903,6 +964,7 @@ esp:reducto_position_threshold
 esp:reducto_velocity_threshold
 	a lv2:Parameter ;
 	rdfs:label "Velocity threshold" ;
+	rdfs:comment "threshold of velocity change to trigger new events" ;
 	rdfs:range atom:Float ;
 	lv2:minimum 0.0 ;
 	lv2:maximum 1.0 .
@@ -952,12 +1014,14 @@ esp:reducto
 esp:discreto_position_order
 	a lv2:Parameter ;
 	rdfs:label "Position Order" ;
+	rdfs:comment "variable denoting position dependence of discrete mapping" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
 	lv2:maximum 10 .
 esp:discreto_velocity_order
 	a lv2:Parameter ;
 	rdfs:label "Velocity Order" ;
+	rdfs:comment "variable denoting velocity dependence of discrete mapping" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
 	lv2:maximum 10 .
@@ -1006,77 +1070,93 @@ esp:discreto
 esp:sc_synth_name_0
 	a lv2:Parameter ;
 	rdfs:label "Synth Name 0" ;
+	rdfs:comment "name of synth voice for zone 0" ;
 	rdfs:range atom:String .
 esp:sc_synth_name_1
 	a lv2:Parameter ;
 	rdfs:label "Synth Name 1" ;
+	rdfs:comment "name of synth voice for zone 1" ;
 	rdfs:range atom:String .
 esp:sc_synth_name_2
 	a lv2:Parameter ;
 	rdfs:label "Synth Name 2" ;
+	rdfs:comment "name of synth voice for zone 2" ;
 	rdfs:range atom:String .
 esp:sc_synth_name_3
 	a lv2:Parameter ;
 	rdfs:label "Synth Name 3" ;
+	rdfs:comment "name of synth voice for zone 3" ;
 	rdfs:range atom:String .
 esp:sc_synth_name_4
 	a lv2:Parameter ;
 	rdfs:label "Synth Name 4" ;
+	rdfs:comment "name of synth voice for zone 4" ;
 	rdfs:range atom:String .
 esp:sc_synth_name_5
 	a lv2:Parameter ;
 	rdfs:label "Synth Name 5" ;
+	rdfs:comment "name of synth voice for zone 5" ;
 	rdfs:range atom:String .
 esp:sc_synth_name_6
 	a lv2:Parameter ;
 	rdfs:label "Synth Name 6" ;
+	rdfs:comment "name of synth voice for zone 6" ;
 	rdfs:range atom:String .
 esp:sc_synth_name_7
 	a lv2:Parameter ;
 	rdfs:label "Synth Name 7" ;
+	rdfs:comment "name of synth voice for zone 7" ;
 	rdfs:range atom:String .
 
 esp:sc_out_offset
 	a lv2:Parameter ;
 	rdfs:label "Out Offset" ;
+	rdfs:comment "offset into output audio buffer array" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
 	lv2:maximum 8 .
 esp:sc_gid_offset
 	a lv2:Parameter ;
 	rdfs:label "GID Offset" ;
+	rdfs:comment "offset into group ID array" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
 	lv2:maximum 10000 .
 esp:sc_sid_offset
 	a lv2:Parameter ;
 	rdfs:label "SID Offset" ;
+	rdfs:comment "offset into synth ID array" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
 	lv2:maximum 10000 .
 esp:sc_sid_wrap
 	a lv2:Parameter ;
 	rdfs:label "SID Wrap" ;
+	rdfs:comment "number to wrap synth IDs around" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
 	lv2:maximum 10000 .
 esp:sc_arg_offset
 	a lv2:Parameter ;
 	rdfs:label "Argument Offset" ;
+	rdfs:comment "offset into argument list" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
 	lv2:maximum 4 .
 esp:sc_allocate
 	a lv2:Parameter ;
 	rdfs:label "Allocate" ;
+	rdfs:comment "toggle to allocate new synth voice" ;
 	rdfs:range atom:Bool .
 esp:sc_gate
 	a lv2:Parameter ;
 	rdfs:label "Gate" ;
+	rdfs:comment "toggle to trigger gate parameter or not" ;
 	rdfs:range atom:Bool .
 esp:sc_group
 	a lv2:Parameter ;
 	rdfs:label "Group" ;
+	rdfs:comment "toggle to send messages to group ID or synth ID" ;
 	rdfs:range atom:Bool .
 
 # SuperCollider Plugin
