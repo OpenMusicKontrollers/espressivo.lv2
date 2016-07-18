@@ -22,15 +22,13 @@
 #include <espressivo.h>
 #include <props.h>
 
-#define CHAN_MAX 16
-#define ZONE_MAX (CHAN_MAX / 2)
-#define MAX_NPROPS (2 + ZONE_MAX*4)
+#include <mpe.h>
+
+#define MAX_NPROPS (2 + MPE_ZONE_MAX*4)
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
 typedef struct _state_t state_t;
-typedef struct _zone_t zone_t;
-typedef struct _mpe_t mpe_t;
 typedef struct _plughandle_t plughandle_t;
 
 struct _target_t {
@@ -42,24 +40,10 @@ struct _target_t {
 struct _state_t {
 	int32_t zones;
 	int32_t velocity;
-	int32_t master_range [ZONE_MAX];
-	int32_t voice_range [ZONE_MAX];
-	int32_t pressure_controller [ZONE_MAX];
-	int32_t timbre_controller [ZONE_MAX];
-};
-
-struct _zone_t {
-	uint8_t base;
-	uint8_t span;
-	uint8_t ref;
-	uint8_t master_range;
-	uint8_t voice_range;
-};
-
-struct _mpe_t {
-	uint8_t n_zones;
-	zone_t zones [ZONE_MAX];
-	int8_t channels [CHAN_MAX];
+	int32_t master_range [MPE_ZONE_MAX];
+	int32_t voice_range [MPE_ZONE_MAX];
+	int32_t pressure_controller [MPE_ZONE_MAX];
+	int32_t timbre_controller [MPE_ZONE_MAX];
 };
 
 struct _plughandle_t {
@@ -84,13 +68,13 @@ struct _plughandle_t {
 	state_t stash;
 };
 
-static void
+static inline void
 mpe_populate(mpe_t *mpe, uint8_t n_zones)
 {
 	assert(n_zones > 0);
-	n_zones %= ZONE_MAX + 1; // wrap around if n_zones > ZONE_MAX
-	int8_t rem = CHAN_MAX % n_zones;
-	const uint8_t span = (CHAN_MAX - rem) / n_zones - 1;
+	n_zones %= MPE_ZONE_MAX + 1; // wrap around if n_zones > MPE_ZONE_MAX
+	int8_t rem = MPE_CHAN_MAX % n_zones;
+	const uint8_t span = (MPE_CHAN_MAX - rem) / n_zones - 1;
 	uint8_t ptr = 0;
 
 	mpe->n_zones = n_zones;
@@ -110,11 +94,11 @@ mpe_populate(mpe_t *mpe, uint8_t n_zones)
 		zones[i].voice_range = 48;
 	}
 
-	for(uint8_t i=0; i<CHAN_MAX; i++)
+	for(uint8_t i=0; i<MPE_CHAN_MAX; i++)
 		channels[i] = 0;
 }
 
-static uint8_t
+static inline uint8_t
 mpe_acquire(mpe_t *mpe, uint8_t zone_idx)
 {
 	zone_idx %= mpe->n_zones; // wrap around if zone_idx > n_zones
@@ -144,7 +128,7 @@ mpe_acquire(mpe_t *mpe, uint8_t zone_idx)
 	return ch;
 }
 
-static float
+static inline float
 mpe_range_1(mpe_t *mpe, uint8_t zone_idx)
 {
 	zone_idx %= mpe->n_zones; // wrap around if zone_idx > n_zones
@@ -152,11 +136,11 @@ mpe_range_1(mpe_t *mpe, uint8_t zone_idx)
 	return 1.f / (float)zone->voice_range;
 }
 
-static void
+static inline void
 mpe_release(mpe_t *mpe, uint8_t zone_idx, uint8_t ch)
 {
 	zone_idx %= mpe->n_zones; // wrap around if zone_idx > n_zones
-	ch %= CHAN_MAX; // wrap around if ch > CHAN_MAX
+	ch %= MPE_CHAN_MAX; // wrap around if ch > MPE_CHAN_MAX
 	zone_t *zone = &mpe->zones[zone_idx];
 	int8_t *channels = mpe->channels;
 
@@ -319,8 +303,8 @@ _intercept_zones(void *data, LV2_Atom_Forge *forge, int64_t frames,
 		handle->ref = _full_update(handle, frames);
 }
 
-static const props_def_t stat_mpe_master_range [ZONE_MAX];
-static const props_def_t stat_mpe_voice_range [ZONE_MAX];
+static const props_def_t stat_mpe_master_range [MPE_ZONE_MAX];
+static const props_def_t stat_mpe_voice_range [MPE_ZONE_MAX];
 
 static void
 _intercept_master(void *data, LV2_Atom_Forge *forge, int64_t frames,
@@ -376,7 +360,7 @@ static const props_def_t stat_mpe_velocity = {
 	.event_cb = _intercept_master \
 }
 
-static const props_def_t stat_mpe_master_range [ZONE_MAX] = {
+static const props_def_t stat_mpe_master_range [MPE_ZONE_MAX] = {
 	[0] = MASTER_RANGE(1),
 	[1] = MASTER_RANGE(2),
 	[2] = MASTER_RANGE(3),
@@ -397,7 +381,7 @@ static const props_def_t stat_mpe_master_range [ZONE_MAX] = {
 	.event_cb = _intercept_voice \
 }
 
-static const props_def_t stat_mpe_voice_range [ZONE_MAX] = {
+static const props_def_t stat_mpe_voice_range [MPE_ZONE_MAX] = {
 	[0] = VOICE_RANGE(1),
 	[1] = VOICE_RANGE(2),
 	[2] = VOICE_RANGE(3),
@@ -416,7 +400,7 @@ static const props_def_t stat_mpe_voice_range [ZONE_MAX] = {
 	.mode = PROP_MODE_STATIC \
 }
 
-static const props_def_t stat_mpe_pressure_controller [ZONE_MAX] = {
+static const props_def_t stat_mpe_pressure_controller [MPE_ZONE_MAX] = {
 	[0] = PRESSURE_CONTROLLER(1),
 	[1] = PRESSURE_CONTROLLER(2),
 	[2] = PRESSURE_CONTROLLER(3),
@@ -435,7 +419,7 @@ static const props_def_t stat_mpe_pressure_controller [ZONE_MAX] = {
 	.mode = PROP_MODE_STATIC \
 }
 
-static const props_def_t stat_mpe_timbre_controller [ZONE_MAX] = {
+static const props_def_t stat_mpe_timbre_controller [MPE_ZONE_MAX] = {
 	[0] = TIMBRE_CONTROLLER(1),
 	[1] = TIMBRE_CONTROLLER(2),
 	[2] = TIMBRE_CONTROLLER(3),
@@ -658,16 +642,16 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		urid = props_register(&handle->props, &stat_mpe_velocity,
 			&handle->state.velocity, &handle->stash.velocity);
 
-	for(unsigned z=0; urid && (z<ZONE_MAX); z++)
+	for(unsigned z=0; urid && (z<MPE_ZONE_MAX); z++)
 		urid = props_register(&handle->props, &stat_mpe_master_range[z],
 			&handle->state.master_range[z], &handle->stash.master_range[z]);
-	for(unsigned z=0; urid && (z<ZONE_MAX); z++)
+	for(unsigned z=0; urid && (z<MPE_ZONE_MAX); z++)
 		urid = props_register(&handle->props, &stat_mpe_voice_range[z],
 			&handle->state.voice_range[z], &handle->stash.voice_range[z]);
-	for(unsigned z=0; urid && (z<ZONE_MAX); z++)
+	for(unsigned z=0; urid && (z<MPE_ZONE_MAX); z++)
 		urid = props_register(&handle->props, &stat_mpe_pressure_controller[z],
 			&handle->state.pressure_controller[z], &handle->stash.pressure_controller[z]);
-	for(unsigned z=0; urid && (z<ZONE_MAX); z++)
+	for(unsigned z=0; urid && (z<MPE_ZONE_MAX); z++)
 		urid = props_register(&handle->props, &stat_mpe_timbre_controller[z],
 			&handle->state.timbre_controller[z], &handle->stash.timbre_controller[z]);
 
