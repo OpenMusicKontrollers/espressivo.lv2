@@ -576,7 +576,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		lv2_log_logger_init(&handle->logger, handle->map, handle->log);
 
 	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
-			XPRESS_EVENT_NONE, &iface, handle->target, NULL))
+		XPRESS_EVENT_NONE, &iface, handle->target, NULL))
 	{
 		free(handle);
 		return NULL;

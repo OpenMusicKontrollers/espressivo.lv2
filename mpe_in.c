@@ -34,26 +34,25 @@ typedef struct _state_t state_t;
 typedef struct _plughandle_t plughandle_t;
 
 struct _slot_t {
+	uint8_t zone;
+	uint8_t master_channel;
+	uint8_t num_voices;
+
 	uint8_t master_bend_range;
 	uint8_t voice_bend_range;
 
 	int16_t master_bender;
-	int16_t voice_bender;
 
-	int16_t voice_pressure;
-	int16_t voice_timbre;
+	int16_t voice_bender [MAX_CHANNELS - 1];
+	int16_t voice_pressure [MAX_CHANNELS - 1];
+	int16_t voice_timbre [ MAX_CHANNELS - 1];
 };
 
 struct _target_t {
 	uint8_t key;
+	unsigned voice;
 	xpress_uuid_t uuid;
-
-	/*FIXME
 	xpress_state_t state;
-
-	uint8_t pressure_lsb;
-	uint8_t timbre_lsb;
-	*/
 };
 
 struct _state_t {
@@ -68,8 +67,8 @@ struct _plughandle_t {
 	LV2_Atom_Forge forge;
 	LV2_Atom_Forge_Ref ref;
 
-	const LV2_Atom_Sequence *event_in;
-	LV2_Atom_Sequence *midi_out;
+	const LV2_Atom_Sequence *midi_in;
+	LV2_Atom_Sequence *event_out;
 
 	PROPS_T(props, MAX_NPROPS);
 
@@ -79,8 +78,8 @@ struct _plughandle_t {
 	uint16_t data;
 	uint16_t rpn;
 
-	slot_t slots [MAX_CHANNELS];
-	int index [MAX_CHANNELS];
+	slot_t slots [MAX_ZONES];
+	slot_t *index [MAX_CHANNELS];
 
 	state_t state;
 	state_t stash;
@@ -94,112 +93,182 @@ static const props_def_t stat_mpe_zones = {
 };
 
 static inline void
-_slot_init(slot_t *slot)
+_slot_init(slot_t *slot, uint8_t zone, uint8_t master_channel, uint8_t num_voices)
 {
+	slot->zone = zone;
+	slot->master_channel = master_channel;
+	slot->num_voices = num_voices;
+
 	slot->master_bend_range = 2;
 	slot->voice_bend_range = 48;
 
 	slot->master_bender = 0;
-	slot->voice_bender = 0;
+
+	const int16_t empty [MAX_CHANNELS - 1] = {
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	};
+	memcpy(slot->voice_bender, empty, sizeof(empty));
+	memcpy(slot->voice_pressure, empty, sizeof(empty));
+	memcpy(slot->voice_timbre, empty, sizeof(empty));
 }
 
 static inline void
 _slots_init(plughandle_t *handle)
 {
-	for(unsigned i=0; i<MAX_CHANNELS; i++)
-		_slot_init(&handle->slots[i]);
+	_slot_init(&handle->slots[0], 0, 0, 15);
+	for(unsigned i=1; i<MAX_ZONES; i++)
+		_slot_init(&handle->slots[i], i, UINT8_MAX, 0);
 }
 
 static inline void
-_index_init(int *index)
+_index_update(plughandle_t *handle)
 {
-	for(unsigned i=0; i<MAX_CHANNELS; i++)
-		index[i] = 0;
+	memset(handle->index, 0x0, sizeof(handle->index));	
+
+	for(unsigned i=0; i<MAX_ZONES; i++)
+	{
+		slot_t *slot = &handle->slots[i];
+
+		if(slot->num_voices == 0)
+			continue; // invalid
+
+		for(unsigned j = slot->master_channel;
+			j <= slot->master_channel + slot->num_voices;
+			j++)
+		{
+			handle->index[j] = slot;
+		}
+	}
+}
+
+static inline bool
+_slot_is_master(slot_t *slot, uint8_t chan)
+{
+	return slot->master_channel == chan;
+}
+
+static inline bool
+_slot_is_first(slot_t *slot, uint8_t chan)
+{
+	return slot->master_channel + 1 == chan;	
+}
+
+static inline bool
+_slot_is_voice(slot_t *slot, uint8_t chan)
+{
+	return (chan >= slot->master_channel + 1)
+		&& (chan <= slot->master_channel + slot->num_voices);
+}
+
+static inline unsigned 
+_slot_voice(slot_t *slot, uint8_t chan)
+{
+	return chan - slot->master_channel - 1;
 }
 
 static inline void
-_index_dump(int *slots)
+_zone_dump(plughandle_t *handle)
 {
-	for(unsigned i=0; i<MAX_CHANNELS; i++)
-		printf("%3i ", slots[i]);
+	for(unsigned i=0; i<MAX_ZONES; i++)
+	{
+		slot_t *slot = &handle->slots[i];
+
+		if(slot->num_voices == 0)
+			continue;
+
+		printf("%u: %"PRIu8" %"PRIu8" %"PRIu8"\n", i, slot->zone, slot->master_channel, slot->num_voices);
+	}
 	printf("\n");
 }
 
 static inline void
-_index_update(plughandle_t *handle, unsigned chan, unsigned width)
+_zone_register(plughandle_t *handle, uint8_t master_channel, uint8_t num_voices)
 {
-	const unsigned from = chan;
-	const unsigned to = chan + 1 + width;
-	int idx = -1;
+	if( (num_voices < 1) || (master_channel + num_voices > MAX_CHANNELS) )
+		return; // invalid
 
-	// find pre zone index 
-	for(unsigned i=0; i<from; i++)
-	{
-		if(handle->index[i] > idx)
-			idx = handle->index[i];
-	}
+	// make copy of current zone layout
+	slot_t stash [MAX_ZONES];
+	memcpy(stash, handle->slots, sizeof(stash));	
 
-	// invalidate overwritten master/first voice
-	for(unsigned i=from; i<to; i++)
+	const uint8_t master_end = master_channel + num_voices;
+
+	// pass 1
+	for(unsigned i=0; i<MAX_ZONES; i++)
 	{
-		if(handle->index[i] > idx) // beginning of new zone
+		slot_t *slot = &stash[i];
+
+		// invalid?
+		if(slot->num_voices == 0)
+			continue;
+
+		// shorten zone?
+		if( (slot->master_channel < master_channel) && (slot->master_channel + slot->num_voices >= master_channel) )
 		{
-			const int slot_i= handle->index[i];
+			slot->num_voices = master_channel - 1 - slot->master_channel;
+			continue;
+		}
 
-			for(unsigned j=i; j<MAX_CHANNELS; j++)
-			{
-				if(handle->index[j] == slot_i)
-					handle->index[j] = -1; // invalidate
-				else
-					handle->index[j] -= 1; // decrease
-			}
+		// overwrite master?
+		if( (slot->master_channel >= master_channel) && (slot->master_channel <= master_end) )
+		{
+			slot->num_voices = 0; // invalidate
+			continue;
+		}
+
+		// overwrite first voice?
+		if( (slot->master_channel + 1 >= master_channel) && (slot->master_channel + 1 <= master_end) )
+		{
+			slot->num_voices = 0; // invalidate
+			continue;
 		}
 	}
 
-	// set own zone index, init slot
-	idx += 1;
-	for(unsigned i=from; i<to; i++)
+	// pass 2
+	bool inserted = false;
+	slot_t *dst = handle->slots;
+	unsigned I = 0;
+	for(unsigned i=0; i<MAX_ZONES; i++)
 	{
-		handle->index[i] = idx;
-		_slot_init(&handle->slots[i]);
+		slot_t *slot = &stash[i];
+
+		if(slot->num_voices == 0)
+		{
+			continue;
+		}
+
+		if(!inserted && (slot->master_channel > master_end) )
+		{
+			// insert new zone
+			_slot_init(dst, i, master_channel, num_voices);
+			dst++;
+
+			inserted = true;
+		}
+
+		// clone zone
+		memcpy(dst, slot, sizeof(slot_t));
+		dst->zone = i;
+		dst++;
+
+		I = i + 1;
 	}
 
-	// invalidate/increase post zone indeces
-	for(unsigned i=to; i<MAX_CHANNELS; i++)
+	if(!inserted)
 	{
-		if(handle->index[i] >= idx)
-			handle->index[i] += 1; // increase
-		else
-			handle->index[i] = -1; // invalidate
-	}
-}
-
-static inline bool
-_channel_is_master(plughandle_t *handle, unsigned chan)
-{
-	if(chan == 0)
-		return true;
-
-	if(handle->index[chan - 1] != handle->index[chan])
-		return true;
-
-	return false;
-}
-
-static inline bool
-_channel_is_first(plughandle_t *handle, unsigned chan)
-{
-	if(chan == 0)
-		return false;
-
-	if(handle->index[chan - 1] == handle->index[chan])
-	{
-		if( (chan == 1) || (handle->index[chan - 2] != handle->index[chan]) )
-			return true;
+		// insert new zone at end
+		_slot_init(dst, I++, master_channel, num_voices);
+		dst++;
 	}
 
-	return false;
+	_index_update(handle);
+
+	//_zone_dump(handle);
 }
+
+static const xpress_iface_t iface = {
+	.size = sizeof(target_t)
+};
 
 static LV2_Handle
 instantiate(const LV2_Descriptor* descriptor, double rate,
@@ -215,7 +284,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	{
 		if(!strcmp(features[i]->URI, LV2_URID__map))
 			handle->map = features[i]->data;
-		else if(!strcmp(features[i]->URI, ESPRESSIVO_URI"#voiceMap"))
+		else if(!strcmp(features[i]->URI, XPRESS_VOICE_MAP))
 			voice_map = features[i]->data;
 	}
 
@@ -234,7 +303,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	lv2_atom_forge_init(&handle->forge, handle->map);
 	
 	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
-			XPRESS_EVENT_NONE, NULL, NULL, NULL) )
+		XPRESS_EVENT_NONE, &iface, handle->target, NULL))
 	{
 		free(handle);
 		return NULL;
@@ -253,8 +322,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	_index_init(handle->index);
 	_slots_init(handle);
+	_index_update(handle);
 
 	return handle;
 }
@@ -267,13 +336,289 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 	switch(port)
 	{
 		case 0:
-			handle->event_in = (const LV2_Atom_Sequence *)data;
+			handle->midi_in = (const LV2_Atom_Sequence *)data;
 			break;
 		case 1:
-			handle->midi_out = (LV2_Atom_Sequence *)data;
+			handle->event_out = (LV2_Atom_Sequence *)data;
 			break;
 		default:
 			break;
+	}
+}
+
+static inline xpress_uuid_t
+_uuid_create(slot_t *slot, uint8_t chan)
+{
+	return ((int32_t)slot->zone << 8) | chan;
+}
+
+static inline void
+_mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
+{
+	LV2_Atom_Forge *forge = &handle->forge;
+	const uint8_t *m = LV2_ATOM_BODY_CONST(atom);
+	const uint8_t comm = m[0] & 0xf0;
+	const uint8_t chan = m[0] & 0x0f;
+
+	switch(comm)
+	{
+		case LV2_MIDI_MSG_NOTE_ON:
+		{
+			slot_t *slot = handle->index[chan];
+
+			if(slot && _slot_is_voice(slot, chan))
+			{
+				const unsigned voice = _slot_voice(slot, chan);
+				const uint8_t key = m[1];
+				const xpress_uuid_t uuid = _uuid_create(slot, chan);
+
+				target_t *target = xpress_add(&handle->xpress, uuid);
+				if(target)
+				{
+					memset(target, 0x0, sizeof(target_t));
+					target->key = key;
+					target->voice = voice;
+					target->uuid = xpress_map(&handle->xpress);
+
+					const float offset_master = slot->master_bender * 0x1p-13 * slot->master_bend_range;
+					const float offset_voice = slot->voice_bender[voice] * 0x1p-13 * slot->voice_bend_range;
+					target->state.zone = slot->zone;
+					target->state.position[0] = target->key + offset_master + offset_voice;
+
+					if(handle->ref)
+						handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);
+				}
+			}
+
+			break;
+		}
+		case LV2_MIDI_MSG_NOTE_OFF:
+		{
+			slot_t *slot = handle->index[chan];
+
+			if(slot && _slot_is_voice(slot, chan))
+			{
+				const xpress_uuid_t uuid = _uuid_create(slot, chan);
+
+				target_t *target = xpress_get(&handle->xpress, uuid);
+				if(target)
+				{
+					if(handle->ref)
+						handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
+				}
+
+				xpress_free(&handle->xpress, uuid);
+			}
+
+			break;
+		}
+		case LV2_MIDI_MSG_CHANNEL_PRESSURE:
+		{
+			slot_t *slot = handle->index[chan];
+
+			if(slot && _slot_is_voice(slot, chan))
+			{
+				const xpress_uuid_t uuid = _uuid_create(slot, chan);
+				const unsigned voice = _slot_voice(slot, chan);
+
+				slot->voice_pressure[voice] = m[1] << 7;
+
+				target_t *target = xpress_get(&handle->xpress, uuid);
+				if(target)
+				{
+					const float pressure = slot->voice_pressure[voice] * 0x1p-14;
+					target->state.position[1] = pressure;
+
+					if(handle->ref)
+						handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);
+				}
+			}
+
+			break;
+		}
+		case LV2_MIDI_MSG_BENDER:
+		{
+			slot_t *slot = handle->index[chan];
+
+			if(slot)
+			{
+				const int16_t bender = (((int16_t)m[2] << 7) | m[1]) - 0x2000;
+
+				if(_slot_is_master(slot, chan))
+				{
+					slot->master_bender = bender;
+
+					XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+					{
+						target_t *target = voice->target;
+
+						if(target->state.zone != slot->zone)
+							continue;
+
+						const float offset_master = slot->master_bender * 0x1p-13 * slot->master_bend_range;
+						const float offset_voice = slot->voice_bender[target->voice] * 0x1p-13 * slot->voice_bend_range;
+						target->state.position[0] = target->key + offset_master + offset_voice;
+
+						if(handle->ref)
+							handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);
+					}
+				}
+				else if(_slot_is_voice(slot, chan))
+				{
+					const xpress_uuid_t uuid = _uuid_create(slot, chan);
+					const unsigned voice = _slot_voice(slot, chan);
+
+					slot->voice_bender[voice] = bender;
+
+					target_t *target = xpress_get(&handle->xpress, uuid);
+					if(target)
+					{
+						const float offset_master = slot->master_bender * 0x1p-13 * slot->master_bend_range;
+						const float offset_voice = slot->voice_bender[voice] * 0x1p-13 * slot->voice_bend_range;
+						target->state.position[0] = target->key + offset_master + offset_voice;
+
+						if(handle->ref)
+							handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);
+					}
+				}
+			}
+
+			break;
+		}
+		case LV2_MIDI_MSG_CONTROLLER:
+		{
+			const uint8_t controller = m[1];
+			const uint8_t value = m[2];
+
+			switch(controller)
+			{
+				case LV2_MIDI_CTL_LSB_DATA_ENTRY:
+				{
+					handle->data = (handle->data & 0x3f80) | value;
+
+					break;
+				}
+				case LV2_MIDI_CTL_MSB_DATA_ENTRY:
+				{
+					handle->data = (handle->data & 0x7f) | (value << 7);
+
+					if(handle->rpn == 6) // new MPE zone registered
+					{
+						const uint8_t zone_width = handle->data >> 7;
+
+						_zone_register(handle, chan, zone_width);
+					}
+					else if(handle->rpn == 0) // pitch-bend range registered
+					{
+						const uint8_t bend_range = handle->data >> 7;
+						slot_t *slot = handle->index[chan];
+
+						if(slot)
+						{
+							if(_slot_is_master(slot, chan))
+							{
+								slot->master_bend_range = bend_range;
+							}
+							else if(_slot_is_first(slot, chan))
+							{
+								slot->voice_bend_range = bend_range;
+							}
+						}
+					}
+
+					break;
+				}
+
+				case LV2_MIDI_CTL_RPN_LSB:
+				{
+					handle->rpn = (handle->rpn & 0x3f80) | value;
+
+					break;
+				}
+				case LV2_MIDI_CTL_RPN_MSB:
+				{
+					handle->rpn = (handle->rpn & 0x7f) | ((uint16_t)value << 7);
+
+					break;
+				}
+
+				case LV2_MIDI_CTL_SC1_SOUND_VARIATION | 0x20:
+				{
+					slot_t *slot = handle->index[chan];
+
+					if(slot && _slot_is_voice(slot, chan))
+					{
+						const unsigned voice = _slot_voice(slot, chan);
+						slot->voice_pressure[voice] = (slot->voice_pressure[voice] & 0x3f80) | value;
+					}
+
+					break;
+				}
+				case LV2_MIDI_CTL_SC1_SOUND_VARIATION:
+				{
+					slot_t *slot = handle->index[chan];
+
+					if(slot && _slot_is_voice(slot, chan))
+					{
+						const unsigned voice = _slot_voice(slot, chan);
+						const xpress_uuid_t uuid = _uuid_create(slot, chan);
+
+						slot->voice_pressure[voice] = (slot->voice_pressure[voice] & 0x7f) | ((uint16_t)value << 7);
+
+						target_t *target = xpress_get(&handle->xpress, uuid);
+						if(target)
+						{
+							const float pressure = slot->voice_pressure[voice] * 0x1p-14;
+							target->state.position[1] = pressure;
+
+							if(handle->ref)
+								handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);
+						}
+					}
+
+					break;
+				}
+
+				case LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20:
+				{
+					slot_t *slot = handle->index[chan];
+
+					if(slot && _slot_is_voice(slot, chan))
+					{
+						const unsigned voice = _slot_voice(slot, chan);
+						slot->voice_timbre[voice] = (slot->voice_timbre[voice] & 0x3f80) | value;
+					}
+
+					break;
+				}
+				case LV2_MIDI_CTL_SC5_BRIGHTNESS:
+				{
+					slot_t *slot = handle->index[chan];
+
+					if(slot && _slot_is_voice(slot, chan))
+					{
+						const unsigned voice = _slot_voice(slot, chan);
+						const xpress_uuid_t uuid = _uuid_create(slot, chan);
+
+						slot->voice_timbre[voice] = (slot->voice_timbre[voice] & 0x7f) | ((uint16_t)value << 7);
+
+						target_t *target = xpress_get(&handle->xpress, uuid);
+						if(target)
+						{
+							const float timbre = slot->voice_timbre[voice] * 0x1p-14;
+							target->state.position[2] = timbre;
+
+							if(handle->ref)
+								handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);
+						}
+					}
+
+					break;
+				}
+			}
+
+			break;
+		}
 	}
 }
 
@@ -283,121 +628,20 @@ run(LV2_Handle instance, uint32_t nsamples)
 	plughandle_t *handle = instance;
 
 	// prepare midi atom forge
-	const uint32_t capacity = handle->midi_out->atom.size;
+	const uint32_t capacity = handle->event_out->atom.size;
 	LV2_Atom_Forge *forge = &handle->forge;
-	lv2_atom_forge_set_buffer(forge, (uint8_t *)handle->midi_out, capacity);
+	lv2_atom_forge_set_buffer(forge, (uint8_t *)handle->event_out, capacity);
 	LV2_Atom_Forge_Frame frame;
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
-	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
+	LV2_ATOM_SEQUENCE_FOREACH(handle->midi_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
 		const int64_t frames = ev->time.frames;
 
 		if(obj->atom.type == handle->uris.midi_MidiEvent)
 		{
-			const uint8_t *m = LV2_ATOM_BODY_CONST(&obj->atom);
-			const uint8_t comm = m[0] & 0xf0;
-			const uint8_t chan = m[0] & 0x0f;
-
-
-			if(comm == LV2_MIDI_MSG_NOTE_ON)
-			{
-				const int idx = handle->index[chan];
-
-				if(idx != -1)
-				{
-					//FIXME
-				}
-			}
-			else if(comm == LV2_MIDI_MSG_NOTE_OFF)
-			{
-				const int idx = handle->index[chan];
-
-				if(idx != -1)
-				{
-					//FIXME
-				}
-			}
-			else if(comm == LV2_MIDI_MSG_CHANNEL_PRESSURE)
-			{
-				const int idx = handle->index[chan];
-
-				if(idx != -1)
-				{
-					//FIXME
-				}
-			}
-			else if(comm == LV2_MIDI_MSG_BENDER)
-			{
-				const int idx = handle->index[chan];
-
-				if(idx != -1)
-				{
-					//FIXME
-				}
-			}
-			else if(comm == LV2_MIDI_MSG_CONTROLLER)
-			{
-				const uint8_t controller = m[1];
-				const uint8_t value = m[2];
-
-				switch(controller)
-				{
-					case LV2_MIDI_CTL_LSB_DATA_ENTRY:
-						handle->data = (handle->data & 0x3f80) | value;
-						break;
-					case LV2_MIDI_CTL_MSB_DATA_ENTRY:
-						handle->data = (handle->data & 0x7f) | (value << 7);
-
-						if(handle->rpn == 6)
-						{
-							const uint8_t zone_width = handle->data >> 7;
-							//printf("setting zone width: %"PRIu8" %"PRIu8"\n", chan, zone_width);
-
-							_index_update(handle, chan, zone_width);
-						}
-						else if(handle->rpn == 0)
-						{
-							const uint8_t bend_range = handle->data >> 7;
-							const int idx = handle->index[chan];
-
-							if(idx != -1)
-							{
-								if(_channel_is_master(handle, chan))
-								{
-									for(unsigned i=chan; i<MAX_CHANNELS; i++)
-									{
-										if(handle->index[i] == idx)
-											handle->slots[i].master_bend_range = bend_range; //TODO check
-									}
-								}
-								else if(_channel_is_first(handle, chan))
-								{
-									for(unsigned i=chan-1; i<MAX_CHANNELS; i++)
-									{
-										if(handle->index[i] == idx)
-											handle->slots[i].voice_bend_range = bend_range; //TODO check
-									}
-								}
-							}
-
-							/* FIXME
-							for(unsigned i=0; i<MAX_CHANNELS; i++)
-								printf("%u %i %i\n", i, handle->slots[i].master_bend_range, handle->slots[i].voice_bend_range);
-							printf("\n");
-							*/
-						}
-						break;
-					case LV2_MIDI_CTL_RPN_LSB:
-						handle->rpn = (handle->rpn & 0x3f80) | value;
-						break;
-					case LV2_MIDI_CTL_RPN_MSB:
-						handle->rpn = (handle->rpn & 0x7f) | ((uint16_t)value << 7);
-						break;
-					//FIXME SC5
-				}
-			}
+			_mpe_in(handle, frames, &obj->atom);
 		}
 		else
 		{
@@ -408,7 +652,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 	if(handle->ref)
 		lv2_atom_forge_pop(forge, &frame);
 	else
-		lv2_atom_sequence_clear(handle->midi_out);
+		lv2_atom_sequence_clear(handle->event_out);
 }
 
 static void
