@@ -24,7 +24,7 @@
 
 #include <mpe.h>
 
-#define MAX_NPROPS (2 + MPE_ZONE_MAX*4)
+#define MAX_NPROPS (1 + MPE_ZONE_MAX*4)
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
@@ -39,7 +39,6 @@ struct _target_t {
 
 struct _state_t {
 	int32_t zones;
-	int32_t velocity;
 	int32_t master_range [MPE_ZONE_MAX];
 	int32_t voice_range [MPE_ZONE_MAX];
 	int32_t pressure_controller [MPE_ZONE_MAX];
@@ -71,6 +70,8 @@ struct _plughandle_t {
 static inline void
 mpe_populate(mpe_t *mpe, uint8_t n_zones)
 {
+	plughandle_t *handle = (void *)mpe - offsetof(plughandle_t, mpe);
+
 	assert(n_zones > 0);
 	n_zones %= MPE_ZONE_MAX + 1; // wrap around if n_zones > MPE_ZONE_MAX
 	int8_t rem = MPE_CHAN_MAX % n_zones;
@@ -90,8 +91,8 @@ mpe_populate(mpe_t *mpe, uint8_t n_zones)
 		zones[i].span = span;
 		if(rem > 0)
 			zones[i].span += 1;
-		zones[i].master_range = 2;
-		zones[i].voice_range = 48;
+		zones[i].master_range = handle->state.master_range[i];
+		zones[i].voice_range = handle->state.voice_range[i];
 	}
 
 	for(uint8_t i=0; i<MPE_CHAN_MAX; i++)
@@ -343,13 +344,6 @@ static const props_def_t stat_mpe_zones = {
 	.event_cb = _intercept_zones
 };
 
-static const props_def_t stat_mpe_velocity = {
-	.property = ESPRESSIVO_URI"#mpe_velocity",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
-};
-
 #define MASTER_RANGE(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_master_range_"#NUM, \
@@ -535,7 +529,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	src->chan = mpe_acquire(&handle->mpe, state->zone);
 	src->zone = state->zone;
 	src->key = floor(val);
-	const uint8_t vel = handle->state.velocity;
+	const uint8_t vel = 0x7f;
 
 	const uint8_t note_on [3] = {
 		LV2_MIDI_MSG_NOTE_ON | src->chan,
@@ -568,7 +562,7 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	plughandle_t *handle = data;
 	target_t *src = target;
 
-	const uint8_t vel = handle->state.velocity;
+	const uint8_t vel = 0x7f;
 
 	const uint8_t note_off [3] = {
 		LV2_MIDI_MSG_NOTE_OFF | src->chan,
@@ -637,10 +631,6 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	LV2_URID urid = props_register(&handle->props, &stat_mpe_zones,
 		&handle->state.zones, &handle->stash.zones);
-
-	if(urid)
-		urid = props_register(&handle->props, &stat_mpe_velocity,
-			&handle->state.velocity, &handle->stash.velocity);
 
 	for(unsigned z=0; urid && (z<MPE_ZONE_MAX); z++)
 		urid = props_register(&handle->props, &stat_mpe_master_range[z],

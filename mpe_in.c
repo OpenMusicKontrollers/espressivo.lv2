@@ -23,7 +23,9 @@
 #include <espressivo.h>
 #include <props.h>
 
-#define MAX_NPROPS 1
+#include <mpe.h>
+
+#define MAX_NPROPS (1 + MPE_ZONE_MAX*2)
 #define MAX_NVOICES 64
 #define MAX_ZONES 8
 #define MAX_CHANNELS 16
@@ -57,6 +59,8 @@ struct _target_t {
 
 struct _state_t {
 	int32_t num_zones;
+	int32_t master_range [MPE_ZONE_MAX];
+	int32_t voice_range [MPE_ZONE_MAX];
 };
 
 struct _plughandle_t {
@@ -83,13 +87,56 @@ struct _plughandle_t {
 
 	state_t state;
 	state_t stash;
+	struct {
+		LV2_URID num_zones;
+		LV2_URID master_range [MPE_ZONE_MAX];
+		LV2_URID voice_range [MPE_ZONE_MAX];
+	} urid;
 };
 
 static const props_def_t stat_mpe_zones = {
-	.property = ESPRESSIVO_URI"#mpe_range",
+	.property = ESPRESSIVO_URI"#mpe_zones",
 	.access = LV2_PATCH__readable,
 	.type = LV2_ATOM__Int,
 	.mode = PROP_MODE_STATIC
+};
+
+#define MASTER_RANGE(NUM) \
+{ \
+	.property = ESPRESSIVO_URI"#mpe_master_range_"#NUM, \
+	.access = LV2_PATCH__readable, \
+	.type = LV2_ATOM__Int, \
+	.mode = PROP_MODE_STATIC \
+}
+
+static const props_def_t stat_mpe_master_range [MPE_ZONE_MAX] = {
+	[0] = MASTER_RANGE(1),
+	[1] = MASTER_RANGE(2),
+	[2] = MASTER_RANGE(3),
+	[3] = MASTER_RANGE(4),
+	[4] = MASTER_RANGE(5),
+	[5] = MASTER_RANGE(6),
+	[6] = MASTER_RANGE(7),
+	[7] = MASTER_RANGE(8)
+};
+
+#define VOICE_RANGE(NUM) \
+{ \
+	.property = ESPRESSIVO_URI"#mpe_voice_range_"#NUM, \
+	.access = LV2_PATCH__readable, \
+	.type = LV2_ATOM__Int, \
+	.mode = PROP_MODE_STATIC \
+}
+
+static const props_def_t stat_mpe_voice_range [MPE_ZONE_MAX] = {
+	[0] = VOICE_RANGE(1),
+	[1] = VOICE_RANGE(2),
+	[2] = VOICE_RANGE(3),
+	[3] = VOICE_RANGE(4),
+	[4] = VOICE_RANGE(5),
+	[5] = VOICE_RANGE(6),
+	[6] = VOICE_RANGE(7),
+	[7] = VOICE_RANGE(8)
 };
 
 static inline void
@@ -182,7 +229,33 @@ _zone_dump(plughandle_t *handle)
 }
 
 static inline void
-_zone_register(plughandle_t *handle, uint8_t master_channel, uint8_t num_voices)
+_zone_notify(plughandle_t *handle, int64_t frames)
+{
+	handle->state.num_zones = 0;
+
+	for(unsigned i=0; i<MAX_ZONES; i++)
+	{
+		slot_t *slot = &handle->slots[i];
+
+		//printf("%u: %u %i %i\n", i, slot->num_voices, slot->master_bend_range, slot->voice_bend_range);
+
+		handle->state.master_range[i] = slot->master_bend_range;
+		props_set(&handle->props, &handle->forge, frames, handle->urid.master_range[i], &handle->ref);
+
+		handle->state.voice_range[i] = slot->voice_bend_range;
+		props_set(&handle->props, &handle->forge, frames, handle->urid.voice_range[i], &handle->ref);
+
+		if(slot->num_voices == 0)
+			continue; // invalid
+
+		handle->state.num_zones += 1;
+	}
+
+	props_set(&handle->props, &handle->forge, frames, handle->urid.num_zones, &handle->ref);
+}
+
+static inline void
+_zone_register(plughandle_t *handle, int64_t frames, uint8_t master_channel, uint8_t num_voices)
 {
 	if( (num_voices < 1) || (master_channel + num_voices > MAX_CHANNELS) )
 		return; // invalid
@@ -224,6 +297,9 @@ _zone_register(plughandle_t *handle, uint8_t master_channel, uint8_t num_voices)
 		}
 	}
 
+	// clear slots
+	_slots_init(handle);
+
 	// pass 2
 	bool inserted = false;
 	slot_t *dst = handle->slots;
@@ -262,8 +338,6 @@ _zone_register(plughandle_t *handle, uint8_t master_channel, uint8_t num_voices)
 	}
 
 	_index_update(handle);
-
-	//_zone_dump(handle);
 }
 
 static const xpress_iface_t iface = {
@@ -316,11 +390,30 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(!props_register(&handle->props, &stat_mpe_zones, &handle->state.num_zones, &handle->stash.num_zones))
+	handle->urid.num_zones = props_register(&handle->props, &stat_mpe_zones,
+		&handle->state.num_zones, &handle->stash.num_zones);
+	handle->state.num_zones = 1;
+
+	for(unsigned z=0; z<MPE_ZONE_MAX; z++)
+	{
+		handle->urid.master_range[z] = props_register(&handle->props, &stat_mpe_master_range[z],
+			&handle->state.master_range[z], &handle->stash.master_range[z]);
+		handle->state.master_range[z] = 2;
+	}
+	for(unsigned z=0; z<MPE_ZONE_MAX; z++)
+	{
+		handle->urid.voice_range[z] = props_register(&handle->props, &stat_mpe_voice_range[z],
+			&handle->state.voice_range[z], &handle->stash.voice_range[z]);
+		handle->state.voice_range[z] = 48;
+	}
+
+	/* FIXME
+	if(!urid)
 	{
 		free(handle);
 		return NULL;
 	}
+	*/
 
 	_slots_init(handle);
 	_index_update(handle);
@@ -352,13 +445,15 @@ _uuid_create(slot_t *slot, uint8_t chan)
 	return ((int32_t)slot->zone << 8) | chan;
 }
 
-static inline void
+static inline bool 
 _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 {
 	LV2_Atom_Forge *forge = &handle->forge;
 	const uint8_t *m = LV2_ATOM_BODY_CONST(atom);
 	const uint8_t comm = m[0] & 0xf0;
 	const uint8_t chan = m[0] & 0x0f;
+
+	bool zone_notify = false;
 
 	switch(comm)
 	{
@@ -506,7 +601,8 @@ _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 					{
 						const uint8_t zone_width = handle->data >> 7;
 
-						_zone_register(handle, chan, zone_width);
+						_zone_register(handle, frames, chan, zone_width);
+						zone_notify = true;
 					}
 					else if(handle->rpn == 0) // pitch-bend range registered
 					{
@@ -518,10 +614,16 @@ _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 							if(_slot_is_master(slot, chan))
 							{
 								slot->master_bend_range = bend_range;
+
+								handle->state.master_range[slot->zone] = slot->master_bend_range;
+								props_set(&handle->props, &handle->forge, frames, handle->urid.master_range[slot->zone], &handle->ref);
 							}
 							else if(_slot_is_first(slot, chan))
 							{
 								slot->voice_bend_range = bend_range;
+
+								handle->state.voice_range[slot->zone] = slot->voice_bend_range;
+								props_set(&handle->props, &handle->forge, frames, handle->urid.voice_range[slot->zone], &handle->ref);
 							}
 						}
 					}
@@ -620,6 +722,8 @@ _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 			break;
 		}
 	}
+
+	return zone_notify;
 }
 
 static void
@@ -634,6 +738,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_Atom_Forge_Frame frame;
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
+	bool zone_notify = false;
+
 	LV2_ATOM_SEQUENCE_FOREACH(handle->midi_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
@@ -641,13 +747,17 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 		if(obj->atom.type == handle->uris.midi_MidiEvent)
 		{
-			_mpe_in(handle, frames, &obj->atom);
+			if(_mpe_in(handle, frames, &obj->atom))
+				zone_notify = true;
 		}
 		else
 		{
 			props_advance(&handle->props, forge, frames, obj, &handle->ref);
 		}
 	}
+
+	if(zone_notify)
+		_zone_notify(handle, nsamples - 1);
 
 	if(handle->ref)
 		lv2_atom_forge_pop(forge, &frame);

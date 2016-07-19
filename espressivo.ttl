@@ -501,7 +501,23 @@ esp:mpe_in
 	] ;
 
 	patch:readable
-		esp:mpe_zones .
+		esp:mpe_zones ,
+		esp:mpe_master_range_1 ,
+		esp:mpe_master_range_2 ,
+		esp:mpe_master_range_3 ,
+		esp:mpe_master_range_4 ,
+		esp:mpe_master_range_5 ,
+		esp:mpe_master_range_6 ,
+		esp:mpe_master_range_7 ,
+		esp:mpe_master_range_8 ,
+		esp:mpe_voice_range_1 ,
+		esp:mpe_voice_range_2 ,
+		esp:mpe_voice_range_3 ,
+		esp:mpe_voice_range_4 ,
+		esp:mpe_voice_range_5 ,
+		esp:mpe_voice_range_6 ,
+		esp:mpe_voice_range_7 ,
+		esp:mpe_voice_range_8 .	
 
 esp:tuio2_deviceWidth
 	a lv2:Parameter ;
