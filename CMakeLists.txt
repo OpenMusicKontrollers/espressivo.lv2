@@ -42,6 +42,7 @@ add_library(espressivo MODULE
 	tuio2_out.c
 	sample_and_hold.c
 	through.c
+	chord.c
 	reducto.c
 	discreto.c
 	mpe_out.c

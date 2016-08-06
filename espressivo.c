@@ -63,6 +63,8 @@ lv2_descriptor(uint32_t index)
 			return &mpe_in;
 		case 9:
 			return &tuio2_out;
+		case 10:
+			return &chord;
 		default:
 			return NULL;
 	}
