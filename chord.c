@@ -90,7 +90,6 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	target_t *src = target;
 	LV2_Atom_Forge *forge = &handle->forge;
 
-	printf("_add\n");
 	for(unsigned i=0; i<MAX_CHORDS; i++)
 	{
 		src->uuid[i] = xpress_map(&handle->xpress);
