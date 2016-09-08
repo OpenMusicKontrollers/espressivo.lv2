@@ -2,6 +2,10 @@
 
 ## LV2 plugin bundle to handle expressive events
 
+### Build status
+
+[![build status](https://gitlab.com/OpenMusicKontrollers/espressivo.lv2/badges/master/build.svg)](https://gitlab.com/OpenMusicKontrollers/espressivo.lv2/commits/master)
+
 ### License
 
 Copyright (c) 2016 Hanspeter Portner (dev@open-music-kontrollers.ch)
