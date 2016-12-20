@@ -126,14 +126,14 @@ static const props_def_t group_def = {
 }
 
 static const props_def_t synth_name_def [SYNTH_NAMES] = {
-	[0] = SYNTH_NAME(1),
-	[1] = SYNTH_NAME(2),
-	[2] = SYNTH_NAME(3),
-	[3] = SYNTH_NAME(4),
-	[4] = SYNTH_NAME(5),
-	[5] = SYNTH_NAME(6),
-	[6] = SYNTH_NAME(7),
-	[7] = SYNTH_NAME(8)
+	[0] = SYNTH_NAME(0),
+	[1] = SYNTH_NAME(1),
+	[2] = SYNTH_NAME(2),
+	[3] = SYNTH_NAME(3),
+	[4] = SYNTH_NAME(4),
+	[5] = SYNTH_NAME(5),
+	[6] = SYNTH_NAME(6),
+	[7] = SYNTH_NAME(7)
 };
 
 static LV2_State_Status
