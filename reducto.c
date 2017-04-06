@@ -56,18 +56,17 @@ struct _plughandle_t {
 	state_t stash;
 };
 
-static const props_def_t stat_reducto_position_threshold = {
-	.property = ESPRESSIVO_URI"#reducto_position_threshold",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Float,
-	.mode = PROP_MODE_STATIC
-};
-
-static const props_def_t stat_reducto_velocity_threshold = {
-	.property = ESPRESSIVO_URI"#reducto_velocity_threshold",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Float,
-	.mode = PROP_MODE_STATIC
+static const props_def_t defs [MAX_NPROPS] = {
+	{
+		.property = ESPRESSIVO_URI"#reducto_position_threshold",
+		.offset = offsetof(state_t, position_threshold),
+		.type = LV2_ATOM__Float,
+	},
+	{
+		.property = ESPRESSIVO_URI"#reducto_velocity_threshold",
+		.offset = offsetof(state_t, velocity_threshold),
+		.type = LV2_ATOM__Float,
+	}
 };
 
 static void
@@ -81,7 +80,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 
 	src->uuid = xpress_map(&handle->xpress);
 	src->below = true;
-	src->x = state->position[0];
+	src->x = state->pitch;
 
 	if(handle->ref)
 		handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid, state);
@@ -95,7 +94,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	target_t *src = target;
 
 	bool spawn_new = false;
-	const float vel_x_abs = fabs(state->velocity[0]);
+	const float vel_x_abs = fabs(state->dPitch);
 
 	if(src->below)
 	{
@@ -106,7 +105,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	{
 		if(vel_x_abs < handle->state.velocity_threshold)
 		{
-			const float pos_x_diff_abs = fabs(state->position[0] - src->x);
+			const float pos_x_diff_abs = fabs(state->pitch - src->x);
 
 			if(pos_x_diff_abs >= handle->state.position_threshold)
 				spawn_new = true;
@@ -124,7 +123,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 		// create new event
 		src->uuid = xpress_map(&handle->xpress);
 		src->below = true;
-		src->x = state->position[0];
+		src->x = state->pitch;
 
 		if(handle->ref)
 			handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid, state);
@@ -189,18 +188,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
+	if(!props_init(&handle->props, descriptor->URI,
+		defs, MAX_NPROPS, &handle->state, &handle->stash,
+		handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
-		free(handle);
-		return NULL;
-	}
-
-	if(  !props_register(&handle->props, &stat_reducto_velocity_threshold,
-			&handle->state.velocity_threshold, &handle->stash.velocity_threshold)
-		|| !props_register(&handle->props, &stat_reducto_position_threshold,
-			&handle->state.position_threshold, &handle->stash.position_threshold) )
-	{
 		free(handle);
 		return NULL;
 	}
@@ -238,6 +230,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_Atom_Forge_Frame frame;
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
+	props_idle(&handle->props, forge, 0, &handle->ref);
+
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
@@ -271,7 +265,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	plughandle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->forge, store, state, flags, features);
+	return props_save(&handle->props, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -281,7 +275,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	plughandle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

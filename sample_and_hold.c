@@ -22,7 +22,7 @@
 #include <espressivo.h>
 #include <props.h>
 
-#define MAX_NPROPS 5
+#define MAX_NPROPS 7
 #define MAX_NVOICES 64
 
 typedef struct _target_t target_t;
@@ -41,7 +41,12 @@ struct _target2_t {
 
 struct _state_t {
 	int32_t sample;
-	int32_t hold_dimension [4];
+	int32_t hold_pitch;
+	int32_t hold_pressure;
+	int32_t hold_timbre;
+	int32_t hold_dPitch;
+	int32_t hold_dPressure;
+	int32_t hold_dTimbre;
 };
 
 struct _plughandle_t {
@@ -65,8 +70,7 @@ struct _plughandle_t {
 };
 
 static void
-_intercept_sample(void *data, LV2_Atom_Forge *forge, int64_t frames,
-	props_event_t event, props_impl_t *impl)
+_intercept_sample(void *data, int64_t frames, props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
@@ -82,7 +86,7 @@ _intercept_sample(void *data, LV2_Atom_Forge *forge, int64_t frames,
 				continue; // still playing
 
 			if(handle->ref)
-				handle->ref = xpress_del(&handle->xpress2, forge, frames, voice->uuid);
+				handle->ref = xpress_del(&handle->xpress2, &handle->forge, frames, voice->uuid);
 
 			voice->uuid = 0; // mark for removal
 			removed++;
@@ -92,28 +96,43 @@ _intercept_sample(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	}
 }
 
-static const props_def_t stat_snh_sample = {
-	.property = ESPRESSIVO_URI"#snh_sample",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Bool,
-	.mode = PROP_MODE_STATIC,
-	.event_mask = PROP_EVENT_WRITE,
-	.event_cb = _intercept_sample
-};
-
-#define HOLD_DIMENSION(NUM) \
-{ \
-	.property = ESPRESSIVO_URI"#snh_hold_dimension_"#NUM, \
-	.access = LV2_PATCH__writable, \
-	.type = LV2_ATOM__Bool, \
-	.mode = PROP_MODE_STATIC \
-}
-
-static const props_def_t stat_snh_hold_dimension [4] = {
-	[0] = HOLD_DIMENSION(1),
-	[1] = HOLD_DIMENSION(2),
-	[2] = HOLD_DIMENSION(3),
-	[3] = HOLD_DIMENSION(4)
+static const props_def_t defs [MAX_NPROPS] = {
+	{
+		.property = ESPRESSIVO_URI"#snh_sample",
+		.offset = offsetof(state_t, sample),
+		.type = LV2_ATOM__Bool,
+		.event_cb = _intercept_sample
+	},
+	{
+		.property = ESPRESSIVO_URI"#snh_hold_pitch",
+		.offset = offsetof(state_t, hold_pitch),
+		.type = LV2_ATOM__Bool,
+	},
+	{
+		.property = ESPRESSIVO_URI"#snh_hold_pressure",
+		.offset = offsetof(state_t, hold_pressure),
+		.type = LV2_ATOM__Bool,
+	},
+	{
+		.property = ESPRESSIVO_URI"#snh_hold_timbre",
+		.offset = offsetof(state_t, hold_timbre),
+		.type = LV2_ATOM__Bool,
+	},
+	{
+		.property = ESPRESSIVO_URI"#snh_hold_dPitch",
+		.offset = offsetof(state_t, hold_dPitch),
+		.type = LV2_ATOM__Bool,
+	},
+	{
+		.property = ESPRESSIVO_URI"#snh_hold_dPressure",
+		.offset = offsetof(state_t, hold_dPressure),
+		.type = LV2_ATOM__Bool,
+	},
+	{
+		.property = ESPRESSIVO_URI"#snh_hold_dTimbre",
+		.offset = offsetof(state_t, hold_dTimbre),
+		.type = LV2_ATOM__Bool,
+	}
 };
 
 static void
@@ -144,9 +163,23 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	
 	if((dst = xpress_get(&handle->xpress2, src->uuid)))
 	{
-		for(unsigned i=0; i<3; i++)
-			if(!(handle->state.hold_dimension[i] && (state->position[i] < dst->state.position[i]) ))
-				dst->state.position[i] = state->position[i];
+		if(!(handle->state.hold_pitch && (state->pitch < dst->state.pitch) ))
+			dst->state.pitch = state->pitch;
+
+		if(!(handle->state.hold_pressure && (state->pressure < dst->state.pressure) ))
+			dst->state.pressure = state->pressure;
+
+		if(!(handle->state.hold_timbre && (state->timbre < dst->state.timbre) ))
+			dst->state.timbre = state->timbre;
+
+		if(!(handle->state.hold_dPitch && (state->dPitch < dst->state.dPitch) ))
+			dst->state.dPitch = state->dPitch;
+
+		if(!(handle->state.hold_dPressure && (state->dPressure < dst->state.dPressure) ))
+			dst->state.dPressure = state->dPressure;
+
+		if(!(handle->state.hold_dTimbre && (state->dTimbre < dst->state.dTimbre) ))
+			dst->state.dTimbre = state->dTimbre;
 
 		if(handle->ref)
 			handle->ref = xpress_put(&handle->xpress2, &handle->forge, frames, src->uuid, &dst->state);
@@ -225,19 +258,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
+	if(!props_init(&handle->props, descriptor->URI,
+		defs, MAX_NPROPS, &handle->state, &handle->stash,
+		handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
-		free(handle);
-		return NULL;
-	}
-
-	if(  !props_register(&handle->props, &stat_snh_sample, &handle->state.sample, &handle->stash.sample)
-		|| !props_register(&handle->props, &stat_snh_hold_dimension[0], &handle->state.hold_dimension[0], &handle->stash.hold_dimension[0])
-		|| !props_register(&handle->props, &stat_snh_hold_dimension[1], &handle->state.hold_dimension[1], &handle->stash.hold_dimension[1])
-		|| !props_register(&handle->props, &stat_snh_hold_dimension[2], &handle->state.hold_dimension[2], &handle->stash.hold_dimension[2])
-		|| !props_register(&handle->props, &stat_snh_hold_dimension[3], &handle->state.hold_dimension[3], &handle->stash.hold_dimension[3]) )
-	{
 		free(handle);
 		return NULL;
 	}
@@ -275,6 +300,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_Atom_Forge_Frame frame;
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
+	props_idle(&handle->props, forge, 0, &handle->ref);
+
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
@@ -308,7 +335,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	plughandle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->forge, store, state, flags, features);
+	return props_save(&handle->props, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -318,7 +345,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	plughandle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

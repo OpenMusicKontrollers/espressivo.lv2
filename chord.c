@@ -36,7 +36,6 @@ struct _target_t {
 
 struct _state_t {
 	float offset [MAX_CHORDS];
-	int32_t enabled [MAX_CHORDS]; //FIXME
 };
 
 struct _plughandle_t {
@@ -55,31 +54,18 @@ struct _plughandle_t {
 	state_t stash;
 };
 
-static const props_def_t stat_chord_offset [MAX_CHORDS] = {
-	{
-		.property = ESPRESSIVO_URI"#chord_offset_1",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Float,
-		.mode = PROP_MODE_STATIC
-	},
-	{
-		.property = ESPRESSIVO_URI"#chord_offset_2",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Float,
-		.mode = PROP_MODE_STATIC
-	},
-	{
-		.property = ESPRESSIVO_URI"#chord_offset_3",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Float,
-		.mode = PROP_MODE_STATIC
-	},
-	{
-		.property = ESPRESSIVO_URI"#chord_offset_4",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Float,
-		.mode = PROP_MODE_STATIC
-	}
+#define CHORD_OFFSET(NUM) \
+{ \
+	.property = ESPRESSIVO_URI"#chord_offset_"#NUM, \
+	.offset = offsetof(state_t, offset) + (NUM-1)*sizeof(float), \
+	.type = LV2_ATOM__Int, \
+}
+
+static const props_def_t defs [MAX_NPROPS] = {
+	CHORD_OFFSET(1),
+	CHORD_OFFSET(2),
+	CHORD_OFFSET(3),
+	CHORD_OFFSET(4)
 };
 
 static void
@@ -95,7 +81,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 		src->uuid[i] = xpress_map(&handle->xpress);
 
 		xpress_state_t new_state = *state;
-		new_state.position[0] += handle->state.offset[i];
+		new_state.pitch += handle->state.offset[i];
 
 		if(handle->ref)
 			handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid[i], &new_state);
@@ -113,7 +99,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	for(unsigned i=0; i<MAX_CHORDS; i++)
 	{
 		xpress_state_t new_state = *state;
-		new_state.position[0] += handle->state.offset[i];
+		new_state.pitch += handle->state.offset[i];
 
 		if(handle->ref)
 			handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid[i], &new_state);
@@ -180,22 +166,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
+	if(!props_init(&handle->props, descriptor->URI,
+		defs, MAX_NPROPS, &handle->state, &handle->stash,
+		handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
-		free(handle);
-		return NULL;
-	}
-
-	if(  !props_register(&handle->props, &stat_chord_offset[0],
-				&handle->state.offset[0], &handle->stash.offset[0])
-		|| !props_register(&handle->props, &stat_chord_offset[1],
-				&handle->state.offset[1], &handle->stash.offset[1])
-		|| !props_register(&handle->props, &stat_chord_offset[2],
-				&handle->state.offset[2], &handle->stash.offset[2])
-		|| !props_register(&handle->props, &stat_chord_offset[3],
-				&handle->state.offset[3], &handle->stash.offset[3]) )
-	{
 		free(handle);
 		return NULL;
 	}
@@ -233,6 +208,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_Atom_Forge_Frame frame;
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
+	props_idle(&handle->props, forge, 0, &handle->ref);
+
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
@@ -266,7 +243,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	plughandle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->forge, store, state, flags, features);
+	return props_save(&handle->props, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -276,7 +253,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	plughandle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

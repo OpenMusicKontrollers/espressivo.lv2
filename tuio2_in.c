@@ -119,42 +119,6 @@ struct _plughandle_t {
 	state_t stash;
 };
 
-static const props_def_t stat_tuio2_deviceWidth = {
-	.property = ESPRESSIVO_URI"#tuio2_deviceWidth",
-	.access = LV2_PATCH__readable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
-};
-
-static const props_def_t stat_tuio2_deviceHeight = {
-	.property = ESPRESSIVO_URI"#tuio2_deviceHeight",
-	.access = LV2_PATCH__readable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
-};
-
-static const props_def_t stat_tuio2_deviceName = {
-	.property = ESPRESSIVO_URI"#tuio2_deviceName",
-	.access = LV2_PATCH__readable,
-	.type = LV2_ATOM__String,
-	.mode = PROP_MODE_STATIC,
-	.max_size = MAX_STRLEN 
-};
-
-static const props_def_t stat_tuio2_octave = {
-	.property = ESPRESSIVO_URI"#tuio2_octave",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
-};
-
-static const props_def_t stat_tuio2_sensorsPerSemitone = {
-	.property = ESPRESSIVO_URI"#tuio2_sensorsPerSemitone",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
-};
-
 static inline void
 _stiffness_set(plughandle_t *handle, int32_t stiffness)
 {
@@ -164,21 +128,49 @@ _stiffness_set(plughandle_t *handle, int32_t stiffness)
 }
 
 static void
-_intercept_filter_stiffness(void *data, LV2_Atom_Forge *forge, int64_t frames,
-	props_event_t event, props_impl_t *impl)
+_intercept_filter_stiffness(void *data, int64_t frames, props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
 	_stiffness_set(handle, handle->state.filter_stiffness);
 }
 
-static const props_def_t stat_tuio2_filterStiffness = {
-	.property = ESPRESSIVO_URI"#tuio2_filterStiffness",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC,
-	.event_mask = PROP_EVENT_WRITE,
-	.event_cb = _intercept_filter_stiffness
+static const props_def_t defs [MAX_NPROPS] = {
+	{
+		.property = ESPRESSIVO_URI"#tuio2_deviceWidth",
+		.offset = offsetof(state_t, device_width),
+		.access = LV2_PATCH__readable,
+		.type = LV2_ATOM__Int,
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_deviceHeight",
+		.offset = offsetof(state_t, device_height),
+		.access = LV2_PATCH__readable,
+		.type = LV2_ATOM__Int,
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_deviceName",
+		.offset = offsetof(state_t, device_name),
+		.access = LV2_PATCH__readable,
+		.type = LV2_ATOM__String,
+		.max_size = MAX_STRLEN 
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_octave",
+		.offset = offsetof(state_t, octave),
+		.type = LV2_ATOM__Int,
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_sensorsPerSemitone",
+		.offset = offsetof(state_t, sensors_per_semitone),
+		.type = LV2_ATOM__Int,
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_filterStiffness",
+		.offset = offsetof(state_t, filter_stiffness),
+		.type = LV2_ATOM__Int,
+		.event_cb = _intercept_filter_stiffness
+	}
 };
 
 static inline void
@@ -517,10 +509,10 @@ _tuio2_alv(const char *path, const LV2_Atom_Tuple *args,
 
 		const xpress_state_t state = {
 			.zone = src->gid,
-			.position[0] = src->pos.x * handle->ran + handle->bot,
-			.position[1] = src->pos.z,
-			.velocity[0] = src->pos.vx.f11,
-			.velocity[1] = src->pos.vz.f11
+			.pitch = src->pos.x * handle->ran + handle->bot,
+			.pressure = src->pos.z,
+			.dPitch = src->pos.vx.f11,
+			.dPressure = src->pos.vz.f11
 		};
 
 		if(handle->ref)
@@ -582,27 +574,18 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
+	if(!props_init(&handle->props, descriptor->URI,
+		defs, MAX_NPROPS, &handle->state, &handle->stash,
+		handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
 		free(handle);
 		return NULL;
 	}
 
-	if(  !(handle->urid.device_width = props_register(&handle->props, &stat_tuio2_deviceWidth, 
-			&handle->state.device_width, &handle->stash.device_width))
-		|| !(handle->urid.device_height = props_register(&handle->props, &stat_tuio2_deviceHeight, 
-			&handle->state.device_height, &handle->stash.device_height))
-		|| !(handle->urid.device_name = props_register(&handle->props, &stat_tuio2_deviceName, 
-			handle->state.device_name, handle->stash.device_name))
-
-		|| !props_register(&handle->props, &stat_tuio2_octave, &handle->state.octave, &handle->stash.octave)
-		|| !props_register(&handle->props, &stat_tuio2_sensorsPerSemitone, &handle->state.sensors_per_semitone, &handle->stash.sensors_per_semitone)
-		|| !props_register(&handle->props, &stat_tuio2_filterStiffness, &handle->state.filter_stiffness, &handle->stash.filter_stiffness) )
-	{
-		free(handle);
-		return NULL;
-	}
+	handle->urid.device_width = props_map(&handle->props, ESPRESSIVO_URI"#tuio2_deviceWidth");
+	handle->urid.device_height = props_map(&handle->props, ESPRESSIVO_URI"#tuio2_deviceHeight");
+	handle->urid.device_name = props_map(&handle->props, ESPRESSIVO_URI"#tuio2_deviceName");
 
 	return handle;
 }
@@ -677,6 +660,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	lv2_atom_forge_set_buffer(forge, (uint8_t *)handle->event_out, capacity);
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
+	props_idle(&handle->props, forge, 0, &handle->ref);
+
 	// read incoming OSC
 	LV2_ATOM_SEQUENCE_FOREACH(handle->osc_in, ev)
 	{
@@ -709,7 +694,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	plughandle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->forge, store, state, flags, features);
+	return props_save(&handle->props, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -719,7 +704,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	plughandle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

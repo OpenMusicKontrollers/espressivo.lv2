@@ -73,8 +73,7 @@ struct _plughandle_t {
 };
 
 static void
-_intercept(void *data, LV2_Atom_Forge *forge, int64_t frames,
-	props_event_t event, props_impl_t *impl)
+_intercept(void *data, int64_t frames, props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
@@ -94,55 +93,42 @@ _intercept(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	handle->dim = (w << 16) | h;
 }
 
-static const props_def_t stat_tuio2_deviceWidth = {
-	.property = ESPRESSIVO_URI"#tuio2_deviceWidth",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC,
-	.event_mask = PROP_EVENT_WRITE,
-	.event_cb = _intercept
-};
-
-static const props_def_t stat_tuio2_deviceHeight = {
-	.property = ESPRESSIVO_URI"#tuio2_deviceHeight",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC,
-	.event_mask = PROP_EVENT_WRITE,
-	.event_cb = _intercept
-};
-
-static const props_def_t stat_tuio2_octave = {
-	.property = ESPRESSIVO_URI"#tuio2_octave",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC,
-	.event_mask = PROP_EVENT_WRITE,
-	.event_cb = _intercept
-};
-
-static const props_def_t stat_tuio2_sensorsPerSemitone = {
-	.property = ESPRESSIVO_URI"#tuio2_sensorsPerSemitone",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC,
-	.event_mask = PROP_EVENT_WRITE,
-	.event_cb = _intercept
-};
-
-static const props_def_t stat_tuio2_deviceName = {
-	.property = ESPRESSIVO_URI"#tuio2_deviceName",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__String,
-	.mode = PROP_MODE_STATIC,
-	.max_size = MAX_STRLEN 
-};
-
-static const props_def_t stat_tuio2_timestampOffset = {
-	.property = ESPRESSIVO_URI"#tuio2_timestampOffset",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Float,
-	.mode = PROP_MODE_STATIC
+static const props_def_t defs [MAX_NPROPS] = {
+	{
+		.property = ESPRESSIVO_URI"#tuio2_deviceWidth",
+		.offset = offsetof(state_t, device_width),
+		.type = LV2_ATOM__Int,
+		.event_cb = _intercept
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_deviceHeight",
+		.offset = offsetof(state_t, device_height),
+		.type = LV2_ATOM__Int,
+		.event_cb = _intercept
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_octave",
+		.offset = offsetof(state_t, octave),
+		.type = LV2_ATOM__Int,
+		.event_cb = _intercept
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_sensorsPerSemitone",
+		.offset = offsetof(state_t, sensors_per_semitone),
+		.type = LV2_ATOM__Int,
+		.event_cb = _intercept
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_deviceName",
+		.offset = offsetof(state_t, device_name),
+		.type = LV2_ATOM__String,
+		.max_size = MAX_STRLEN 
+	},
+	{
+		.property = ESPRESSIVO_URI"#tuio2_timestampOffset",
+		.offset = offsetof(state_t, timestamp_offset),
+		.type = LV2_ATOM__Float,
+	}
 };
 
 static inline LV2_Atom_Forge_Ref
@@ -169,14 +155,17 @@ _tok_2d(plughandle_t *handle, xpress_uuid_t uuid, const xpress_state_t *state)
 	const int32_t sid = uuid;
 	const int32_t tuid = 0;
 	const int32_t gid = state->zone;
+	/*FIXME
 	const float macc = sqrtf(state->acceleration[0]*state->acceleration[0]
 		+ state->acceleration[1]*state->acceleration[1]);
+	*/
+	const float macc = 0.f;
 
 	return lv2_osc_forge_message_vararg(&handle->forge, &handle->osc_urid,
 		"/tuio2/tok", "iiiffffffff",
 		sid, tuid, gid,
-		state->position[0], state->position[1], 0.f,
-		state->velocity[0], state->velocity[1], 0.f,
+		state->pitch, state->pressure, 0.f,
+		state->dPitch, state->dPressure, 0.f,
 		macc, 0.f);
 }
 
@@ -294,7 +283,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	src->uuid = xpress_map(&handle->xpress);
 
 	memcpy(&src->state, state, sizeof(xpress_state_t));
-	src->state.position[0] = (state->position[0] - handle->bot) * handle->ran_1;
+	src->state.pitch = (state->pitch - handle->bot) * handle->ran_1;
 	src->dirty = true;
 	src->last = frames;
 
@@ -311,7 +300,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	_upd(handle, frames);
 
 	memcpy(&src->state, state, sizeof(xpress_state_t));
-	src->state.position[0] = (state->position[0] - handle->bot) * handle->ran_1;
+	src->state.pitch = (state->pitch - handle->bot) * handle->ran_1;
 	src->dirty = true;
 	src->last = frames;
 
@@ -378,26 +367,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
+	if(!props_init(&handle->props, descriptor->URI,
+		defs, MAX_NPROPS, &handle->state, &handle->stash,
+		handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
-		free(handle);
-		return NULL;
-	}
-
-	if(  !props_register(&handle->props, &stat_tuio2_deviceWidth,
-			&handle->state.device_width, &handle->stash.device_width)
-		|| !props_register(&handle->props, &stat_tuio2_deviceHeight,
-			&handle->state.device_height, &handle->stash.device_height)
-		|| !props_register(&handle->props, &stat_tuio2_octave,
-			&handle->state.octave, &handle->stash.octave)
-		|| !props_register(&handle->props, &stat_tuio2_sensorsPerSemitone,
-			&handle->state.sensors_per_semitone, &handle->stash.sensors_per_semitone)
-		|| !props_register(&handle->props, &stat_tuio2_deviceName,
-			handle->state.device_name, handle->stash.device_name)
-		|| !props_register(&handle->props, &stat_tuio2_timestampOffset,
-			&handle->state.timestamp_offset, &handle->stash.timestamp_offset) )
-	{
 		free(handle);
 		return NULL;
 	}
@@ -434,6 +408,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	lv2_atom_forge_set_buffer(forge, (uint8_t *)handle->event_out, capacity);
 	LV2_Atom_Forge_Frame frame;
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
+
+	props_idle(&handle->props, forge, 0, &handle->ref);
 
 	handle->last = -1;
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
@@ -473,7 +449,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	plughandle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->forge, store, state, flags, features);
+	return props_save(&handle->props, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -483,7 +459,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	plughandle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

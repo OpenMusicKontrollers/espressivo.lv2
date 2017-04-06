@@ -23,7 +23,6 @@
 @prefix rsz:  <http://lv2plug.in/ns/ext/resize-port#> .
 @prefix atom:	<http://lv2plug.in/ns/ext/atom#> .
 @prefix midi:	<http://lv2plug.in/ns/ext/midi#> .
-@prefix work: <http://lv2plug.in/ns/ext/worker#> .
 @prefix urid: <http://lv2plug.in/ns/ext/urid#> .
 @prefix state: <http://lv2plug.in/ns/ext/state#> .
 @prefix patch: <http://lv2plug.in/ns/ext/patch#> .
@@ -368,7 +367,7 @@ esp:mpe_out
 	doap:name "Espressivo MPE Out" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -474,7 +473,7 @@ esp:mpe_in
 	doap:name "Espressivo MPE In" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -574,7 +573,7 @@ esp:tuio2_in
 	doap:name "Espressivo TUIO2 In" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -632,7 +631,7 @@ esp:tuio2_out
 	doap:name "Espressivo TUIO2 Out" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, osc:schedule ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, osc:schedule, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -788,7 +787,7 @@ esp:midi_in
 	doap:name "Espressivo MIDI In" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -878,7 +877,7 @@ esp:snh
 	doap:name "Espressivo Sample and Hold" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -935,9 +934,9 @@ esp:through
 	doap:name "Espressivo Through" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:extensionData state:interface ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
 
 	lv2:port [
 	# input event port
@@ -1008,9 +1007,9 @@ esp:chord
 	doap:name "Espressivo Chord" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:extensionData state:interface ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
 
 	lv2:port [
 	# input event port
@@ -1070,9 +1069,9 @@ esp:reducto
 	doap:name "Espressivo Reducto" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:extensionData state:interface ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
 
 	lv2:port [
 	# input event port
@@ -1127,9 +1126,9 @@ esp:discreto
 	doap:name "Espressivo Discreto" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:extensionData state:interface ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
 
 	lv2:port [
 	# input event port
@@ -1261,9 +1260,9 @@ esp:sc_out
 	doap:name "Espressivo SuperCollider Out" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:extensionData state:interface ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule, xpress:voiceMap, osc:schedule ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule, xpress:voiceMap, osc:schedule, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
 
 	# input event port
 	lv2:port [

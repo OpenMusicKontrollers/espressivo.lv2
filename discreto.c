@@ -54,19 +54,19 @@ struct _plughandle_t {
 	state_t stash;
 };
 
-static const props_def_t stat_discreto_position_order = {
-	.property = ESPRESSIVO_URI"#discreto_position_order",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
+static const props_def_t defs [MAX_NPROPS] = {
+	{
+		.property = ESPRESSIVO_URI"#discreto_position_order",
+		.offset = offsetof(state_t, position_order),
+		.type = LV2_ATOM__Int,
+	},
+	{
+		.property = ESPRESSIVO_URI"#discreto_velocity_order",
+		.offset = offsetof(state_t, velocity_order),
+		.type = LV2_ATOM__Int,
+	}
 };
 
-static const props_def_t stat_discreto_velocity_order = {
-	.property = ESPRESSIVO_URI"#discreto_velocity_order",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
-};
 
 static void
 _set(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
@@ -77,7 +77,7 @@ _set(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 	xpress_state_t new_state;
 	memcpy(&new_state, state, sizeof(xpress_state_t));
 
-	float x = state->position[0];
+	float x = state->pitch;
 
 	switch(handle->state.position_order)
 	{
@@ -96,7 +96,7 @@ _set(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 
 		default:
 		{
-			const float v_abs = fabsf(state->velocity[0]);
+			const float v_abs = fabsf(state->dPitch);
 			const float v2 = v_abs >= 1.f
 				? 0.f
 				: 1.f - v_abs;
@@ -124,7 +124,7 @@ _set(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 		}
 	}
 
-	new_state.position[0] = x;
+	new_state.pitch = x;
 
 	if(handle->ref)
 		handle->ref = xpress_put(&handle->xpress, forge, frames, src->uuid, &new_state);
@@ -210,18 +210,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
+	if(!props_init(&handle->props, descriptor->URI,
+		defs, MAX_NPROPS, &handle->state, &handle->stash,
+		handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
-		free(handle);
-		return NULL;
-	}
-
-	if(  !props_register(&handle->props, &stat_discreto_position_order,
-			&handle->state.position_order, &handle->stash.position_order)
-		|| !props_register(&handle->props, &stat_discreto_velocity_order,
-			&handle->state.velocity_order, &handle->stash.velocity_order) )
-	{
 		free(handle);
 		return NULL;
 	}
@@ -259,6 +252,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_Atom_Forge_Frame frame;
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
+	props_idle(&handle->props, forge, 0, &handle->ref);
+
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
@@ -292,7 +287,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	plughandle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->forge, store, state, flags, features);
+	return props_save(&handle->props, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -302,7 +297,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	plughandle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

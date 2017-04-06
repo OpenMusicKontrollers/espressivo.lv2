@@ -64,86 +64,32 @@ struct _plughandle_t {
 	state_t stash;
 };
 
-static const props_def_t stat_midi_range = {
-	.property = ESPRESSIVO_URI"#midi_range",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC
-};
+#define CENTS(NUM) \
+{ \
+	.property = ESPRESSIVO_URI"#midi_cents_"#NUM, \
+	.offset = offsetof(state_t, cents) + (NUM-1)*sizeof(int32_t), \
+	.type = LV2_ATOM__Int, \
+}
 
-static const props_def_t stat_midi_cents [MAX_NPROPS] = {
-	[0] = {
-		.property = ESPRESSIVO_URI"#midi_cents_1",
-		.access = LV2_PATCH__writable,
+static const props_def_t defs [MAX_NPROPS] = {
+	{
+		.property = ESPRESSIVO_URI"#midi_range",
+		.offset = offsetof(state_t, range),
 		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
 	},
-	[1] = {
-		.property = ESPRESSIVO_URI"#midi_cents_2",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[2] = {
-		.property = ESPRESSIVO_URI"#midi_cents_3",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[3] = {
-		.property = ESPRESSIVO_URI"#midi_cents_4",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[4] = {
-		.property = ESPRESSIVO_URI"#midi_cents_5",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[5] = {
-		.property = ESPRESSIVO_URI"#midi_cents_6",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[6] = {
-		.property = ESPRESSIVO_URI"#midi_cents_7",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[7] = {
-		.property = ESPRESSIVO_URI"#midi_cents_8",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[8] = {
-		.property = ESPRESSIVO_URI"#midi_cents_9",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[9] = {
-		.property = ESPRESSIVO_URI"#midi_cents_10",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[10] = {
-		.property = ESPRESSIVO_URI"#midi_cents_11",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
-	[11] = {
-		.property = ESPRESSIVO_URI"#midi_cents_12",
-		.access = LV2_PATCH__writable,
-		.type = LV2_ATOM__Int,
-		.mode = PROP_MODE_STATIC
-	},
+
+	CENTS(1),
+	CENTS(2),
+	CENTS(3),
+	CENTS(4),
+	CENTS(5),
+	CENTS(6),
+	CENTS(7),
+	CENTS(8),
+	CENTS(9),
+	CENTS(10),
+	CENTS(11),
+	CENTS(12)
 };
 
 static LV2_Handle
@@ -185,21 +131,11 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
+	if(!props_init(&handle->props, descriptor->URI,
+		defs, MAX_NPROPS, &handle->state, &handle->stash,
+		handle->map, handle))
 	{
 		fprintf(stderr, "failed to allocate property structure\n");
-		free(handle);
-		return NULL;
-	}
-
-	LV2_URID urid = props_register(&handle->props, &stat_midi_range, &handle->state.range, &handle->stash.range);
-	for(unsigned z=0; (z<12) && urid; z++)
-	{
-		urid = props_register(&handle->props, &stat_midi_cents[z], &handle->state.cents[z], &handle->stash.cents[z]);
-	}
-
-	if(!urid)
-	{
 		free(handle);
 		return NULL;
 	}
@@ -254,6 +190,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_Atom_Forge_Frame frame;
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
+	props_idle(&handle->props, forge, 0, &handle->ref);
+
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
@@ -277,7 +215,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 					target->key = key;
 					target->uuid = xpress_map(&handle->xpress);
 					target->state.zone = chan;
-					target->state.position[0] = target->key;
+					target->state.pitch = target->key;
 
 					if(handle->ref)
 						handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);
@@ -306,7 +244,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 				if(target)
 				{
 					const float pressure = m[2] * 0x1p-7;
-					target->state.position[1] = pressure;
+					target->state.pressure = pressure;
 
 					if(handle->ref)
 						handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
@@ -324,7 +262,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 					if(target->state.zone != chan)
 						continue; // channel not matching
 
-					target->state.position[0] = (float)target->key + offset;
+					target->state.pitch = (float)target->key + offset;
 
 					if(handle->ref)
 						handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
@@ -354,14 +292,14 @@ run(LV2_Handle instance, uint32_t nsamples)
 								target->pressure_lsb = value;
 								break;
 							case LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20:
-								target->state.position[1] = ( (value << 7) | target->pressure_lsb) * 0x1p-14;
+								target->state.pressure = ( (value << 7) | target->pressure_lsb) * 0x1p-14;
 								put = true;
 								break;
 							case LV2_MIDI_CTL_LSB_MODWHEEL:
 								target->timbre_lsb = value;
 								break;
 							case LV2_MIDI_CTL_MSB_MODWHEEL:
-								target->state.position[2] = ( (value << 7) | target->timbre_lsb) * 0x1p-14;
+								target->state.timbre = ( (value << 7) | target->timbre_lsb) * 0x1p-14;
 								put = true;
 								break;
 						}
@@ -403,7 +341,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	plughandle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->forge, store, state, flags, features);
+	return props_save(&handle->props, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -413,7 +351,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	plughandle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {

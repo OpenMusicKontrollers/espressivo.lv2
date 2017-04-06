@@ -21,7 +21,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include <xpress.h>
+#include <xpress.lv2/xpress.h>
 
 #include <lv2/lv2plug.in/ns/lv2core/lv2.h>
 #include <lv2/lv2plug.in/ns/ext/atom/atom.h>

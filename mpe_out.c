@@ -294,8 +294,7 @@ _full_update(plughandle_t *handle, int64_t frames)
 }
 
 static void
-_intercept_zones(void *data, LV2_Atom_Forge *forge, int64_t frames,
-	props_event_t event, props_impl_t *impl)
+_intercept_zones(void *data, int64_t frames, props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
@@ -304,16 +303,12 @@ _intercept_zones(void *data, LV2_Atom_Forge *forge, int64_t frames,
 		handle->ref = _full_update(handle, frames);
 }
 
-static const props_def_t stat_mpe_master_range [MPE_ZONE_MAX];
-static const props_def_t stat_mpe_voice_range [MPE_ZONE_MAX];
-
 static void
-_intercept_master(void *data, LV2_Atom_Forge *forge, int64_t frames,
-	props_event_t event, props_impl_t *impl)
+_intercept_master(void *data, int64_t frames, props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
-	int zone_idx = impl->def - stat_mpe_master_range;
+	const int zone_idx = (int32_t *)impl->value.body - handle->state.master_range; //TODO check
 	if(zone_idx < handle->state.zones) // update active zones only
 	{
 		handle->mpe.zones[zone_idx].master_range = handle->state.master_range[zone_idx];
@@ -322,12 +317,11 @@ _intercept_master(void *data, LV2_Atom_Forge *forge, int64_t frames,
 }
 
 static void
-_intercept_voice(void *data, LV2_Atom_Forge *forge, int64_t frames,
-	props_event_t event, props_impl_t *impl)
+_intercept_voice(void *data, int64_t frames, props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
-	int zone_idx = impl->def - stat_mpe_voice_range;
+	const int zone_idx = (int32_t *)impl->value.body - handle->state.master_range; //TODO check
 	if(zone_idx < handle->state.zones) // update active zones only
 	{
 		handle->mpe.zones[zone_idx].voice_range = handle->state.voice_range[zone_idx];
@@ -335,93 +329,79 @@ _intercept_voice(void *data, LV2_Atom_Forge *forge, int64_t frames,
 	}
 }
 
-static const props_def_t stat_mpe_zones = {
-	.property = ESPRESSIVO_URI"#mpe_zones",
-	.access = LV2_PATCH__writable,
-	.type = LV2_ATOM__Int,
-	.mode = PROP_MODE_STATIC,
-	.event_mask = PROP_EVENT_WRITE,
-	.event_cb = _intercept_zones
-};
-
 #define MASTER_RANGE(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_master_range_"#NUM, \
-	.access = LV2_PATCH__writable, \
+	.offset = offsetof(state_t, master_range) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
-	.mode = PROP_MODE_STATIC, \
-	.event_mask = PROP_EVENT_WRITE, \
 	.event_cb = _intercept_master \
 }
-
-static const props_def_t stat_mpe_master_range [MPE_ZONE_MAX] = {
-	[0] = MASTER_RANGE(1),
-	[1] = MASTER_RANGE(2),
-	[2] = MASTER_RANGE(3),
-	[3] = MASTER_RANGE(4),
-	[4] = MASTER_RANGE(5),
-	[5] = MASTER_RANGE(6),
-	[6] = MASTER_RANGE(7),
-	[7] = MASTER_RANGE(8)
-};
 
 #define VOICE_RANGE(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_voice_range_"#NUM, \
-	.access = LV2_PATCH__writable, \
+	.offset = offsetof(state_t, voice_range) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
-	.mode = PROP_MODE_STATIC, \
-	.event_mask = PROP_EVENT_WRITE, \
 	.event_cb = _intercept_voice \
 }
-
-static const props_def_t stat_mpe_voice_range [MPE_ZONE_MAX] = {
-	[0] = VOICE_RANGE(1),
-	[1] = VOICE_RANGE(2),
-	[2] = VOICE_RANGE(3),
-	[3] = VOICE_RANGE(4),
-	[4] = VOICE_RANGE(5),
-	[5] = VOICE_RANGE(6),
-	[6] = VOICE_RANGE(7),
-	[7] = VOICE_RANGE(8)
-};
 
 #define PRESSURE_CONTROLLER(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_pressure_controller_"#NUM, \
-	.access = LV2_PATCH__writable, \
+	.offset = offsetof(state_t, pressure_controller) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
-	.mode = PROP_MODE_STATIC \
 }
-
-static const props_def_t stat_mpe_pressure_controller [MPE_ZONE_MAX] = {
-	[0] = PRESSURE_CONTROLLER(1),
-	[1] = PRESSURE_CONTROLLER(2),
-	[2] = PRESSURE_CONTROLLER(3),
-	[3] = PRESSURE_CONTROLLER(4),
-	[4] = PRESSURE_CONTROLLER(5),
-	[5] = PRESSURE_CONTROLLER(6),
-	[6] = PRESSURE_CONTROLLER(7),
-	[7] = PRESSURE_CONTROLLER(8)
-};
 
 #define TIMBRE_CONTROLLER(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_timbre_controller_"#NUM, \
-	.access = LV2_PATCH__writable, \
+	.offset = offsetof(state_t, timbre_controller) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
-	.mode = PROP_MODE_STATIC \
 }
 
-static const props_def_t stat_mpe_timbre_controller [MPE_ZONE_MAX] = {
-	[0] = TIMBRE_CONTROLLER(1),
-	[1] = TIMBRE_CONTROLLER(2),
-	[2] = TIMBRE_CONTROLLER(3),
-	[3] = TIMBRE_CONTROLLER(4),
-	[4] = TIMBRE_CONTROLLER(5),
-	[5] = TIMBRE_CONTROLLER(6),
-	[6] = TIMBRE_CONTROLLER(7),
-	[7] = TIMBRE_CONTROLLER(8)
+static const props_def_t defs [MAX_NPROPS] = {
+	{
+		.property = ESPRESSIVO_URI"#mpe_zones",
+		.offset = offsetof(state_t, zones),
+		.type = LV2_ATOM__Int,
+		.event_cb = _intercept_zones
+	},
+
+	MASTER_RANGE(1),
+	MASTER_RANGE(2),
+	MASTER_RANGE(3),
+	MASTER_RANGE(4),
+	MASTER_RANGE(5),
+	MASTER_RANGE(6),
+	MASTER_RANGE(7),
+	MASTER_RANGE(8),
+
+	VOICE_RANGE(1),
+	VOICE_RANGE(2),
+	VOICE_RANGE(3),
+	VOICE_RANGE(4),
+	VOICE_RANGE(5),
+	VOICE_RANGE(6),
+	VOICE_RANGE(7),
+	VOICE_RANGE(8),
+
+	PRESSURE_CONTROLLER(1),
+	PRESSURE_CONTROLLER(2),
+	PRESSURE_CONTROLLER(3),
+	PRESSURE_CONTROLLER(4),
+	PRESSURE_CONTROLLER(5),
+	PRESSURE_CONTROLLER(6),
+	PRESSURE_CONTROLLER(7),
+	PRESSURE_CONTROLLER(8),
+
+	TIMBRE_CONTROLLER(1),
+	TIMBRE_CONTROLLER(2),
+	TIMBRE_CONTROLLER(3),
+	TIMBRE_CONTROLLER(4),
+	TIMBRE_CONTROLLER(5),
+	TIMBRE_CONTROLLER(6),
+	TIMBRE_CONTROLLER(7),
+	TIMBRE_CONTROLLER(8)
 };
 
 static inline void
@@ -443,7 +423,7 @@ _set(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 		handle->ref = _midi_event(handle, frames, bend, 3);
 
 	// pressure
-	const uint16_t z = state->position[1] * 0x3fff;
+	const uint16_t z = state->pressure * 0x3fff;
 	const uint8_t z_msb = z >> 7;
 	const uint8_t z_lsb = z & 0x7f;
 
@@ -465,7 +445,7 @@ _set(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 		handle->ref = _midi_event(handle, frames, pressure_msb, 3);
 
 	// timbre
-	float pos2 = state->position[2];
+	float pos2 = state->timbre;
 	if(pos2 < -1.f) pos2 = -1.f;
 	else if(pos2 > 1.f) pos2 = 1.f;
 	const uint16_t vx = (pos2 * 0x2000) + 0x1fff;
@@ -491,7 +471,7 @@ _set(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 
 	// timbre 2
 	/* FIXME
-	float vel0 = state->velocity[0];
+	float vel0 = state->dPitch;
 	if(vel0 < -1.f) vel0 = -1.f;
 	if(vel0 > 1.f) vel0 = 1.f;
 	const uint16_t vz = (vel0 * 0x2000) + 0x1fff;
@@ -524,7 +504,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	plughandle_t *handle = data;
 	target_t *src = target;
 
-	const float val = state->position[0];
+	const float val = state->pitch;
 
 	src->chan = mpe_acquire(&handle->mpe, state->zone);
 	src->zone = state->zone;
@@ -550,7 +530,7 @@ _put(void *data, int64_t frames, const xpress_state_t *state,
 	plughandle_t *handle = data;
 	target_t *src = target;
 
-	const float val = state->position[0];
+	const float val = state->pitch;
 
 	_set(handle, frames, state, val, src);
 }
@@ -623,29 +603,9 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 		return NULL;
 	}
 
-	if(!props_init(&handle->props, MAX_NPROPS, descriptor->URI, handle->map, handle))
-	{
-		free(handle);
-		return NULL;
-	}
-
-	LV2_URID urid = props_register(&handle->props, &stat_mpe_zones,
-		&handle->state.zones, &handle->stash.zones);
-
-	for(unsigned z=0; urid && (z<MPE_ZONE_MAX); z++)
-		urid = props_register(&handle->props, &stat_mpe_master_range[z],
-			&handle->state.master_range[z], &handle->stash.master_range[z]);
-	for(unsigned z=0; urid && (z<MPE_ZONE_MAX); z++)
-		urid = props_register(&handle->props, &stat_mpe_voice_range[z],
-			&handle->state.voice_range[z], &handle->stash.voice_range[z]);
-	for(unsigned z=0; urid && (z<MPE_ZONE_MAX); z++)
-		urid = props_register(&handle->props, &stat_mpe_pressure_controller[z],
-			&handle->state.pressure_controller[z], &handle->stash.pressure_controller[z]);
-	for(unsigned z=0; urid && (z<MPE_ZONE_MAX); z++)
-		urid = props_register(&handle->props, &stat_mpe_timbre_controller[z],
-			&handle->state.timbre_controller[z], &handle->stash.timbre_controller[z]);
-
-	if(!urid)
+	if(!props_init(&handle->props, descriptor->URI,
+		defs, MAX_NPROPS, &handle->state, &handle->stash,
+		handle->map, handle))
 	{
 		free(handle);
 		return NULL;
@@ -693,6 +653,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 	LV2_Atom_Forge_Frame frame;
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
+	props_idle(&handle->props, forge, 0, &handle->ref);
+
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
 		const LV2_Atom_Object *obj = (const LV2_Atom_Object *)&ev->body;
@@ -726,7 +688,7 @@ _state_save(LV2_Handle instance, LV2_State_Store_Function store,
 {
 	plughandle_t *handle = instance;
 
-	return props_save(&handle->props, &handle->forge, store, state, flags, features);
+	return props_save(&handle->props, store, state, flags, features);
 }
 
 static LV2_State_Status
@@ -736,7 +698,7 @@ _state_restore(LV2_Handle instance, LV2_State_Retrieve_Function retrieve,
 {
 	plughandle_t *handle = instance;
 
-	return props_restore(&handle->props, &handle->forge, retrieve, state, flags, features);
+	return props_restore(&handle->props, retrieve, state, flags, features);
 }
 
 static const LV2_State_Interface state_iface = {
