@@ -516,7 +516,10 @@ esp:mpe_in
 		esp:mpe_voice_range_5 ,
 		esp:mpe_voice_range_6 ,
 		esp:mpe_voice_range_7 ,
-		esp:mpe_voice_range_8 .	
+		esp:mpe_voice_range_8 ;
+
+	state:state [
+	] .
 
 esp:tuio2_deviceWidth
 	a lv2:Parameter ;
