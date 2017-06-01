@@ -19,12 +19,12 @@
 
 #include <espressivo.h>
 
-static _Atomic(xpress_uuid_t) voice_uuid = ATOMIC_VAR_INIT(INT64_MAX / UINT16_MAX * 1LL);
+static atomic_long voice_uuid = ATOMIC_VAR_INIT(INT64_MAX / UINT16_MAX * 1LL);
 
 static xpress_uuid_t
 _voice_map_new_uuid(void *handle)
 {
-	_Atomic(xpress_uuid_t) *uuid = handle;
+	atomic_long *uuid = handle;
 	return atomic_fetch_add_explicit(uuid, 1, memory_order_relaxed);
 }
 
