@@ -929,7 +929,14 @@ esp:through_zone_mask
 	rdfs:range atom:Int ;
 	lv2:parameterProperty lv2:isBitmask ;
 	lv2:minimum 0 ;
-	lv2:maximum 256 .
+	lv2:maximum 255 .
+esp:through_zone_offset
+	a lv2:Parameter ;
+	rdfs:label "Zone Offset" ;
+	rdfs:comment "offset to add to incoming zone numer" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 8 .
 
 esp:through
 	a lv2:Plugin ,
@@ -964,10 +971,12 @@ esp:through
 	] ;
 
 	patch:writable
-		esp:through_zone_mask ;
+		esp:through_zone_mask ,
+		esp:through_zone_offset ;
 	
 	state:state [
-		esp:through_zone_mask 0 ;
+		esp:through_zone_mask 255 ;
+		esp:through_zone_offset 0 ;
 	] .
 
 # Chord

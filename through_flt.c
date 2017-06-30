@@ -22,7 +22,7 @@
 #include <espressivo.h>
 #include <props.h>
 
-#define MAX_NPROPS 1
+#define MAX_NPROPS 2
 
 typedef struct _targetI_t targetI_t;
 typedef struct _targetO_t targetO_t;
@@ -40,6 +40,7 @@ struct _targetO_t {
 
 struct _plugstate_t {
 	int32_t zone_mask;
+	int32_t zone_offset;
 };
 
 struct _plughandle_t {
@@ -65,6 +66,11 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.property = ESPRESSIVO_URI"#through_zone_mask",
 		.offset = offsetof(plugstate_t, zone_mask),
 		.type = LV2_ATOM__Int,
+	},
+	{
+		.property = ESPRESSIVO_URI"#through_zone_offset",
+		.offset = offsetof(plugstate_t, zone_offset),
+		.type = LV2_ATOM__Int,
 	}
 };
 
@@ -83,8 +89,11 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 		targetO_t *dst = xpress_create(&handle->xpressO, &src->uuid);
 		(void)dst;
 
+		xpress_state_t new_state = *state;
+		new_state.zone += handle->state.zone_offset;
+
 		if(handle->ref)
-			handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid, state);
+			handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid, &new_state);
 	}
 }
 
@@ -99,8 +108,11 @@ _set(void *data, int64_t frames, const xpress_state_t *state,
 	{
 		LV2_Atom_Forge *forge = &handle->forge;
 
+		xpress_state_t new_state = *state;
+		new_state.zone += handle->state.zone_offset;
+
 		if(handle->ref)
-			handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid, state);
+			handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid, &new_state);
 	}
 }
 
