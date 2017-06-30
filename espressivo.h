@@ -67,6 +67,8 @@
 #define ESPRESSIVO_DISCRETO_URI			ESPRESSIVO_URI"#discreto"
 #define ESPRESSIVO_SC_OUT_URI				ESPRESSIVO_URI"#sc_out"
 
+#define MAX_NVOICES 64
+
 extern const LV2_Descriptor tuio2_in;
 extern const LV2_Descriptor tuio2_out;
 extern const LV2_Descriptor midi_in;

@@ -24,21 +24,20 @@
 #include <osc.lv2/forge.h>
 
 #define MAX_NPROPS 6
-#define MAX_NVOICES 64
 #define MAX_STRLEN 128
 
-typedef struct _target_t target_t;
-typedef struct _state_t state_t;
+typedef struct _targetI_t targetI_t;
+typedef struct _plugstate_t plugstate_t;
 typedef struct _plughandle_t plughandle_t;
 
-struct _target_t {
+struct _targetI_t {
 	xpress_uuid_t uuid;
 	xpress_state_t state;
 	bool dirty;
 	int64_t last;
 };
 
-struct _state_t {
+struct _plugstate_t {
 	int32_t device_width;
 	int32_t device_height;
 	char device_name [MAX_STRLEN];
@@ -55,8 +54,8 @@ struct _plughandle_t {
 	LV2_OSC_Schedule *osc_sched;
 
 	PROPS_T(props, MAX_NPROPS);
-	XPRESS_T(xpress, MAX_NVOICES);
-	target_t target [MAX_NVOICES];
+	XPRESS_T(xpressI, MAX_NVOICES);
+	targetI_t targetI [MAX_NVOICES];
 
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *event_out;
@@ -68,8 +67,8 @@ struct _plughandle_t {
 	float bot;
 	float ran_1;
 
-	state_t state;
-	state_t stash;
+	plugstate_t state;
+	plugstate_t stash;
 };
 
 static void
@@ -96,37 +95,37 @@ _intercept(void *data, int64_t frames, props_impl_t *impl)
 static const props_def_t defs [MAX_NPROPS] = {
 	{
 		.property = ESPRESSIVO_URI"#tuio2_deviceWidth",
-		.offset = offsetof(state_t, device_width),
+		.offset = offsetof(plugstate_t, device_width),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_deviceHeight",
-		.offset = offsetof(state_t, device_height),
+		.offset = offsetof(plugstate_t, device_height),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_octave",
-		.offset = offsetof(state_t, octave),
+		.offset = offsetof(plugstate_t, octave),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_sensorsPerSemitone",
-		.offset = offsetof(state_t, sensors_per_semitone),
+		.offset = offsetof(plugstate_t, sensors_per_semitone),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_deviceName",
-		.offset = offsetof(state_t, device_name),
+		.offset = offsetof(plugstate_t, device_name),
 		.type = LV2_ATOM__String,
 		.max_size = MAX_STRLEN 
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_timestampOffset",
-		.offset = offsetof(state_t, timestamp_offset),
+		.offset = offsetof(plugstate_t, timestamp_offset),
 		.type = LV2_ATOM__Float,
 	}
 };
@@ -183,9 +182,9 @@ _alv(plughandle_t *handle)
 	ref = lv2_osc_forge_message_head(&handle->forge, &handle->osc_urid, msg_frame,
 		"/tuio2/alv");
 
-	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+	XPRESS_VOICE_FOREACH(&handle->xpressI, voice)
 	{
-		target_t *src = voice->target;
+		targetI_t *src = voice->target;
 
 		if(ref)
 			ref = lv2_osc_forge_int(&handle->forge, &handle->osc_urid, src->uuid);
@@ -237,9 +236,9 @@ _tuio2_2d(plughandle_t *handle, int64_t from, int64_t to)
 	if(ref)
 		ref = _frm(handle, ttag0);
 
-	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+	XPRESS_VOICE_FOREACH(&handle->xpressI, voice)
 	{
-		target_t *src = voice->target;
+		targetI_t *src = voice->target;
 
 		if(src->dirty && (src->last < to) )
 		{
@@ -276,13 +275,12 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
-	target_t *src = target;
+	targetI_t *src = target;
 
 	_upd(handle, frames);
 
-	src->uuid = xpress_map(&handle->xpress);
-
-	memcpy(&src->state, state, sizeof(xpress_state_t));
+	src->uuid = xpress_map(&handle->xpressI);
+	src->state = *state;
 	src->state.pitch = (state->pitch - handle->bot) * handle->ran_1;
 	src->dirty = true;
 	src->last = frames;
@@ -291,15 +289,15 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 }
 
 static void
-_put(void *data, int64_t frames, const xpress_state_t *state,
+_set(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
-	target_t *src = target;
+	targetI_t *src = target;
 
 	_upd(handle, frames);
 
-	memcpy(&src->state, state, sizeof(xpress_state_t));
+	src->state = *state;
 	src->state.pitch = (state->pitch - handle->bot) * handle->ran_1;
 	src->dirty = true;
 	src->last = frames;
@@ -312,18 +310,18 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
-	target_t *src = target;
+	targetI_t *src = target;
 
 	_upd(handle, frames);
 
 	handle->dirty = true;
 }
 
-static const xpress_iface_t iface = {
-	.size = sizeof(target_t),
+static const xpress_iface_t ifaceI = {
+	.size = sizeof(targetI_t),
 
 	.add = _add,
-	.put = _put,
+	.set = _set,
 	.del = _del
 };
 
@@ -360,8 +358,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	lv2_atom_forge_init(&handle->forge, handle->map);
 	lv2_osc_urid_init(&handle->osc_urid, handle->map);
 
-	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
-			XPRESS_EVENT_ALL, &iface, handle->target, handle))
+	if(!xpress_init(&handle->xpressI, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_ALL, &ifaceI, handle->targetI, handle))
 	{
 		free(handle);
 		return NULL;
@@ -410,6 +408,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
 	props_idle(&handle->props, forge, 0, &handle->ref);
+	xpress_pre(&handle->xpressI);
 
 	handle->last = -1;
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
@@ -422,10 +421,12 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 		if(!props_advance(&handle->props, forge, handle->last, obj, &handle->ref)) //XXX frame time
 		{
-			xpress_advance(&handle->xpress, forge, frames, obj, &handle->ref);
+			xpress_advance(&handle->xpressI, forge, frames, obj, &handle->ref);
 		}
 	}
 	_upd(handle, nsamples - 1);
+
+	xpress_post(&handle->xpressI, nsamples-1);
 
 	if(handle->ref)
 		lv2_atom_forge_pop(forge, &frame);

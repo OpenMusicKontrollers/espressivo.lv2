@@ -25,18 +25,17 @@
 #define SYNTH_NAMES 8
 #define STRING_SIZE 256
 #define MAX_NPROPS (SYNTH_NAMES + 8)
-#define MAX_NVOICES 64
 
-typedef struct _target_t target_t;
-typedef struct _state_t state_t;
+typedef struct _targetI_t targetI_t;
+typedef struct _plugstate_t plugstate_t;
 typedef struct _plughandle_t plughandle_t;
 
-struct _target_t {
+struct _targetI_t {
 	int32_t sid;
 	int32_t zone;
 };
 
-struct _state_t {
+struct _plugstate_t {
 	char synth_name [SYNTH_NAMES][STRING_SIZE];
 	int32_t out_offset;
 	int32_t gid_offset;
@@ -55,22 +54,22 @@ struct _plughandle_t {
 	LV2_Atom_Forge_Ref ref;
 
 	PROPS_T(props, MAX_NPROPS);
-	XPRESS_T(xpress, MAX_NVOICES);
-	target_t target [MAX_NVOICES];
+	XPRESS_T(xpressI, MAX_NVOICES);
+	targetI_t targetI [MAX_NVOICES];
 
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *osc_out;
 
 	int32_t sid;
 
-	state_t state;
-	state_t stash;
+	plugstate_t state;
+	plugstate_t stash;
 };
 
 #define SYNTH_NAME(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#sc_synth_name_"#NUM, \
-	.offset = offsetof(state_t, synth_name) + (NUM-1)*STRING_SIZE, \
+	.offset = offsetof(plugstate_t, synth_name) + (NUM-1)*STRING_SIZE, \
 	.type = LV2_ATOM__String, \
 	.max_size = STRING_SIZE \
 }
@@ -78,42 +77,42 @@ struct _plughandle_t {
 static const props_def_t defs [MAX_NPROPS] = {
 	{
 		.property = ESPRESSIVO_URI"#sc_out_offset",
-		.offset = offsetof(state_t, out_offset),
+		.offset = offsetof(plugstate_t, out_offset),
 		.type = LV2_ATOM__Int,
 	},
 	{
 		.property = ESPRESSIVO_URI"#sc_gid_offset",
-		.offset = offsetof(state_t, gid_offset),
+		.offset = offsetof(plugstate_t, gid_offset),
 		.type = LV2_ATOM__Int,
 	},
 	{
 		.property = ESPRESSIVO_URI"#sc_sid_offset",
-		.offset = offsetof(state_t, sid_offset),
+		.offset = offsetof(plugstate_t, sid_offset),
 		.type = LV2_ATOM__Int,
 	},
 	{
 		.property = ESPRESSIVO_URI"#sc_sid_wrap",
-		.offset = offsetof(state_t, sid_wrap),
+		.offset = offsetof(plugstate_t, sid_wrap),
 		.type = LV2_ATOM__Int,
 	},
 	{
 		.property = ESPRESSIVO_URI"#sc_arg_offset",
-		.offset = offsetof(state_t, arg_offset),
+		.offset = offsetof(plugstate_t, arg_offset),
 		.type = LV2_ATOM__Int,
 	},
 	{
 		.property = ESPRESSIVO_URI"#sc_allocate",
-		.offset = offsetof(state_t, allocate),
+		.offset = offsetof(plugstate_t, allocate),
 		.type = LV2_ATOM__Bool,
 	},
 	{
 		.property = ESPRESSIVO_URI"#sc_gate",
-		.offset = offsetof(state_t, gate),
+		.offset = offsetof(plugstate_t, gate),
 		.type = LV2_ATOM__Bool,
 	},
 	{
 		.property = ESPRESSIVO_URI"#sc_group",
-		.offset = offsetof(state_t, group),
+		.offset = offsetof(plugstate_t, group),
 		.type = LV2_ATOM__Bool,
 	},
 
@@ -158,7 +157,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 {
 	plughandle_t *handle = data;
 	LV2_Atom_Forge *forge = &handle->forge;
-	target_t *src = target;
+	targetI_t *src = target;
 
 	const int32_t sid = handle->state.sid_offset + (handle->state.sid_wrap
 		? handle->sid++ % handle->state.sid_wrap
@@ -216,12 +215,12 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 }
 
 static void
-_put(void *data, int64_t frames, const xpress_state_t *state,
+_set(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
 	LV2_Atom_Forge *forge = &handle->forge;
-	target_t *src = target;
+	targetI_t *src = target;
 
 	const int32_t sid = src->sid;
 	const int32_t gid = handle->state.gid_offset + state->zone;
@@ -244,7 +243,7 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 {
 	plughandle_t *handle = data;
 	LV2_Atom_Forge *forge = &handle->forge;
-	target_t *src = target;
+	targetI_t *src = target;
 
 	const int32_t sid = src->sid;
 	const int32_t gid = handle->state.gid_offset + src->zone;
@@ -262,11 +261,11 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	}
 }
 
-static const xpress_iface_t iface = {
-	.size = sizeof(target_t),
+static const xpress_iface_t ifaceI = {
+	.size = sizeof(targetI_t),
 
 	.add = _add,
-	.put = _put,
+	.set = _set,
 	.del = _del
 };
 
@@ -301,8 +300,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	lv2_atom_forge_init(&handle->forge, handle->map);
 	lv2_osc_urid_init(&handle->osc_urid, handle->map);
 
-	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
-			XPRESS_EVENT_ALL, &iface, handle->target, handle) )
+	if(!xpress_init(&handle->xpressI, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_ALL, &ifaceI, handle->targetI, handle) )
 	{
 		free(handle);
 		return NULL;
@@ -350,6 +349,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
 	props_idle(&handle->props, forge, 0, &handle->ref);
+	xpress_pre(&handle->xpressI);
 
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
@@ -358,9 +358,11 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 		if(!props_advance(&handle->props, forge, frames, obj, &handle->ref))
 		{
-			xpress_advance(&handle->xpress, forge, frames, obj, &handle->ref);
+			xpress_advance(&handle->xpressI, forge, frames, obj, &handle->ref);
 		}
 	}
+
+	xpress_post(&handle->xpressI, nsamples-1);
 
 	if(handle->ref)
 		lv2_atom_forge_pop(forge, &frame);

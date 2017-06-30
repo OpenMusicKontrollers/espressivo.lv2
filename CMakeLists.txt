@@ -11,14 +11,14 @@ set(CMAKE_C_FLAGS "-fdata-sections -ffunction-sections ${CMAKE_C_FLAGS}")
 set(CMAKE_C_FLAGS "-std=gnu11 -Wextra -Wno-unused-parameter -ffast-math -fvisibility=hidden ${CMAKE_C_FLAGS}")
 set(CMAKE_C_FLAGS "-Wshadow -Wimplicit-function-declaration -Wredundant-decls -Wmissing-prototypes -Wstrict-prototypes -Wno-attributes ${CMAKE_C_FLAGS}")
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	set(CMAKE_MODULE_LINKER_FLAGS "-Wl,-z,defs ${CMAKE_MODULE_LINKER_FLAGS}")
 	set(CMAKE_MODULE_LINKER_FLAGS "-Wl,-z,nodelete ${CMAKE_MODULE_LINKER_FLAGS}")
 elseif(WIN32)
 	set(CMAKE_C_FLAGS "-mstackrealign ${CMAKE_C_FLAGS}")
 endif()
 
-if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
 	if(APPLE)
 		set(CMAKE_MODULE_LINKER_FLAGS "-Wl,-dead_strip ${CMAKE_MODULE_LINKER_FLAGS}")
 	else()
@@ -51,11 +51,11 @@ add_library(espressivo MODULE
 	mpe_in.c
 	tuio2_in.c
 	tuio2_out.c
-	sample_and_hold.c
-	through.c
-	chord.c
-	reducto.c
-	discreto.c
+	sampleandhold_flt.c
+	through_flt.c
+	chord_flt.c
+	reducto_flt.c
+	discreto_flt.c
 	mpe_out.c
 	sc_out.c)
 target_link_libraries(espressivo ${LIBS})

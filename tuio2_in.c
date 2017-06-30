@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Hanspeter Portner (dev@open-music-kontrollers.ch)
+ * Copyright (c) 2015-2017 Hanspeter Portner (dev@open-music-kontrollers.ch)
  *
  * This is free software: you can redistribute it and/or modify
  * it under the terms of the Artistic License 2.0 as published by
@@ -24,12 +24,11 @@
 #include <props.h>
 
 #define MAX_NPROPS 6
-#define MAX_NVOICES 64
 #define MAX_STRLEN 128
 
 typedef struct _pos_t pos_t;
-typedef struct _target_t target_t;
-typedef struct _state_t state_t;
+typedef struct _targetO_t targetO_t;
+typedef struct _plugstate_t plugstate_t;
 typedef struct _plughandle_t plughandle_t;
 
 struct _pos_t {
@@ -52,18 +51,16 @@ struct _pos_t {
 	float R;
 };
 
-struct _target_t {
-	xpress_uuid_t uuid;
-
-	bool active;
-
+struct _targetO_t {
+	uint32_t sid;
 	uint32_t gid;
 	uint32_t tuid;
 
+	bool active;
 	pos_t pos;
 };
 
-struct _state_t {
+struct _plugstate_t {
 	int32_t device_width;
 	int32_t device_height;
 	char device_name [MAX_STRLEN];
@@ -80,8 +77,8 @@ struct _plughandle_t {
 	LV2_Log_Log *log;
 	LV2_Log_Logger logger;
 	
-	XPRESS_T(xpress, MAX_NVOICES);
-	target_t target [MAX_NVOICES];
+	XPRESS_T(xpressO, MAX_NVOICES);
+	targetO_t targetO [MAX_NVOICES];
 	
 	float rate;
 	float s;
@@ -99,7 +96,6 @@ struct _plughandle_t {
 		uint16_t width;
 		uint16_t height;
 		bool ignore;
-		int n;
 	} tuio2;
 
 	const LV2_Atom_Sequence *osc_in;
@@ -115,9 +111,12 @@ struct _plughandle_t {
 
 	PROPS_T(props, MAX_NPROPS);
 
-	state_t state;
-	state_t stash;
+	plugstate_t state;
+	plugstate_t stash;
 };
+
+static const targetO_t targetO_vanilla;
+static const pos_t pos_vanilla;
 
 static inline void
 _stiffness_set(plughandle_t *handle, int32_t stiffness)
@@ -138,36 +137,36 @@ _intercept_filter_stiffness(void *data, int64_t frames, props_impl_t *impl)
 static const props_def_t defs [MAX_NPROPS] = {
 	{
 		.property = ESPRESSIVO_URI"#tuio2_deviceWidth",
-		.offset = offsetof(state_t, device_width),
+		.offset = offsetof(plugstate_t, device_width),
 		.access = LV2_PATCH__readable,
 		.type = LV2_ATOM__Int,
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_deviceHeight",
-		.offset = offsetof(state_t, device_height),
+		.offset = offsetof(plugstate_t, device_height),
 		.access = LV2_PATCH__readable,
 		.type = LV2_ATOM__Int,
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_deviceName",
-		.offset = offsetof(state_t, device_name),
+		.offset = offsetof(plugstate_t, device_name),
 		.access = LV2_PATCH__readable,
 		.type = LV2_ATOM__String,
 		.max_size = MAX_STRLEN 
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_octave",
-		.offset = offsetof(state_t, octave),
+		.offset = offsetof(plugstate_t, octave),
 		.type = LV2_ATOM__Int,
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_sensorsPerSemitone",
-		.offset = offsetof(state_t, sensors_per_semitone),
+		.offset = offsetof(plugstate_t, sensors_per_semitone),
 		.type = LV2_ATOM__Int,
 	},
 	{
 		.property = ESPRESSIVO_URI"#tuio2_filterStiffness",
-		.offset = offsetof(state_t, filter_stiffness),
+		.offset = offsetof(plugstate_t, filter_stiffness),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept_filter_stiffness
 	}
@@ -176,39 +175,14 @@ static const props_def_t defs [MAX_NPROPS] = {
 static inline void
 _pos_init(pos_t *dst, uint64_t stamp)
 {
+	*dst = pos_vanilla;
 	dst->stamp = stamp;
-	dst->x = 0.f;
-	dst->z = 0.f;
-	dst->a = 0.f;
-	dst->vx.f1 = 0.f;
-	dst->vx.f11 = 0.f;
-	dst->vz.f1 = 0.f;
-	dst->vz.f11 = 0.f;
-	dst->v = 0.f;
-	dst->A = 0.f;
-	dst->m = 0.f;
-	dst->R = 0.f;
-	
-	//memset(dst, 0x0, sizeof(pos_t));
 }
 
 static inline void
 _pos_clone(pos_t *dst, pos_t *src)
 {
-	dst->stamp = src->stamp;
-	dst->x = src->x;
-	dst->z = src->z;
-	dst->a = src->a;
-	dst->vx.f1 = src->vx.f1;
-	dst->vx.f11 = src->vx.f11;
-	dst->vz.f1 = src->vz.f1;
-	dst->vz.f11 = src->vz.f11;
-	dst->v = src->v;
-	dst->A = src->A;
-	dst->m = src->m;
-	dst->R = src->R;
-	
-	//memcpy(dst, src, sizeof(pos_t));
+	*dst = *src;
 }
 
 static inline void
@@ -254,10 +228,28 @@ _pos_deriv(plughandle_t *handle, pos_t *neu, pos_t *old)
 	}
 }
 
+static targetO_t *
+_tuio2_get(plughandle_t *handle, uint32_t sid, xpress_uuid_t *uuid)
+{
+	XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
+	{
+		targetO_t *dst = voice->target;
+
+		if(dst->sid == sid)
+		{
+			*uuid = voice->uuid;
+			return dst;
+		}
+	}
+
+	*uuid = 0;
+	return NULL;
+}
+
 static void
 _tuio2_reset(plughandle_t *handle)
 {
-	XPRESS_VOICE_FREE(&handle->xpress, voice)
+	XPRESS_VOICE_FREE(&handle->xpressO, voice)
 	{}
 
 	handle->tuio2.fid = 0;
@@ -266,7 +258,6 @@ _tuio2_reset(plughandle_t *handle)
 	handle->tuio2.width = 0;
 	handle->tuio2.height = 0;
 	handle->tuio2.ignore = false;
-	handle->tuio2.n = 0;
 }
 
 // rt
@@ -375,11 +366,11 @@ _tuio2_frm(const char *path, const LV2_Atom_Tuple *args,
 		}
 	}
 
-	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+	XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
 	{
-		target_t *src = voice->target;
+		targetO_t *dst = voice->target;
 
-		src->active = false; // reset active flag
+		dst->active = false; // reset active flag
 	}
 
 	return 1;
@@ -412,17 +403,21 @@ _tuio2_tok(const char *path, const LV2_Atom_Tuple *args,
 	if(!ptr)
 		return 1;
 
-	target_t *src = xpress_get(&handle->xpress, sid);
-	if(!src)
+	xpress_uuid_t uuid;
+	targetO_t *dst = _tuio2_get(handle, sid, &uuid);
+	if(!dst)
 	{
-		if(!(src = xpress_add(&handle->xpress, sid)))
-			return 1; // failed to register
-
-		src->uuid = xpress_map(&handle->xpress);
+		if((dst = xpress_create(&handle->xpressO, &uuid)))
+		{
+			*dst = targetO_vanilla;
+			dst->sid = sid;
+		}
 	}
+	if(!dst)
+		return 1; // failed to register
 
-	ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&src->tuid);
-	ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&src->gid);
+	ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&dst->tuid);
+	ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&dst->gid);
 	ptr = lv2_osc_float_get(osc_urid, ptr, &pos.x);
 	ptr = lv2_osc_float_get(osc_urid, ptr, &pos.z);
 	ptr = lv2_osc_float_get(osc_urid, ptr, &pos.a);
@@ -438,10 +433,23 @@ _tuio2_tok(const char *path, const LV2_Atom_Tuple *args,
 	}
 	else // !has_derivatives
 	{
-		_pos_deriv(handle, &pos, &src->pos);
+		_pos_deriv(handle, &pos, &dst->pos);
 	}
 
-	_pos_clone(&src->pos, &pos);
+	_pos_clone(&dst->pos, &pos);
+
+	const xpress_state_t state = {
+		.zone = dst->gid,
+		.pitch = dst->pos.x * handle->ran + handle->bot,
+		.pressure = dst->pos.z,
+		.timbre = 0.f, //TODO compare with dst->tuid
+		.dPitch = dst->pos.vx.f11,
+		.dPressure = dst->pos.vz.f11,
+		.dTimbre = 0.f
+	};
+
+	if(handle->ref)
+		handle->ref = xpress_token(&handle->xpressO, forge, handle->frames, uuid, &state);
 
 	return 1;
 }
@@ -470,62 +478,52 @@ _tuio2_alv(const char *path, const LV2_Atom_Tuple *args,
 		ptr = lv2_osc_int32_get(osc_urid, ptr, (int32_t *)&sid);
 
 		// already registered in this step?
-		target_t *src = xpress_get(&handle->xpress, sid);
-		if(!src)
+		xpress_uuid_t uuid;
+		targetO_t *dst = _tuio2_get(handle, sid, &uuid);
+		if(!dst)
 		{
-			if(!(src = xpress_add(&handle->xpress, sid)))
-				continue; // failed to register
-
-			src->uuid = xpress_map(&handle->xpress);
+			if((dst = xpress_create(&handle->xpressO, &uuid)))
+			{
+				*dst = targetO_vanilla;
+				dst->sid = sid;
+			}
 		}
-			
-		src->active = true; // set active state
+		if(!dst)
+			continue; // failed to register
+		
+		dst->active = true; // set active state
 	}
 
 	// iterate over inactive blobs
-	unsigned removed = 0;
-	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
-	{
-		target_t *src = voice->target;
+	unsigned freed = 0;
 
-		// has it disappeared?
+	XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
+	{
+		targetO_t *dst = voice->target;
+
 		// is is active?
-		if(src->active)
+		if(dst->active)
 			continue;
 
-		if(handle->ref)
-			handle->ref = xpress_del(&handle->xpress, forge, handle->frames, src->uuid);
-
+		// has it disappeared?
 		voice->uuid = 0; // mark for removal
-		removed++;
+		freed += 1;
 	}
-	_xpress_sort(&handle->xpress);
-	handle->xpress.nvoices -= removed;
 
-	// iterate over active blobs
-	XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+	if(freed > 0)
 	{
-		target_t *src = voice->target;
-
-		const xpress_state_t state = {
-			.zone = src->gid,
-			.pitch = src->pos.x * handle->ran + handle->bot,
-			.pressure = src->pos.z,
-			.dPitch = src->pos.vx.f11,
-			.dPressure = src->pos.vz.f11
-		};
+		_xpress_sort(&handle->xpressO);
+		handle->xpressO.nvoices -= freed;
 
 		if(handle->ref)
-			handle->ref = xpress_put(&handle->xpress, forge, handle->frames, src->uuid, &state);
+			handle->ref = xpress_alive(&handle->xpressO, forge, handle->frames);
 	}
-
-	handle->tuio2.n = n;
 
 	return 1;
 }
 
-static const xpress_iface_t iface = {
-	.size = sizeof(target_t)
+static const xpress_iface_t ifaceO = {
+	.size = sizeof(targetO_t)
 };
 
 static LV2_Handle
@@ -567,8 +565,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 	if(handle->log)
 		lv2_log_logger_init(&handle->logger, handle->map, handle->log);
 
-	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
-		XPRESS_EVENT_NONE, &iface, handle->target, NULL))
+	if(  !xpress_init(&handle->xpressO, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_NONE, &ifaceO, handle->targetO, handle) )
 	{
 		free(handle);
 		return NULL;
@@ -630,7 +628,6 @@ struct _method_t {
 static const method_t methods [] = {
 	{"/tuio2/frm", _tuio2_frm},
 	{"/tuio2/tok", _tuio2_tok},
-	{"/tuio2/tok", _tuio2_tok},
 	{"/tuio2/alv", _tuio2_alv},
 
 	{NULL, NULL}
@@ -661,6 +658,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
 	props_idle(&handle->props, forge, 0, &handle->ref);
+	xpress_rst(&handle->xpressO);
 
 	// read incoming OSC
 	LV2_ATOM_SEQUENCE_FOREACH(handle->osc_in, ev)
@@ -671,6 +669,9 @@ run(LV2_Handle instance, uint32_t nsamples)
 		if(!props_advance(&handle->props, forge, handle->frames, obj, &handle->ref))
 			lv2_osc_unroll(&handle->osc_urid, obj, _message_cb, handle);
 	}
+
+	if(handle->ref && !xpress_synced(&handle->xpressO))
+		handle->ref = xpress_alive(&handle->xpressO, forge, nsamples-1);
 
 	if(handle->ref)
 		lv2_atom_forge_pop(forge, &frame);

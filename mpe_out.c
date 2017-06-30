@@ -25,19 +25,18 @@
 #include <mpe.h>
 
 #define MAX_NPROPS (1 + MPE_ZONE_MAX*4)
-#define MAX_NVOICES 64
 
-typedef struct _target_t target_t;
-typedef struct _state_t state_t;
+typedef struct _targetI_t targetI_t;
+typedef struct _plugstate_t plugstate_t;
 typedef struct _plughandle_t plughandle_t;
 
-struct _target_t {
+struct _targetI_t {
 	uint8_t chan;
 	uint8_t zone;
 	uint8_t key;
 };
 
-struct _state_t {
+struct _plugstate_t {
 	int32_t zones;
 	int32_t master_range [MPE_ZONE_MAX];
 	int32_t voice_range [MPE_ZONE_MAX];
@@ -54,8 +53,8 @@ struct _plughandle_t {
 	LV2_Atom_Forge forge;
 	LV2_Atom_Forge_Ref ref;
 
-	XPRESS_T(xpress, MAX_NVOICES);
-	target_t target [MAX_NVOICES];
+	XPRESS_T(xpressI, MAX_NVOICES);
+	targetI_t targetI [MAX_NVOICES];
 
 	const LV2_Atom_Sequence *event_in;
 	LV2_Atom_Sequence *midi_out;
@@ -63,8 +62,8 @@ struct _plughandle_t {
 	mpe_t mpe;
 	PROPS_T(props, MAX_NPROPS);
 
-	state_t state;
-	state_t stash;
+	plugstate_t state;
+	plugstate_t stash;
 };
 
 static inline void
@@ -332,7 +331,7 @@ _intercept_voice(void *data, int64_t frames, props_impl_t *impl)
 #define MASTER_RANGE(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_master_range_"#NUM, \
-	.offset = offsetof(state_t, master_range) + (NUM-1)*sizeof(int32_t), \
+	.offset = offsetof(plugstate_t, master_range) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
 	.event_cb = _intercept_master \
 }
@@ -340,7 +339,7 @@ _intercept_voice(void *data, int64_t frames, props_impl_t *impl)
 #define VOICE_RANGE(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_voice_range_"#NUM, \
-	.offset = offsetof(state_t, voice_range) + (NUM-1)*sizeof(int32_t), \
+	.offset = offsetof(plugstate_t, voice_range) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
 	.event_cb = _intercept_voice \
 }
@@ -348,21 +347,21 @@ _intercept_voice(void *data, int64_t frames, props_impl_t *impl)
 #define PRESSURE_CONTROLLER(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_pressure_controller_"#NUM, \
-	.offset = offsetof(state_t, pressure_controller) + (NUM-1)*sizeof(int32_t), \
+	.offset = offsetof(plugstate_t, pressure_controller) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
 }
 
 #define TIMBRE_CONTROLLER(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#mpe_timbre_controller_"#NUM, \
-	.offset = offsetof(state_t, timbre_controller) + (NUM-1)*sizeof(int32_t), \
+	.offset = offsetof(plugstate_t, timbre_controller) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
 }
 
 static const props_def_t defs [MAX_NPROPS] = {
 	{
 		.property = ESPRESSIVO_URI"#mpe_zones",
-		.offset = offsetof(state_t, zones),
+		.offset = offsetof(plugstate_t, zones),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept_zones
 	},
@@ -405,8 +404,8 @@ static const props_def_t defs [MAX_NPROPS] = {
 };
 
 static inline void
-_set(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
-	float val, target_t *src)
+_upd(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
+	float val, targetI_t *src)
 {
 	// bender
 	const uint16_t bnd = (val - src->key) * mpe_range_1(&handle->mpe, state->zone) * 0x2000 + 0x1fff;
@@ -502,7 +501,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
-	target_t *src = target;
+	targetI_t *src = target;
 
 	const float val = state->pitch;
 
@@ -520,19 +519,19 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	if(handle->ref)
 		handle->ref = _midi_event(handle, frames, note_on, 3);
 
-	_set(handle, frames, state, val, src);
+	_upd(handle, frames, state, val, src);
 }
 
 static void
-_put(void *data, int64_t frames, const xpress_state_t *state,
+_set(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
-	target_t *src = target;
+	targetI_t *src = target;
 
 	const float val = state->pitch;
 
-	_set(handle, frames, state, val, src);
+	_upd(handle, frames, state, val, src);
 }
 
 static void
@@ -540,7 +539,7 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
-	target_t *src = target;
+	targetI_t *src = target;
 
 	const uint8_t vel = 0x7f;
 
@@ -556,11 +555,11 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	mpe_release(&handle->mpe, src->zone, src->chan);
 }
 
-static const xpress_iface_t iface = {
-	.size = sizeof(target_t),
+static const xpress_iface_t ifaceI = {
+	.size = sizeof(targetI_t),
 
 	.add = _add,
-	.put = _put,
+	.set = _set,
 	.del = _del
 };
 
@@ -596,8 +595,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	lv2_atom_forge_init(&handle->forge, handle->map);
 
-	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
-			XPRESS_EVENT_ALL, &iface, handle->target, handle))
+	if(!xpress_init(&handle->xpressI, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_ALL, &ifaceI, handle->targetI, handle))
 	{
 		free(handle);
 		return NULL;
@@ -654,6 +653,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
 	props_idle(&handle->props, forge, 0, &handle->ref);
+	xpress_pre(&handle->xpressI);
 
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
@@ -662,9 +662,11 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 		if(!props_advance(&handle->props, forge, frames, obj, &handle->ref))
 		{
-			xpress_advance(&handle->xpress, forge, frames, obj, &handle->ref);
+			xpress_advance(&handle->xpressI, forge, frames, obj, &handle->ref);
 		}
 	}
+
+	xpress_post(&handle->xpressI, nsamples-1);
 
 	if(handle->ref)
 		lv2_atom_forge_pop(forge, &frame);

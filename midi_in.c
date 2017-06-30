@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Hanspeter Portner (dev@open-music-kontrollers.ch)
+ * Copyright (c) 2015-2017 Hanspeter Portner (dev@open-music-kontrollers.ch)
  *
  * This is free software: you can redistribute it and/or modify
  * it under the terms of the Artistic License 2.0 as published by
@@ -23,13 +23,12 @@
 #include <props.h>
 
 #define MAX_NPROPS (1 + 12)
-#define MAX_NVOICES 64
 
-typedef struct _target_t target_t;
-typedef struct _state_t state_t;
+typedef struct _targetO_t targetO_t;
+typedef struct _plugstate_t plugstate_t;
 typedef struct _plughandle_t plughandle_t;
 
-struct _target_t {
+struct _targetO_t {
 	uint8_t key;
 	xpress_uuid_t uuid;
 
@@ -39,7 +38,7 @@ struct _target_t {
 	uint8_t timbre_lsb;
 };
 
-struct _state_t {
+struct _plugstate_t {
 	int32_t range;
 	int32_t cents [12];
 };
@@ -57,24 +56,26 @@ struct _plughandle_t {
 
 	PROPS_T(props, MAX_NPROPS);
 
-	XPRESS_T(xpress, MAX_NVOICES);
-	target_t target [MAX_NVOICES];
+	XPRESS_T(xpressO, MAX_NVOICES);
+	targetO_t targetO [MAX_NVOICES];
 
-	state_t state;
-	state_t stash;
+	plugstate_t state;
+	plugstate_t stash;
 };
+
+static const targetO_t targetO_vanilla;
 
 #define CENTS(NUM) \
 { \
 	.property = ESPRESSIVO_URI"#midi_cents_"#NUM, \
-	.offset = offsetof(state_t, cents) + (NUM-1)*sizeof(int32_t), \
+	.offset = offsetof(plugstate_t, cents) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
 }
 
 static const props_def_t defs [MAX_NPROPS] = {
 	{
 		.property = ESPRESSIVO_URI"#midi_range",
-		.offset = offsetof(state_t, range),
+		.offset = offsetof(plugstate_t, range),
 		.type = LV2_ATOM__Int,
 	},
 
@@ -90,6 +91,10 @@ static const props_def_t defs [MAX_NPROPS] = {
 	CENTS(10),
 	CENTS(11),
 	CENTS(12)
+};
+
+static const xpress_iface_t ifaceO = {
+	.size = sizeof(targetO_t)
 };
 
 static LV2_Handle
@@ -124,8 +129,8 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 
 	lv2_atom_forge_init(&handle->forge, handle->map);
 	
-	if(!xpress_init(&handle->xpress, MAX_NVOICES, handle->map, voice_map,
-			XPRESS_EVENT_NONE, NULL, NULL, NULL) )
+	if(  !xpress_init(&handle->xpressO, MAX_NVOICES, handle->map, voice_map,
+			XPRESS_EVENT_NONE, &ifaceO, handle->targetO, handle) )
 	{
 		free(handle);
 		return NULL;
@@ -191,6 +196,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 	handle->ref = lv2_atom_forge_sequence_head(forge, &frame, 0);
 
 	props_idle(&handle->props, forge, 0, &handle->ref);
+	xpress_rst(&handle->xpressO);
 
 	LV2_ATOM_SEQUENCE_FOREACH(handle->event_in, ev)
 	{
@@ -208,17 +214,17 @@ run(LV2_Handle instance, uint32_t nsamples)
 				const uint8_t key = m[1];
 				const xpress_uuid_t uuid = ((int32_t)chan << 8) | key;
 
-				target_t *target = xpress_add(&handle->xpress, uuid);
+				targetO_t *target = xpress_add(&handle->xpressO, uuid);
 				if(target)
 				{
-					memset(target, 0x0, sizeof(target_t));
+					*target = targetO_vanilla;
 					target->key = key;
-					target->uuid = xpress_map(&handle->xpress);
+					target->uuid = xpress_map(&handle->xpressO);
 					target->state.zone = chan;
 					target->state.pitch = target->key;
 
 					if(handle->ref)
-						handle->ref = xpress_put(&handle->xpress, forge, frames, target->uuid, &target->state);
+						handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
 				}
 			}
 			else if(comm == LV2_MIDI_MSG_NOTE_OFF)
@@ -226,28 +232,32 @@ run(LV2_Handle instance, uint32_t nsamples)
 				const uint8_t key = m[1];
 				const xpress_uuid_t uuid  = ((int32_t)chan << 8) | key;
 
-				target_t *target = xpress_get(&handle->xpress, uuid);
+				targetO_t *target = xpress_get(&handle->xpressO, uuid);
 				if(target)
 				{
+#if 0
 					if(handle->ref)
-						handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
+						handle->ref = xpress_del(&handle->xpressO, forge, frames, target->uuid);
+#endif
 				}
 
-				xpress_free(&handle->xpress, uuid);
+				xpress_free(&handle->xpressO, uuid);
 			}
 			else if(comm == LV2_MIDI_MSG_NOTE_PRESSURE)
 			{
 				const uint8_t key = m[1];
 				const xpress_uuid_t uuid = ((int32_t)chan << 8) | key;
 
-				target_t *target = xpress_get(&handle->xpress, uuid);
+				targetO_t *target = xpress_get(&handle->xpressO, uuid);
 				if(target)
 				{
 					const float pressure = m[2] * 0x1p-7;
 					target->state.pressure = pressure;
 
+#if 0
 					if(handle->ref)
-						handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
+						handle->ref = xpress_del(&handle->xpressO, forge, frames, target->uuid);
+#endif
 				}
 			}
 			else if(comm == LV2_MIDI_MSG_BENDER)
@@ -255,17 +265,19 @@ run(LV2_Handle instance, uint32_t nsamples)
 				const int16_t bender = (((int16_t)m[2] << 7) | m[1]) - 0x2000;
 				const float offset = bender * 0x1p-13 * handle->state.range * 0.01f;
 
-				XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+				XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
 				{
-					target_t *target = voice->target;
+					targetO_t *target = voice->target;
 
 					if(target->state.zone != chan)
 						continue; // channel not matching
 
 					target->state.pitch = (float)target->key + offset;
 
+#if 0
 					if(handle->ref)
-						handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
+						handle->ref = xpress_del(&handle->xpressO, forge, frames, target->uuid);
+#endif
 				}
 			}
 			else if(comm == LV2_MIDI_MSG_CONTROLLER)
@@ -278,9 +290,9 @@ run(LV2_Handle instance, uint32_t nsamples)
 					|| (controller == LV2_MIDI_CTL_LSB_MODWHEEL)
 					|| (controller == LV2_MIDI_CTL_MSB_MODWHEEL) )
 				{
-					XPRESS_VOICE_FOREACH(&handle->xpress, voice)
+					XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
 					{
-						target_t *target = voice->target;
+						targetO_t *target = voice->target;
 						bool put = false;
 
 						if(target->state.zone != chan)
@@ -306,8 +318,10 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 						if(put)
 						{
+#if 0
 							if(handle->ref)
-								handle->ref = xpress_del(&handle->xpress, forge, frames, target->uuid);
+								handle->ref = xpress_del(&handle->xpressO, forge, frames, target->uuid);
+#endif
 						}
 					}
 				}
@@ -318,6 +332,9 @@ run(LV2_Handle instance, uint32_t nsamples)
 			props_advance(&handle->props, forge, frames, obj, &handle->ref);
 		}
 	}
+
+	if(handle->ref && !xpress_synced(&handle->xpressO))
+		handle->ref = xpress_alive(&handle->xpressO, forge, nsamples-1);
 
 	if(handle->ref)
 		lv2_atom_forge_pop(forge, &frame);
