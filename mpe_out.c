@@ -24,7 +24,7 @@
 
 #include <mpe.h>
 
-#define MAX_NPROPS (1 + MPE_ZONE_MAX*4)
+#define MAX_NPROPS (2 + MPE_ZONE_MAX*4)
 
 typedef struct _targetI_t targetI_t;
 typedef struct _plugstate_t plugstate_t;
@@ -38,6 +38,7 @@ struct _targetI_t {
 
 struct _plugstate_t {
 	int32_t zones;
+	int32_t velocity;
 	int32_t master_range [MPE_ZONE_MAX];
 	int32_t voice_range [MPE_ZONE_MAX];
 	int32_t pressure_controller [MPE_ZONE_MAX];
@@ -365,6 +366,11 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept_zones
 	},
+	{
+		.property = ESPRESSIVO_URI"#mpe_velocity",
+		.offset = offsetof(plugstate_t, velocity),
+		.type = LV2_ATOM__Int
+	},
 
 	MASTER_RANGE(1),
 	MASTER_RANGE(2),
@@ -508,7 +514,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	src->chan = mpe_acquire(&handle->mpe, state->zone);
 	src->zone = state->zone;
 	src->key = floor(val);
-	const uint8_t vel = 0x7f;
+	const uint8_t vel = handle->state.velocity;
 
 	const uint8_t note_on [3] = {
 		LV2_MIDI_MSG_NOTE_ON | src->chan,
@@ -541,7 +547,7 @@ _del(void *data, int64_t frames, const xpress_state_t *state,
 	plughandle_t *handle = data;
 	targetI_t *src = target;
 
-	const uint8_t vel = 0x7f;
+	const uint8_t vel = 0x0;
 
 	const uint8_t note_off [3] = {
 		LV2_MIDI_MSG_NOTE_OFF | src->chan,
