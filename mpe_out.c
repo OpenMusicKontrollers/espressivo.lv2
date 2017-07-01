@@ -159,14 +159,12 @@ _midi_event(plughandle_t *handle, int64_t frames, const uint8_t *m, size_t len)
 {
 	LV2_Atom_Forge *forge = &handle->forge;
 	LV2_Atom_Forge_Ref ref;
-		
+
 	ref = lv2_atom_forge_frame_time(forge, frames);
 	if(ref)
 		ref = lv2_atom_forge_atom(forge, len, handle->uris.midi_MidiEvent);
 	if(ref)
-		ref = lv2_atom_forge_raw(forge, m, len);
-	if(ref)
-		lv2_atom_forge_pad(forge, len);
+		ref = lv2_atom_forge_write(forge, m, len);
 
 	return ref;
 }
@@ -309,11 +307,10 @@ _intercept_master(void *data, int64_t frames, props_impl_t *impl)
 	plughandle_t *handle = data;
 
 	const int zone_idx = (int32_t *)impl->value.body - handle->state.master_range; //TODO check
-	if(zone_idx < handle->state.zones) // update active zones only
-	{
-		handle->mpe.zones[zone_idx].master_range = handle->state.master_range[zone_idx];
-		_master_range_update(handle, frames, zone_idx);
-	}
+	handle->mpe.zones[zone_idx].master_range = handle->state.master_range[zone_idx];
+
+	if( (zone_idx < handle->state.zones) && handle->ref) // update active zones only
+		handle->ref = _master_range_update(handle, frames, zone_idx);
 }
 
 static void
@@ -321,12 +318,11 @@ _intercept_voice(void *data, int64_t frames, props_impl_t *impl)
 {
 	plughandle_t *handle = data;
 
-	const int zone_idx = (int32_t *)impl->value.body - handle->state.master_range; //TODO check
-	if(zone_idx < handle->state.zones) // update active zones only
-	{
-		handle->mpe.zones[zone_idx].voice_range = handle->state.voice_range[zone_idx];
-		_voice_range_update(handle, frames, zone_idx);
-	}
+	const int zone_idx = (int32_t *)impl->value.body - handle->state.voice_range; //TODO check
+	handle->mpe.zones[zone_idx].voice_range = handle->state.voice_range[zone_idx];
+
+	if( (zone_idx < handle->state.zones) && handle->ref) // update active zones only
+		handle->ref = _voice_range_update(handle, frames, zone_idx);
 }
 
 #define MASTER_RANGE(NUM) \
