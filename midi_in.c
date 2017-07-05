@@ -260,8 +260,6 @@ run(LV2_Handle instance, uint32_t nsamples)
 					if(handle->ref)
 						handle->ref = xpress_alive(&handle->xpressO, forge, frames);
 				}
-
-				xpress_free(&handle->xpressO, uuid);
 			}
 			else if(comm == LV2_MIDI_MSG_NOTE_PRESSURE)
 			{
