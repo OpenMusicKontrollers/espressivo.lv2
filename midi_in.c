@@ -29,6 +29,7 @@ typedef struct _plugstate_t plugstate_t;
 typedef struct _plughandle_t plughandle_t;
 
 struct _targetO_t {
+	uint8_t chan;
 	uint8_t key;
 	xpress_uuid_t uuid;
 
@@ -183,6 +184,24 @@ _midi_event(plughandle_t *handle, int64_t frames, const uint8_t *m, size_t len)
 	return ref;
 }
 
+static targetO_t *
+_midi_get(plughandle_t *handle, uint8_t chan, uint8_t key, xpress_uuid_t *uuid)
+{
+	XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
+	{
+		targetO_t *dst = voice->target;
+
+		if( (dst->chan == chan) && (dst->key == key) )
+		{
+			*uuid = voice->uuid;
+			return dst;
+		}
+	}
+
+	*uuid = 0;
+	return NULL;
+}
+
 static void
 run(LV2_Handle instance, uint32_t nsamples)
 {
@@ -212,14 +231,15 @@ run(LV2_Handle instance, uint32_t nsamples)
 			if(comm == LV2_MIDI_MSG_NOTE_ON)
 			{
 				const uint8_t key = m[1];
-				const xpress_uuid_t uuid = ((int32_t)chan << 8) | key;
 
-				targetO_t *target = xpress_add(&handle->xpressO, uuid);
+				xpress_uuid_t uuid;
+				targetO_t *target = xpress_create(&handle->xpressO, &uuid);
 				if(target)
 				{
 					*target = targetO_vanilla;
+					target->chan = chan;
 					target->key = key;
-					target->uuid = xpress_map(&handle->xpressO);
+					target->uuid = uuid;
 					target->state.zone = chan;
 					target->state.pitch = target->key;
 
@@ -230,15 +250,15 @@ run(LV2_Handle instance, uint32_t nsamples)
 			else if(comm == LV2_MIDI_MSG_NOTE_OFF)
 			{
 				const uint8_t key = m[1];
-				const xpress_uuid_t uuid  = ((int32_t)chan << 8) | key;
 
-				targetO_t *target = xpress_get(&handle->xpressO, uuid);
+				xpress_uuid_t uuid;
+				targetO_t *target = _midi_get(handle, chan, key, &uuid);
 				if(target)
 				{
-#if 0
+					xpress_free(&handle->xpressO, uuid);
+
 					if(handle->ref)
-						handle->ref = xpress_del(&handle->xpressO, forge, frames, target->uuid);
-#endif
+						handle->ref = xpress_alive(&handle->xpressO, forge, frames);
 				}
 
 				xpress_free(&handle->xpressO, uuid);
@@ -246,18 +266,16 @@ run(LV2_Handle instance, uint32_t nsamples)
 			else if(comm == LV2_MIDI_MSG_NOTE_PRESSURE)
 			{
 				const uint8_t key = m[1];
-				const xpress_uuid_t uuid = ((int32_t)chan << 8) | key;
 
-				targetO_t *target = xpress_get(&handle->xpressO, uuid);
+				xpress_uuid_t uuid;
+				targetO_t *target = _midi_get(handle, chan, key, &uuid);
 				if(target)
 				{
 					const float pressure = m[2] * 0x1p-7;
 					target->state.pressure = pressure;
 
-#if 0
 					if(handle->ref)
-						handle->ref = xpress_del(&handle->xpressO, forge, frames, target->uuid);
-#endif
+						handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
 				}
 			}
 			else if(comm == LV2_MIDI_MSG_BENDER)
@@ -269,15 +287,13 @@ run(LV2_Handle instance, uint32_t nsamples)
 				{
 					targetO_t *target = voice->target;
 
-					if(target->state.zone != chan)
+					if(target->chan != chan)
 						continue; // channel not matching
 
 					target->state.pitch = (float)target->key + offset;
 
-#if 0
 					if(handle->ref)
-						handle->ref = xpress_del(&handle->xpressO, forge, frames, target->uuid);
-#endif
+						handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
 				}
 			}
 			else if(comm == LV2_MIDI_MSG_CONTROLLER)
@@ -295,7 +311,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 						targetO_t *target = voice->target;
 						bool put = false;
 
-						if(target->state.zone != chan)
+						if(target->chan  != chan)
 							continue; // channel not matching
 
 						switch(controller)
@@ -318,10 +334,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 						if(put)
 						{
-#if 0
 							if(handle->ref)
-								handle->ref = xpress_del(&handle->xpressO, forge, frames, target->uuid);
-#endif
+								handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
 						}
 					}
 				}
