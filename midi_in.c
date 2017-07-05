@@ -301,8 +301,8 @@ run(LV2_Handle instance, uint32_t nsamples)
 				const uint8_t controller = m[1];
 				const uint8_t value = m[2];
 
-				if(  (controller == LV2_MIDI_CTL_SC5_BRIGHTNESS)
-					|| (controller == (LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20) )
+				if(  (controller == (LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20) )
+					|| (controller == LV2_MIDI_CTL_SC5_BRIGHTNESS)
 					|| (controller == LV2_MIDI_CTL_LSB_MODWHEEL)
 					|| (controller == LV2_MIDI_CTL_MSB_MODWHEEL) )
 				{
@@ -316,10 +316,10 @@ run(LV2_Handle instance, uint32_t nsamples)
 
 						switch(controller)
 						{
-							case LV2_MIDI_CTL_SC5_BRIGHTNESS:
+							case LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20:
 								target->pressure_lsb = value;
 								break;
-							case LV2_MIDI_CTL_SC5_BRIGHTNESS | 0x20:
+							case LV2_MIDI_CTL_SC5_BRIGHTNESS:
 								target->state.pressure = ( (value << 7) | target->pressure_lsb) * 0x1p-14;
 								put = true;
 								break;
