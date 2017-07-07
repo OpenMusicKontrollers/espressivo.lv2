@@ -71,8 +71,12 @@ typedef struct _xpress_t xpress_t;
 // function callbacks
 typedef xpress_uuid_t (*xpress_map_new_uuid_t)(void *handle);
 
-typedef void (*xpress_state_cb_t)(void *data,
-	int64_t frames, const xpress_state_t *state,
+typedef void (*xpress_add_cb_t)(void *data, int64_t frames,
+	const xpress_state_t *state, xpress_uuid_t uuid, void *target);
+
+typedef xpress_add_cb_t xpress_set_cb_t;
+
+typedef void (*xpress_del_cb_t)(void *data, int64_t frames,
 	xpress_uuid_t uuid, void *target);
 
 enum _xpress_event_t {
@@ -99,9 +103,9 @@ struct _xpress_state_t {
 struct _xpress_iface_t {
 	size_t size;
 
-	xpress_state_cb_t add;
-	xpress_state_cb_t set;
-	xpress_state_cb_t del;
+	xpress_add_cb_t add;
+	xpress_set_cb_t set;
+	xpress_del_cb_t del;
 };
 
 struct _xpress_voice_t {
@@ -508,7 +512,7 @@ xpress_advance(xpress_t *xpress, LV2_Atom_Forge *forge, uint32_t frames,
 				&& !voice->alive )
 			{
 				if( (xpress->event_mask & XPRESS_EVENT_DEL) && xpress->iface->del)
-					xpress->iface->del(xpress->data, frames, NULL, voice->uuid, voice->target);
+					xpress->iface->del(xpress->data, frames, voice->uuid, voice->target);
 
 				freed += 1;
 				voice->uuid = 0; // invalidate
@@ -558,7 +562,7 @@ xpress_post(xpress_t *xpress, int64_t frames)
 		if(!voice->alive)
 		{
 			if( (xpress->event_mask & XPRESS_EVENT_DEL) && xpress->iface->del)
-				xpress->iface->del(xpress->data, frames, NULL, voice->uuid, voice->target);
+				xpress->iface->del(xpress->data, frames, voice->uuid, voice->target);
 
 			freed += 1;
 			voice->uuid = 0; // invalidate
