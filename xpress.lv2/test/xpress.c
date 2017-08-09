@@ -124,7 +124,7 @@ _set(void *data, int64_t frames, const xpress_state_t *state,
 }
 
 static void
-_del(void *data, int64_t frames, const xpress_state_t *state,
+_del(void *data, int64_t frames,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
