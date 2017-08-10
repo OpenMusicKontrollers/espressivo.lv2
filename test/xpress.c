@@ -168,7 +168,7 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 			handle->map = features[i]->data;
 		else if(!strcmp(features[i]->URI, LV2_LOG__log))
 			handle->log = features[i]->data;
-		else if(!strcmp(features[i]->URI, XPRESS_VOICE_MAP))
+		else if(!strcmp(features[i]->URI, XPRESS__voiceMap))
 			voice_map = features[i]->data;
 	}
 
