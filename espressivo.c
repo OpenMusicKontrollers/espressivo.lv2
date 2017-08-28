@@ -65,6 +65,8 @@ lv2_descriptor(uint32_t index)
 			return &tuio2_out;
 		case 10:
 			return &chord;
+		case 11:
+			return &sqew;
 		default:
 			return NULL;
 	}

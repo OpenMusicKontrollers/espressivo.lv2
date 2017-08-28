@@ -1334,3 +1334,96 @@ esp:sc_out
 		esp:sc_gate true ;
 		esp:sc_group false ;
 	] .
+
+esp:pitchExp
+	a lv2:Parameter ;
+	rdfs:label "Pitch sqew" ;
+	rdfs:comment "set sqew for pitch mapping function" ;
+	lv2:minimum -3.0 ;
+	lv2:maximum 3.0 ;
+	rdfs:range atom:Float .
+esp:pressureExp
+	a lv2:Parameter ;
+	rdfs:label "Pressure sqew" ;
+	rdfs:comment "set sqew for pressure mapping function" ;
+	lv2:minimum -3.0 ;
+	lv2:maximum 3.0 ;
+	rdfs:range atom:Float .
+esp:timbreExp
+	a lv2:Parameter ;
+	rdfs:label "Timbre sqew" ;
+	rdfs:comment "set sqew for timbre mapping function" ;
+	lv2:minimum -3.0 ;
+	lv2:maximum 3.0 ;
+	rdfs:range atom:Float .
+esp:dPitchExp
+	a lv2:Parameter ;
+	rdfs:label "dPitch sqew" ;
+	rdfs:comment "set sqew for dPitch mapping function" ;
+	lv2:minimum -3.0 ;
+	lv2:maximum 3.0 ;
+	rdfs:range atom:Float .
+esp:dPressureExp
+	a lv2:Parameter ;
+	rdfs:label "dPressure sqew" ;
+	rdfs:comment "set sqew for dPressure mapping function" ;
+	lv2:minimum -3.0 ;
+	lv2:maximum 3.0 ;
+	rdfs:range atom:Float .
+esp:dTimbreExp
+	a lv2:Parameter ;
+	rdfs:label "dTimbre sqew" ;
+	rdfs:comment "set sqew for dTimbre mapping function" ;
+	lv2:minimum -3.0 ;
+	lv2:maximum 3.0 ;
+	rdfs:range atom:Float .
+
+# Sqew Plugin
+esp:sqew
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
+	doap:name "Espressivo Sqew" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:espressivo ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule, xpress:voiceMap, osc:schedule, state:threadSafeRestore ;
+	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
+
+	# input event port
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message, xpress:Message ;
+		lv2:index 0 ;
+		lv2:symbol "event_in" ;
+		lv2:name "Event Input" ;
+		lv2:designation lv2:control ;
+	] , [
+	# output osc port
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message, xpress:Message ;
+		lv2:index 1 ;
+		lv2:symbol "event_out" ;
+		lv2:name "Event Output" ;
+		lv2:designation lv2:control ;
+	] ;
+
+	patch:writable
+		esp:pitchExp ,
+		esp:pressureExp ,
+		esp:timbreExp ,
+		esp:dPitchExp ,
+		esp:dPressureExp ,
+		esp:dTimbreExp ;
+
+	state:state [
+		esp:pitchExp "0.0"^^xsd:float ;
+		esp:pressureExp "0.0"^^xsd:float ;
+		esp:timbreExp "0.0"^^xsd:float ;
+		esp:dPitchExp "0.0"^^xsd:float ;
+		esp:dPressureExp "0.0"^^xsd:float ;
+		esp:dTimbreExp "0.0"^^xsd:float ;
+	] .

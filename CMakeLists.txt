@@ -56,6 +56,7 @@ add_library(espressivo MODULE
 	chord_flt.c
 	reducto_flt.c
 	discreto_flt.c
+	sqew_flt.c
 	mpe_out.c
 	sc_out.c)
 target_link_libraries(espressivo ${LIBS})
