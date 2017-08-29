@@ -470,7 +470,7 @@ _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 					const float offset_master = slot->master_bender * 0x1p-13 * slot->master_bend_range;
 					const float offset_voice = slot->voice_bender[voice] * 0x1p-13 * slot->voice_bend_range;
 					target->state.zone = slot->zone;
-					target->state.pitch = target->key + offset_master + offset_voice;
+					target->state.pitch = ((float)target->key + offset_master + offset_voice) / 0x7f;
 
 					if(handle->ref)
 						handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
@@ -515,7 +515,7 @@ _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 				targetO_t *target = xpress_get(&handle->xpressO, uuid);
 				if(target)
 				{
-					const float pressure = slot->voice_pressure[voice] * 0x1p-14;
+					const float pressure = slot->voice_pressure[voice] / 0x3fff;
 					target->state.pressure = pressure;
 
 					if(handle->ref)
@@ -546,7 +546,7 @@ _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 
 						const float offset_master = slot->master_bender * 0x1p-13 * slot->master_bend_range;
 						const float offset_voice = slot->voice_bender[target->voice] * 0x1p-13 * slot->voice_bend_range;
-						target->state.pitch = target->key + offset_master + offset_voice;
+						target->state.pitch = ((float)target->key + offset_master + offset_voice) / 0x7f;
 
 						if(handle->ref)
 							handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
@@ -564,7 +564,7 @@ _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 					{
 						const float offset_master = slot->master_bender * 0x1p-13 * slot->master_bend_range;
 						const float offset_voice = slot->voice_bender[voice] * 0x1p-13 * slot->voice_bend_range;
-						target->state.pitch = target->key + offset_master + offset_voice;
+						target->state.pitch = ((float)target->key + offset_master + offset_voice) / 0x7f;
 
 						if(handle->ref)
 							handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
@@ -664,7 +664,7 @@ _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 						targetO_t *target = xpress_get(&handle->xpressO, uuid);
 						if(target)
 						{
-							const float pressure = slot->voice_pressure[voice] * 0x1p-14;
+							const float pressure = slot->voice_pressure[voice] / 0x3fff;
 							target->state.pressure = pressure;
 
 							if(handle->ref)
@@ -701,7 +701,7 @@ _mpe_in(plughandle_t *handle, int64_t frames, const LV2_Atom *atom)
 						targetO_t *target = xpress_get(&handle->xpressO, uuid);
 						if(target)
 						{
-							const float timbre = slot->voice_timbre[voice] * 0x1p-14;
+							const float timbre = slot->voice_timbre[voice] / 0x3fff;
 							target->state.timbre = timbre;
 
 							if(handle->ref)

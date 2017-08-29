@@ -88,7 +88,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 		(void)dst;
 
 		xpress_state_t new_state = *state;
-		new_state.pitch += handle->state.offset[i];
+		new_state.pitch += (float)handle->state.offset[i] / 0x7f;
 
 		if(handle->ref)
 			handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid[i], &new_state);
@@ -106,7 +106,7 @@ _set(void *data, int64_t frames, const xpress_state_t *state,
 	for(unsigned i=0; i<MAX_CHORDS; i++)
 	{
 		xpress_state_t new_state = *state;
-		new_state.pitch += handle->state.offset[i];
+		new_state.pitch += (float)handle->state.offset[i] / 0x7f;
 
 		if(handle->ref)
 			handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid[i], &new_state);

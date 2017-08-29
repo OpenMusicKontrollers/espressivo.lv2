@@ -1066,14 +1066,14 @@ esp:reducto_position_threshold
 	rdfs:range atom:Float ;
 	units:unit units:semitone12TET ;
 	lv2:minimum 0.0 ;
-	lv2:maximum 96.0 .
+	lv2:maximum 127.0 .
 esp:reducto_velocity_threshold
 	a lv2:Parameter ;
 	rdfs:label "Velocity threshold" ;
 	rdfs:comment "threshold of velocity change to trigger new events" ;
 	rdfs:range atom:Float ;
 	lv2:minimum 0.0 ;
-	lv2:maximum 1.0 .
+	lv2:maximum 10.0 .
 
 esp:reducto
 	a lv2:Plugin ,

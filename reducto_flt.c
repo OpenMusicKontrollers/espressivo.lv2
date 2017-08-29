@@ -88,7 +88,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	(void)dst;
 
 	src->below = true;
-	src->x = state->pitch;
+	src->x = state->pitch * 0x7f;
 
 	if(handle->ref)
 		handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid, state);
@@ -113,7 +113,7 @@ _set(void *data, int64_t frames, const xpress_state_t *state,
 	{
 		if(vel_x_abs < handle->state.velocity_threshold)
 		{
-			const float pos_x_diff_abs = fabs(state->pitch - src->x);
+			const float pos_x_diff_abs = fabs(state->pitch * 0x7f - src->x);
 
 			if(pos_x_diff_abs >= handle->state.position_threshold)
 				spawn_new = true;
@@ -135,7 +135,7 @@ _set(void *data, int64_t frames, const xpress_state_t *state,
 		(void)dst;
 
 		src->below = true;
-		src->x = state->pitch;
+		src->x = state->pitch * 0x7f;
 
 		if(handle->ref)
 			handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid, state);

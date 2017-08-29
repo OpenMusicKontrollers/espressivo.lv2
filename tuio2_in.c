@@ -440,7 +440,7 @@ _tuio2_tok(const char *path, const LV2_Atom_Tuple *args,
 
 	const xpress_state_t state = {
 		.zone = dst->gid,
-		.pitch = dst->pos.x * handle->ran + handle->bot,
+		.pitch = (dst->pos.x * handle->ran + handle->bot) / 0x7f,
 		.pressure = dst->pos.z,
 		.timbre = 0.f, //TODO compare with dst->tuid
 		.dPitch = dst->pos.vx.f11,

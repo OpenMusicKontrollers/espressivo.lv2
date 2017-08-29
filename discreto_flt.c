@@ -83,7 +83,7 @@ _upd(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 	xpress_state_t new_state;
 	memcpy(&new_state, state, sizeof(xpress_state_t));
 
-	float x = state->pitch;
+	float x = state->pitch * 0x7f;
 
 	switch(handle->state.position_order)
 	{
@@ -130,7 +130,7 @@ _upd(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 		}
 	}
 
-	new_state.pitch = x;
+	new_state.pitch = x / 0x7f;
 
 	if(handle->ref)
 		handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid, &new_state);

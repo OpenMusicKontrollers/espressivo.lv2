@@ -241,7 +241,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 					target->key = key;
 					target->uuid = uuid;
 					target->state.zone = chan;
-					target->state.pitch = target->key;
+					target->state.pitch = (float)target->key / 0x7f;
 
 					if(handle->ref)
 						handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
@@ -269,7 +269,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 				targetO_t *target = _midi_get(handle, chan, key, &uuid);
 				if(target)
 				{
-					const float pressure = m[2] * 0x1p-7;
+					const float pressure = m[2] / 0x7f;
 					target->state.pressure = pressure;
 
 					if(handle->ref)
@@ -288,7 +288,7 @@ run(LV2_Handle instance, uint32_t nsamples)
 					if(target->chan != chan)
 						continue; // channel not matching
 
-					target->state.pitch = (float)target->key + offset;
+					target->state.pitch = ((float)target->key + offset) / 0x7f;
 
 					if(handle->ref)
 						handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
@@ -318,14 +318,14 @@ run(LV2_Handle instance, uint32_t nsamples)
 								target->pressure_lsb = value;
 								break;
 							case LV2_MIDI_CTL_SC5_BRIGHTNESS:
-								target->state.pressure = ( (value << 7) | target->pressure_lsb) * 0x1p-14;
+								target->state.pressure = ( (value << 7) | target->pressure_lsb) / 0x3fff;
 								put = true;
 								break;
 							case LV2_MIDI_CTL_LSB_MODWHEEL:
 								target->timbre_lsb = value;
 								break;
 							case LV2_MIDI_CTL_MSB_MODWHEEL:
-								target->state.timbre = ( (value << 7) | target->timbre_lsb) * 0x1p-14;
+								target->state.timbre = ( (value << 7) | target->timbre_lsb) / 0x3fff;
 								put = true;
 								break;
 						}

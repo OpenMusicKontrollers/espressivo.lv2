@@ -210,7 +210,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 		handle->ref = lv2_osc_forge_message_vararg(forge, &handle->osc_urid,
 			"/n_setn", "iiiffff",
 			id, handle->state.arg_offset, arg_num,
-			_midi2cps(state->pitch), state->pressure,
+			_midi2cps(state->pitch * 0x7f), state->pressure,
 			state->dPitch, state->dPressure);
 }
 
@@ -233,7 +233,7 @@ _set(void *data, int64_t frames, const xpress_state_t *state,
 		handle->ref = lv2_osc_forge_message_vararg(forge, &handle->osc_urid,
 			"/n_setn", "iiiffff",
 			id, handle->state.arg_offset, arg_num,
-			_midi2cps(state->pitch), state->pressure,
+			_midi2cps(state->pitch * 0x7f), state->pressure,
 			state->dPitch, state->dPressure);
 }
 

@@ -281,7 +281,7 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 
 	src->uuid = xpress_map(&handle->xpressI);
 	src->state = *state;
-	src->state.pitch = (state->pitch - handle->bot) * handle->ran_1;
+	src->state.pitch = (state->pitch*0x7f - handle->bot) * handle->ran_1;
 	src->dirty = true;
 	src->last = frames;
 
@@ -298,7 +298,7 @@ _set(void *data, int64_t frames, const xpress_state_t *state,
 	_upd(handle, frames);
 
 	src->state = *state;
-	src->state.pitch = (state->pitch - handle->bot) * handle->ran_1;
+	src->state.pitch = (state->pitch*0x7f - handle->bot) * handle->ran_1;
 	src->dirty = true;
 	src->last = frames;
 
