@@ -58,7 +58,8 @@ add_library(espressivo MODULE
 	discreto_flt.c
 	sqew_flt.c
 	mpe_out.c
-	sc_out.c)
+	sc_out.c
+	monitor_out.c)
 target_link_libraries(espressivo ${LIBS})
 set_target_properties(espressivo PROPERTIES PREFIX "")
 install(TARGETS espressivo DESTINATION ${PLUGIN_DEST})

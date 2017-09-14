@@ -67,6 +67,8 @@ lv2_descriptor(uint32_t index)
 			return &chord;
 		case 11:
 			return &sqew;
+		case 12:
+			return &monitor_out;
 		default:
 			return NULL;
 	}

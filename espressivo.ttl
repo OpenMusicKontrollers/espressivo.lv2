@@ -1272,7 +1272,7 @@ esp:sc_out
 	doap:name "Espressivo SuperCollider Out" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule, xpress:voiceMap, osc:schedule, state:threadSafeRestore ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -1385,7 +1385,7 @@ esp:sqew
 	doap:name "Espressivo Sqew" ;
 	doap:license lic:Artistic-2.0 ;
 	lv2:project proj:espressivo ;
-	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule, xpress:voiceMap, osc:schedule, state:threadSafeRestore ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
 	lv2:extensionData state:interface ;
 
@@ -1426,4 +1426,40 @@ esp:sqew
 		esp:dPitchExp "0.0"^^xsd:float ;
 		esp:dPressureExp "0.0"^^xsd:float ;
 		esp:dTimbreExp "0.0"^^xsd:float ;
+	] .
+
+# Monitor Plugin
+esp:monitor_out
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
+	doap:name "Espressivo Monitor Out" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:espressivo ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, state:threadSafeRestore ;
+	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
+
+	# input event port
+	lv2:port [
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message, xpress:Message ;
+		lv2:index 0 ;
+		lv2:symbol "event_in" ;
+		lv2:name "Event Input" ;
+		lv2:designation lv2:control ;
+	] , [
+	# output osc port
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message ;
+		lv2:index 1 ;
+		lv2:symbol "event_out" ;
+		lv2:name "Event Output" ;
+		lv2:designation lv2:control ;
+	] ;
+
+	state:state [
 	] .

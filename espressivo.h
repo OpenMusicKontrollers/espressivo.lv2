@@ -67,6 +67,7 @@
 #define ESPRESSIVO_DISCRETO_URI			ESPRESSIVO_URI"#discreto"
 #define ESPRESSIVO_SC_OUT_URI				ESPRESSIVO_URI"#sc_out"
 #define ESPRESSIVO_SQEW_URI					ESPRESSIVO_URI"#sqew"
+#define ESPRESSIVO_MONITOR_OUT_URI	ESPRESSIVO_URI"#monitor_out"
 
 #define MAX_NVOICES 64
 
@@ -82,6 +83,7 @@ extern const LV2_Descriptor reducto;
 extern const LV2_Descriptor discreto;
 extern const LV2_Descriptor sc_out;
 extern const LV2_Descriptor sqew;
+extern const LV2_Descriptor monitor_out;
 
 static inline float
 _midi2cps(float pitch)
