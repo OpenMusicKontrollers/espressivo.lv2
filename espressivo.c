@@ -69,6 +69,8 @@ lv2_descriptor(uint32_t index)
 			return &sqew;
 		case 12:
 			return &monitor_out;
+		case 13:
+			return &modulator;
 		default:
 			return NULL;
 	}

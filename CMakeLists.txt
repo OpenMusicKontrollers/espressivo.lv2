@@ -53,6 +53,7 @@ add_library(espressivo MODULE
 	tuio2_out.c
 	sampleandhold_flt.c
 	through_flt.c
+	modulator_flt.c
 	chord_flt.c
 	reducto_flt.c
 	discreto_flt.c

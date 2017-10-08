@@ -979,6 +979,110 @@ esp:through
 		esp:through_zone_offset 0 ;
 	] .
 
+# Modulator
+esp:modulator_zone_mask_src
+	a lv2:Parameter ;
+	rdfs:label "Zone Mask Source" ;
+	rdfs:comment "bitmask denoting zones to let through or block" ;
+	rdfs:range atom:Int ;
+	lv2:parameterProperty lv2:isBitmask ;
+	lv2:minimum 0 ;
+	lv2:maximum 255 .
+esp:modulator_zone_mask_mod
+	a lv2:Parameter ;
+	rdfs:label "Zone Mask Modulator" ;
+	rdfs:comment "bitmask denoting zones to use as modulator" ;
+	rdfs:range atom:Int ;
+	lv2:parameterProperty lv2:isBitmask ;
+	lv2:minimum 0 ;
+	lv2:maximum 255 .
+esp:modulator_enum_src
+	a lv2:Parameter ;
+	rdfs:label "Enum Source" ;
+	rdfs:comment "set source enum" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 5 .
+esp:modulator_enum_mod
+	a lv2:Parameter ;
+	rdfs:label "Enum Modulator" ;
+	rdfs:comment "set modulator enum" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 5 .
+esp:modulator_zone_offset
+	a lv2:Parameter ;
+	rdfs:label "Zone Offset" ;
+	rdfs:comment "offset to add to incoming zone numer" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 8 .
+esp:modulator_multiplier
+	a lv2:Parameter ;
+	rdfs:label "Multiplier" ;
+	rdfs:comment "set value to multiply modulator with" ;
+	rdfs:range atom:Float ;
+	lv2:minimum -10.0 ;
+	lv2:maximum 10.0 .
+esp:modulator_adder
+	a lv2:Parameter ;
+	rdfs:label "Adder" ;
+	rdfs:comment "set value to add modulator to" ;
+	rdfs:range atom:Float ;
+	lv2:minimum -10.0 ;
+	lv2:maximum 10.0 .
+
+esp:modulator
+	a lv2:Plugin ,
+		lv2:ConverterPlugin ;
+	doap:name "Espressivo Modulator" ;
+	doap:license lic:Artistic-2.0 ;
+	lv2:project proj:espressivo ;
+	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
+	lv2:requiredFeature urid:map, state:loadDefaultState ;
+	lv2:extensionData state:interface ;
+
+	lv2:port [
+	# input event port
+	  a lv2:InputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message, xpress:Message ;
+		lv2:index 0 ;
+		lv2:symbol "event_in" ;
+		lv2:name "Event Input" ;
+		lv2:designation lv2:control ;
+	] , [
+	# output event port
+	  a lv2:OutputPort ,
+			atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message, xpress:Message ;
+		lv2:index 1 ;
+		lv2:symbol "event_out" ;
+		lv2:name "Event Output" ;
+		lv2:designation lv2:control ;
+	] ;
+
+	patch:writable
+		esp:modulator_zone_mask_src ,
+		esp:modulator_zone_mask_mod ,
+		esp:modulator_enum_src ,
+		esp:modulator_enum_mod ,
+		esp:modulator_zone_offset ,
+		esp:modulator_multiplier ,
+		esp:modulator_adder ;
+
+	state:state [
+		esp:modulator_zone_mask_src 1 ;
+		esp:modulator_zone_mask_mod 2 ;
+		esp:modulator_enum_src 0 ;
+		esp:modulator_enum_mod 0 ;
+		esp:modulator_zone_offset 0 ;	
+		esp:modulator_multiplier 1.0 ;
+		esp:modulator_addrr 0.0 ;	
+	] .
+
 # Chord
 esp:chord_offset_1
 	a lv2:Parameter ;
