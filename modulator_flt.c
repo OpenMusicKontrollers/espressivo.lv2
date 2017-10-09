@@ -207,7 +207,7 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.type = LV2_ATOM__Int
 	},
 	{
-		.property = ESPRESSIVO_URI"#modulator_enum_source",
+		.property = ESPRESSIVO_URI"#modulator_enum_src",
 		.offset = offsetof(plugstate_t, enum_src),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept
