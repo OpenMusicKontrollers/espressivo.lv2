@@ -1002,14 +1002,26 @@ esp:modulator_enum_src
 	rdfs:comment "set source enum" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
-	lv2:maximum 5 .
+	lv2:maximum 5 ;
+	lv2:scalePoint [ rdfs:label "pitch" ; rdf:value 0 ] ;
+	lv2:scalePoint [ rdfs:label "pressure" ; rdf:value 1 ] ;
+	lv2:scalePoint [ rdfs:label "timbre" ; rdf:value 2 ] ;
+	lv2:scalePoint [ rdfs:label "dPitch" ; rdf:value 3 ] ;
+	lv2:scalePoint [ rdfs:label "dPressure" ; rdf:value 4 ] ;
+	lv2:scalePoint [ rdfs:label "dTimbre" ; rdf:value 5 ] .
 esp:modulator_enum_mod
 	a lv2:Parameter ;
 	rdfs:label "Enum Modulator" ;
 	rdfs:comment "set modulator enum" ;
 	rdfs:range atom:Int ;
 	lv2:minimum 0 ;
-	lv2:maximum 5 .
+	lv2:maximum 5 ;
+	lv2:scalePoint [ rdfs:label "pitch" ; rdf:value 0 ] ;
+	lv2:scalePoint [ rdfs:label "pressure" ; rdf:value 1 ] ;
+	lv2:scalePoint [ rdfs:label "timbre" ; rdf:value 2 ] ;
+	lv2:scalePoint [ rdfs:label "dPitch" ; rdf:value 3 ] ;
+	lv2:scalePoint [ rdfs:label "dPressure" ; rdf:value 4 ] ;
+	lv2:scalePoint [ rdfs:label "dTimbre" ; rdf:value 5 ] .
 esp:modulator_zone_offset
 	a lv2:Parameter ;
 	rdfs:label "Zone Offset" ;
