@@ -1043,6 +1043,18 @@ esp:modulator_adder
 	rdfs:range atom:Float ;
 	lv2:minimum -10.0 ;
 	lv2:maximum 10.0 .
+esp:modulator_op
+	a lv2:Parameter ;
+	rdfs:label "Operation Mode" ;
+	rdfs:comment "set operation mode" ;
+	rdfs:range atom:Int ;
+	lv2:minimum 0 ;
+	lv2:maximum 4 ;
+	lv2:scalePoint [ rdfs:label "add" ; rdf:value 0 ] ;
+	lv2:scalePoint [ rdfs:label "sub" ; rdf:value 1 ] ;
+	lv2:scalePoint [ rdfs:label "mul" ; rdf:value 2 ] ;
+	lv2:scalePoint [ rdfs:label "div" ; rdf:value 3 ] ;
+	lv2:scalePoint [ rdfs:label "pow" ; rdf:value 4 ] .
 
 esp:modulator
 	a lv2:Plugin ,
@@ -1083,7 +1095,8 @@ esp:modulator
 		esp:modulator_enum_mod ,
 		esp:modulator_zone_offset ,
 		esp:modulator_multiplier ,
-		esp:modulator_adder ;
+		esp:modulator_adder ,
+		esp:modulator_op ;
 
 	state:state [
 		esp:modulator_zone_mask_src 1 ;
@@ -1092,7 +1105,8 @@ esp:modulator
 		esp:modulator_enum_mod 0 ;
 		esp:modulator_zone_offset 0 ;	
 		esp:modulator_multiplier 1.0 ;
-		esp:modulator_addrr 0.0 ;	
+		esp:modulator_adder 0.0 ;	
+		esp:modulator_op 0 ;	
 	] .
 
 # Chord

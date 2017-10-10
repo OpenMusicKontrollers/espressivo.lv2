@@ -22,9 +22,10 @@
 #include <espressivo.h>
 #include <props.h>
 
-#define MAX_NPROPS 7
+#define MAX_NPROPS 8
 
 typedef enum _enum_t enum_t;
+typedef enum _op_t op_t;
 typedef struct _targetI_t targetI_t;
 typedef struct _targetO_t targetO_t;
 typedef struct _plugstate_t plugstate_t;
@@ -37,6 +38,14 @@ enum _enum_t {
 	ENUM_DPITCH,
 	ENUM_DPRESSURE,
 	ENUM_DTIMBRE
+};
+
+enum _op_t {
+	OP_ADD = 0,
+	OP_SUB,
+	OP_MUL,
+	OP_DIV,
+	OP_POW
 };
 
 struct _targetI_t {
@@ -56,6 +65,7 @@ struct _plugstate_t {
 	int32_t enum_mod;
 	float multiplier;
 	float adder;
+	int32_t op;
 };
 
 struct _plughandle_t {
@@ -101,6 +111,26 @@ _clip(float min, float val, float max)
 	return val;
 }
 
+static inline float
+_op(plughandle_t *handle, float dst, float val)
+{
+	switch(handle->state.op)
+	{
+		case OP_ADD:
+			return dst + val;
+		case OP_SUB:
+			return dst - val;
+		case OP_MUL:
+			return dst * val;
+		case OP_DIV:
+			return (val == 0.f) ? 0.f : dst / val;
+		case OP_POW:
+			return powf(dst, val);
+	}
+
+	return 0.f;
+}
+
 static inline void
 _modulate(plughandle_t *handle, xpress_state_t *state)
 {
@@ -141,30 +171,30 @@ _modulate(plughandle_t *handle, xpress_state_t *state)
 	{
 		case ENUM_PITCH:
 		{
-			state->pitch += val;
+			state->pitch = _op(handle, state->pitch, val);
 			state->pitch = _clip(0.f, state->pitch, 1.f);
 		}	break;
 		case ENUM_PRESSURE:
 		{
-			state->pressure += val;
+			state->pressure = _op(handle, state->pressure, val);
 			state->pressure = _clip(0.f, state->pressure, 1.f);
 		}	break;
 		case ENUM_TIMBRE:
 		{
-			state->timbre += val;
+			state->timbre = _op(handle, state->timbre, val);
 			state->timbre = _clip(0.f, state->timbre, 1.f);
 		}	break;
 		case ENUM_DPITCH:
 		{
-			state->dPitch += val;
+			state->dPitch = _op(handle, state->dPitch, val);
 		}	break;
 		case ENUM_DPRESSURE:
 		{
-			state->dPressure += val;
+			state->dPressure = _op(handle, state->dPressure, val);
 		}	break;
 		case ENUM_DTIMBRE:
 		{
-			state->dTimbre += val;
+			state->dTimbre = _op(handle, state->dTimbre, val);
 		}	break;
 	}
 }
@@ -233,6 +263,12 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.property = ESPRESSIVO_URI"#modulator_adder",
 		.offset = offsetof(plugstate_t, adder),
 		.type = LV2_ATOM__Float,
+		.event_cb = _intercept
+	},
+	{
+		.property = ESPRESSIVO_URI"#modulator_op",
+		.offset = offsetof(plugstate_t, op),
+		.type = LV2_ATOM__Int,
 		.event_cb = _intercept
 	}
 };
