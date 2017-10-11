@@ -301,7 +301,8 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 		if(handle->ref)
 			handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid, &new_state);
 	}
-	else if(src->zone_mask & handle->state.zone_mask_mod)
+
+	if(src->zone_mask & handle->state.zone_mask_mod)
 	{
 		if(handle->uuid == 0) // no modulator registered, yet
 		{
@@ -334,7 +335,8 @@ _set(void *data, int64_t frames, const xpress_state_t *state,
 		if(handle->ref)
 			handle->ref = xpress_token(&handle->xpressO, forge, frames, src->uuid, &new_state);
 	}
-	else if(src->zone_mask & handle->state.zone_mask_mod)
+
+	if(src->zone_mask & handle->state.zone_mask_mod)
 	{
 		if(handle->uuid == uuid) // this is our modulator
 		{
@@ -361,7 +363,8 @@ _del(void *data, int64_t frames,
 		if(handle->ref)
 			handle->ref = xpress_alive(&handle->xpressO, forge, frames);
 	}
-	else if(src->zone_mask & handle->state.zone_mask_mod)
+
+	if(src->zone_mask & handle->state.zone_mask_mod)
 	{
 		if(handle->uuid == uuid) // this is our modulator
 		{
