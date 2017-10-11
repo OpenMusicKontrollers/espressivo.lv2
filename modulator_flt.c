@@ -45,7 +45,8 @@ enum _op_t {
 	OP_SUB,
 	OP_MUL,
 	OP_DIV,
-	OP_POW
+	OP_POW,
+	OP_SET
 };
 
 struct _targetI_t {
@@ -115,7 +116,7 @@ _clip(float min, float val, float max)
 static inline float
 _op(plughandle_t *handle, float dst, float val)
 {
-	switch(handle->state.op)
+	switch((op_t)handle->state.op)
 	{
 		case OP_ADD:
 			return dst + val;
@@ -127,6 +128,8 @@ _op(plughandle_t *handle, float dst, float val)
 			return (val == 0.f) ? 0.f : dst / val;
 		case OP_POW:
 			return powf(dst, val);
+		case OP_SET:
+			return val;
 	}
 
 	return 0.f;
@@ -137,7 +140,7 @@ _modulate(plughandle_t *handle, xpress_state_t *state)
 {
 	float val = 0.f;
 
-	switch(handle->state.enum_mod)
+	switch((enum_t)handle->state.enum_mod)
 	{
 		case ENUM_PITCH:
 		{
@@ -168,7 +171,7 @@ _modulate(plughandle_t *handle, xpress_state_t *state)
 	val *= handle->state.multiplier;
 	val += handle->state.adder;
 
-	switch(handle->state.enum_src)
+	switch((enum_t)handle->state.enum_src)
 	{
 		case ENUM_PITCH:
 		{
