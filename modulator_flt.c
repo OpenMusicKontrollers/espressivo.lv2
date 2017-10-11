@@ -22,7 +22,7 @@
 #include <espressivo.h>
 #include <props.h>
 
-#define MAX_NPROPS 8
+#define MAX_NPROPS 9
 
 typedef enum _enum_t enum_t;
 typedef enum _op_t op_t;
@@ -66,6 +66,7 @@ struct _plugstate_t {
 	float multiplier;
 	float adder;
 	int32_t op;
+	int32_t reset;
 };
 
 struct _plughandle_t {
@@ -270,6 +271,11 @@ static const props_def_t defs [MAX_NPROPS] = {
 		.offset = offsetof(plugstate_t, op),
 		.type = LV2_ATOM__Int,
 		.event_cb = _intercept
+	},
+	{
+		.property = ESPRESSIVO_URI"#modulator_reset",
+		.offset = offsetof(plugstate_t, reset),
+		.type = LV2_ATOM__Bool
 	}
 };
 
@@ -360,7 +366,8 @@ _del(void *data, int64_t frames,
 		if(handle->uuid == uuid) // this is our modulator
 		{
 			handle->uuid = 0;
-			handle->modu = empty_state;
+			if(handle->state.reset)
+				handle->modu = empty_state;
 
 			_upd(handle, frames);
 		}

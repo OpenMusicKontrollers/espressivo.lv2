@@ -1055,6 +1055,11 @@ esp:modulator_op
 	lv2:scalePoint [ rdfs:label "mul" ; rdf:value 2 ] ;
 	lv2:scalePoint [ rdfs:label "div" ; rdf:value 3 ] ;
 	lv2:scalePoint [ rdfs:label "pow" ; rdf:value 4 ] .
+esp:modulator_reset
+	a lv2:Parameter ;
+	rdfs:label "Reset" ;
+	rdfs:comment "toggle to reset modulation" ;
+	rdfs:range atom:Bool .
 
 esp:modulator
 	a lv2:Plugin ,
@@ -1096,7 +1101,8 @@ esp:modulator
 		esp:modulator_zone_offset ,
 		esp:modulator_multiplier ,
 		esp:modulator_adder ,
-		esp:modulator_op ;
+		esp:modulator_op ,
+		esp:modulator_reset ;
 
 	state:state [
 		esp:modulator_zone_mask_src 1 ;
@@ -1107,6 +1113,7 @@ esp:modulator
 		esp:modulator_multiplier 1.0 ;
 		esp:modulator_adder 0.0 ;	
 		esp:modulator_op 0 ;	
+		esp:modulator_reset false ;
 	] .
 
 # Chord
