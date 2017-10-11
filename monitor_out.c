@@ -57,7 +57,6 @@ struct _plughandle_t {
 	LV2_Canvas_URID canvas_urid;
 
 	unsigned n;
-	int16_t sens [160];
 	bool needs_sync;
 
 	plugstate_t state;
@@ -207,7 +206,7 @@ static const uint32_t cols [NUM_COLS] = {
 };
 
 static LV2_Atom_Forge_Ref
-_render(plughandle_t *handle, uint32_t frames, const int16_t *sens, unsigned n)
+_render(plughandle_t *handle, uint32_t frames)
 {
 	LV2_Atom_Forge *forge = &handle->forge;
 	LV2_Canvas_URID *canvas_urid = &handle->canvas_urid;
@@ -316,14 +315,14 @@ run(LV2_Handle instance, uint32_t nsamples)
 	if(handle->counter >= handle->overflowsec) // update every sec
 	{
 		if(handle->ref)
-			handle->ref = _render(handle, nsamples-1, handle->sens, handle->n);
+			handle->ref = _render(handle, nsamples-1);
 
 		handle->counter -= handle->overflowsec;
 	}
 	else if(handle->needs_sync && (handle->counter >= handle->overflow) )
 	{
 		if(handle->ref)
-			handle->ref = _render(handle, nsamples-1, handle->sens, handle->n);
+			handle->ref = _render(handle, nsamples-1);
 
 		handle->counter -= handle->overflow;
 		handle->needs_sync = false;
