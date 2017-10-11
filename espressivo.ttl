@@ -236,7 +236,7 @@ esp:mpe_pressure_controller_1
 	rdfs:comment "MIDI controller to use as voice pressure for zone 1" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_2
 	a lv2:Parameter ;
@@ -244,7 +244,7 @@ esp:mpe_pressure_controller_2
 	rdfs:comment "MIDI controller to use as voice pressure for zone 2" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_3
 	a lv2:Parameter ;
@@ -252,7 +252,7 @@ esp:mpe_pressure_controller_3
 	rdfs:comment "MIDI controller to use as voice pressure for zone 3" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_4
 	a lv2:Parameter ;
@@ -260,7 +260,7 @@ esp:mpe_pressure_controller_4
 	rdfs:comment "MIDI controller to use as voice pressure for zone 4" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_5
 	a lv2:Parameter ;
@@ -268,7 +268,7 @@ esp:mpe_pressure_controller_5
 	rdfs:comment "MIDI controller to use as voice pressure for zone 5" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_6
 	a lv2:Parameter ;
@@ -276,7 +276,7 @@ esp:mpe_pressure_controller_6
 	rdfs:comment "MIDI controller to use as voice pressure for zone 6" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_7
 	a lv2:Parameter ;
@@ -284,7 +284,7 @@ esp:mpe_pressure_controller_7
 	rdfs:comment "MIDI controller to use as voice pressure for zone 7" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_pressure_controller_8
 	a lv2:Parameter ;
@@ -292,7 +292,7 @@ esp:mpe_pressure_controller_8
 	rdfs:comment "MIDI controller to use as voice pressure for zone 8" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 
 esp:mpe_timbre_controller_1
@@ -301,7 +301,7 @@ esp:mpe_timbre_controller_1
 	rdfs:comment "MIDI controller to use as voice timbre for zone 1" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_2
 	a lv2:Parameter ;
@@ -309,7 +309,7 @@ esp:mpe_timbre_controller_2
 	rdfs:comment "MIDI controller to use as voice timbre for zone 2" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_3
 	a lv2:Parameter ;
@@ -317,7 +317,7 @@ esp:mpe_timbre_controller_3
 	rdfs:comment "MIDI controller to use as voice timbre for zone 3" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_4
 	a lv2:Parameter ;
@@ -325,7 +325,7 @@ esp:mpe_timbre_controller_4
 	rdfs:comment "MIDI controller to use as voice timbre for zone 4" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_5
 	a lv2:Parameter ;
@@ -333,7 +333,7 @@ esp:mpe_timbre_controller_5
 	rdfs:comment "MIDI controller to use as voice timbre for zone 5" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_6
 	a lv2:Parameter ;
@@ -341,7 +341,7 @@ esp:mpe_timbre_controller_6
 	rdfs:comment "MIDI controller to use as voice timbre for zone 6" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_7
 	a lv2:Parameter ;
@@ -349,7 +349,7 @@ esp:mpe_timbre_controller_7
 	rdfs:comment "MIDI controller to use as voice timbre for zone 7" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 esp:mpe_timbre_controller_8
 	a lv2:Parameter ;
@@ -357,7 +357,7 @@ esp:mpe_timbre_controller_8
 	rdfs:comment "MIDI controller to use as voice timbre for zone 8" ;
 	rdfs:range atom:Int ;
 	units:unit units:midiController ;
-	lv2:minimum 0 ;
+	lv2:minimum -1 ;
 	lv2:maximum 127 .
 
 # MPE Output Plugin

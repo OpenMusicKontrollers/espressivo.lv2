@@ -424,51 +424,57 @@ _upd(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 		handle->ref = _midi_event(handle, frames, bend, 3);
 
 	// pressure
-	const uint16_t z = state->pressure * 0x3fff;
-	const uint8_t z_msb = z >> 7;
-	const uint8_t z_lsb = z & 0x7f;
+	if(handle->state.pressure_controller[state->zone] >= 0)
+	{
+		const uint16_t z = state->pressure * 0x3fff;
+		const uint8_t z_msb = z >> 7;
+		const uint8_t z_lsb = z & 0x7f;
 
-	const uint8_t pressure_lsb [3] = {
-		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		handle->state.pressure_controller[state->zone] | 0x20,
-		z_lsb
-	};
+		const uint8_t pressure_lsb [3] = {
+			LV2_MIDI_MSG_CONTROLLER | src->chan,
+			handle->state.pressure_controller[state->zone] | 0x20,
+			z_lsb
+		};
 
-	const uint8_t pressure_msb [3] = {
-		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		handle->state.pressure_controller[state->zone],
-		z_msb
-	};
+		const uint8_t pressure_msb [3] = {
+			LV2_MIDI_MSG_CONTROLLER | src->chan,
+			handle->state.pressure_controller[state->zone],
+			z_msb
+		};
 
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, pressure_lsb, 3);
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, pressure_msb, 3);
+		if(handle->ref)
+			handle->ref = _midi_event(handle, frames, pressure_lsb, 3);
+		if(handle->ref)
+			handle->ref = _midi_event(handle, frames, pressure_msb, 3);
+	}
 
 	// timbre
-	float pos2 = state->timbre;
-	if(pos2 < -1.f) pos2 = -1.f;
-	else if(pos2 > 1.f) pos2 = 1.f;
-	const uint16_t vx = (pos2 * 0x2000) + 0x1fff;
-	const uint8_t vx_msb = vx >> 7;
-	const uint8_t vx_lsb = vx & 0x7f;
+	if(handle->state.timbre_controller[state->zone] >= 0)
+	{
+		float pos2 = state->timbre;
+		if(pos2 < -1.f) pos2 = -1.f;
+		else if(pos2 > 1.f) pos2 = 1.f;
+		const uint16_t vx = (pos2 * 0x2000) + 0x1fff;
+		const uint8_t vx_msb = vx >> 7;
+		const uint8_t vx_lsb = vx & 0x7f;
 
-	const uint8_t timbre_lsb [3] = {
-		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		handle->state.timbre_controller[state->zone] | 0x20,
-		vx_lsb
-	};
+		const uint8_t timbre_lsb [3] = {
+			LV2_MIDI_MSG_CONTROLLER | src->chan,
+			handle->state.timbre_controller[state->zone] | 0x20,
+			vx_lsb
+		};
 
-	const uint8_t timbre_msb [3] = {
-		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		handle->state.timbre_controller[state->zone],
-		vx_msb
-	};
+		const uint8_t timbre_msb [3] = {
+			LV2_MIDI_MSG_CONTROLLER | src->chan,
+			handle->state.timbre_controller[state->zone],
+			vx_msb
+		};
 
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, timbre_lsb, 3);
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, timbre_msb, 3);
+		if(handle->ref)
+			handle->ref = _midi_event(handle, frames, timbre_lsb, 3);
+		if(handle->ref)
+			handle->ref = _midi_event(handle, frames, timbre_msb, 3);
+	}
 
 	// timbre 2
 	/* FIXME
