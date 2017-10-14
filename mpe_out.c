@@ -405,23 +405,35 @@ static const props_def_t defs [MAX_NPROPS] = {
 	TIMBRE_CONTROLLER(8)
 };
 
+static inline bool
+_notes_enabled(plughandle_t *handle, targetI_t *src)
+{
+	if(handle->state.voice_range[src->zone] >= 0)
+		return true;
+
+	return false;
+}
+
 static inline void
 _upd(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 	float val, targetI_t *src)
 {
 	// bender
-	const uint16_t bnd = (val - src->key) * mpe_range_1(&handle->mpe, state->zone) * 0x2000 + 0x1fff;
-	const uint8_t bnd_msb = bnd >> 7;
-	const uint8_t bnd_lsb = bnd & 0x7f;
+	if(_notes_enabled(handle, src))
+	{
+		const uint16_t bnd = (val - src->key) * mpe_range_1(&handle->mpe, state->zone) * 0x2000 + 0x1fff;
+		const uint8_t bnd_msb = bnd >> 7;
+		const uint8_t bnd_lsb = bnd & 0x7f;
 
-	const uint8_t bend [3] = {
-		LV2_MIDI_MSG_BENDER | src->chan,
-		bnd_lsb,
-		bnd_msb
-	};
+		const uint8_t bend [3] = {
+			LV2_MIDI_MSG_BENDER | src->chan,
+			bnd_lsb,
+			bnd_msb
+		};
 
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, bend, 3);
+		if(handle->ref)
+			handle->ref = _midi_event(handle, frames, bend, 3);
+	}
 
 	// pressure
 	if(handle->state.pressure_controller[state->zone] >= 0)
@@ -476,32 +488,7 @@ _upd(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 			handle->ref = _midi_event(handle, frames, timbre_msb, 3);
 	}
 
-	// timbre 2
-	/* FIXME
-	float vel0 = state->dPitch;
-	if(vel0 < -1.f) vel0 = -1.f;
-	if(vel0 > 1.f) vel0 = 1.f;
-	const uint16_t vz = (vel0 * 0x2000) + 0x1fff;
-	const uint8_t vz_msb = vz >> 7;
-	const uint8_t vz_lsb = vz & 0x7f;
-
-	const uint8_t mod_lsb [3] = {
-		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		LV2_MIDI_CTL_LSB_MODWHEEL,
-		vz_lsb
-	};
-
-	const uint8_t mod_msb [3] = {
-		LV2_MIDI_MSG_CONTROLLER | src->chan,
-		LV2_MIDI_CTL_MSB_MODWHEEL,
-		vz_msb
-	};
-
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, mod_lsb, 3);
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, mod_msb, 3);
-	*/
+	// FIXME dPitch, dPressure, dTimbre
 }
 
 static void
@@ -516,16 +503,20 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	src->chan = mpe_acquire(&handle->mpe, state->zone);
 	src->zone = state->zone;
 	src->key = floor(val);
-	const uint8_t vel = handle->state.velocity;
 
-	const uint8_t note_on [3] = {
-		LV2_MIDI_MSG_NOTE_ON | src->chan,
-		src->key,
-		vel
-	};
+	if(_notes_enabled(handle, src))
+	{
+		const uint8_t vel = handle->state.velocity;
 
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, note_on, 3);
+		const uint8_t note_on [3] = {
+			LV2_MIDI_MSG_NOTE_ON | src->chan,
+			src->key,
+			vel
+		};
+
+		if(handle->ref)
+			handle->ref = _midi_event(handle, frames, note_on, 3);
+	}
 
 	_upd(handle, frames, state, val, src);
 }
@@ -549,16 +540,19 @@ _del(void *data, int64_t frames,
 	plughandle_t *handle = data;
 	targetI_t *src = target;
 
-	const uint8_t vel = 0x0;
+	if(_notes_enabled(handle, src))
+	{
+		const uint8_t vel = 0x0;
 
-	const uint8_t note_off [3] = {
-		LV2_MIDI_MSG_NOTE_OFF | src->chan,
-		src->key,
-		vel
-	};
+		const uint8_t note_off [3] = {
+			LV2_MIDI_MSG_NOTE_OFF | src->chan,
+			src->key,
+			vel
+		};
 
-	if(handle->ref)
-		handle->ref = _midi_event(handle, frames, note_off, 3);
+		if(handle->ref)
+			handle->ref = _midi_event(handle, frames, note_off, 3);
+	}
 
 	mpe_release(&handle->mpe, src->zone, src->chan);
 }
