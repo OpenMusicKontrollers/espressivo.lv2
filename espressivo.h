@@ -63,6 +63,7 @@
 #define ESPRESSIVO_SNH_URI					ESPRESSIVO_URI"#snh"
 #define ESPRESSIVO_THROUGH_URI			ESPRESSIVO_URI"#through"
 #define ESPRESSIVO_MODULATOR_URI		ESPRESSIVO_URI"#modulator"
+#define ESPRESSIVO_REDIRECTOR_URI		ESPRESSIVO_URI"#redirector"
 #define ESPRESSIVO_CHORD_URI				ESPRESSIVO_URI"#chord"
 #define ESPRESSIVO_REDUCTO_URI			ESPRESSIVO_URI"#reducto"
 #define ESPRESSIVO_DISCRETO_URI			ESPRESSIVO_URI"#discreto"
@@ -80,6 +81,7 @@ extern const LV2_Descriptor mpe_out;
 extern const LV2_Descriptor snh;
 extern const LV2_Descriptor through;
 extern const LV2_Descriptor modulator;
+extern const LV2_Descriptor redirector;
 extern const LV2_Descriptor chord;
 extern const LV2_Descriptor reducto;
 extern const LV2_Descriptor discreto;
