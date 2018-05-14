@@ -6,6 +6,19 @@
 
 [![build status](https://gitlab.com/OpenMusicKontrollers/espressivo.lv2/badges/master/build.svg)](https://gitlab.com/OpenMusicKontrollers/espressivo.lv2/commits/master)
 
+### Dependencies
+
+* [LV2](http://lv2plug.in) (LV2 Plugin Standard)
+
+### Build / install
+
+	git clone https://gitlab.com/OpenMusicKontrollers/espressivo.lv2.git
+	cd espressivo.lv2
+	meson build
+	cd build
+	ninja -j4
+	sudo ninja install
+
 ### License
 
 Copyright (c) 2016 Hanspeter Portner (dev@open-music-kontrollers.ch)
