@@ -143,8 +143,6 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	plughandle_t *handle = data;
 	targetI_t *src = target;
 
-	targetO_t *dst = xpress_create(&handle->xpressO, &src->uuid);
-
 	_upd(handle, frames, state, src);
 }
 
@@ -294,7 +292,11 @@ cleanup(LV2_Handle instance)
 	plughandle_t *handle = instance;
 
 	if(handle)
+	{
+		xpress_deinit(&handle->xpressI);
+		xpress_deinit(&handle->xpressO);
 		free(handle);
+	}
 }
 
 static LV2_State_Status

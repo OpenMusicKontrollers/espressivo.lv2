@@ -1,7 +1,7 @@
 project('espressivo.lv2', 'c', default_options : [
 	'buildtype=release',
 	'warning_level=1',
-	'werror=false',
+	'werror=true',
 	'b_lto=true',
 	'c_std=c11'])
 

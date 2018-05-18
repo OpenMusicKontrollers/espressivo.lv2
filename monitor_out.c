@@ -104,7 +104,6 @@ _del(void *data, int64_t frames,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
-	targetI_t *src = target;
 
 	handle->needs_sync = true;
 }
@@ -340,7 +339,11 @@ cleanup(LV2_Handle instance)
 {
 	plughandle_t *handle = instance;
 
-	free(handle);
+	if(handle)
+	{
+		xpress_deinit(&handle->xpressI);
+		free(handle);
+	}
 }
 
 static LV2_State_Status

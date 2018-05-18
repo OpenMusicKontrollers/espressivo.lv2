@@ -200,7 +200,6 @@ static inline LV2_Atom_Forge_Ref
 _tuio2_2d(plughandle_t *handle, int64_t from, int64_t to)
 {
 	LV2_Atom_Forge_Frame bndl_frame [2];
-	LV2_Atom_Forge_Frame msg_frame [2];
 	LV2_Atom_Forge_Ref ref;
 
 	uint64_t ttag0 = 1ULL; // immediate
@@ -310,7 +309,6 @@ _del(void *data, int64_t frames,
 	xpress_uuid_t uuid, void *target)
 {
 	plughandle_t *handle = data;
-	targetI_t *src = target;
 
 	_upd(handle, frames);
 
@@ -437,7 +435,10 @@ cleanup(LV2_Handle instance)
 	plughandle_t *handle = instance;
 
 	if(handle)
+	{
+		xpress_deinit(&handle->xpressI);
 		free(handle);
+	}
 }
 
 static LV2_State_Status

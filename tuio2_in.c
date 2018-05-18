@@ -682,7 +682,10 @@ cleanup(LV2_Handle instance)
 	plughandle_t *handle = (plughandle_t *)instance;
 
 	if(handle)
+	{
+		xpress_deinit(&handle->xpressO);
 		free(handle);
+	}
 }
 
 static LV2_State_Status
