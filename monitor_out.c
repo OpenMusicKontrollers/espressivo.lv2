@@ -135,9 +135,6 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 			handle->log = features[i]->data;
 	}
 
-	if(!voice_map)
-		voice_map = &voice_map_fallback;
-
 	if(!handle->map)
 	{
 		fprintf(stderr,

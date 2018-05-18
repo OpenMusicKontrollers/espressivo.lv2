@@ -101,6 +101,4 @@ _cps2midi(float cps)
 	return log2f(cps / 440.f) * 12.f + 69.f;
 }
 
-extern xpress_map_t voice_map_fallback;
-
 #endif // _ESPRESSIVO_LV2_H

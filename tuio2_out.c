@@ -345,9 +345,6 @@ instantiate(const LV2_Descriptor* descriptor, double rate,
 			handle->osc_sched = features[i]->data;
 	}
 
-	if(!voice_map)
-		voice_map = &voice_map_fallback;
-
 	if(!handle->map)
 	{
 		fprintf(stderr, "%s: Host does not support urid:map\n", descriptor->URI);
