@@ -362,7 +362,7 @@ _xpress_voice_free(xpress_t *xpress, xpress_voice_t *voice)
 	xpress->nvoices--;
 }
 
-xpress_shm_t *
+static xpress_shm_t *
 _xpress_shm_init()
 {
 	xpress_shm_t *xpress_shm = NULL;
@@ -403,7 +403,7 @@ _xpress_shm_init()
 	return xpress_shm;
 }
 
-void
+static void
 _xpress_shm_deinit(xpress_shm_t *xpress_shm)
 {
 #ifndef _WIN32
