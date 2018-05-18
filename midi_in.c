@@ -164,23 +164,6 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
 	}
 }
 
-static inline LV2_Atom_Forge_Ref
-_midi_event(plughandle_t *handle, int64_t frames, const uint8_t *m, size_t len)
-{
-	LV2_Atom_Forge *forge = &handle->forge;
-	LV2_Atom_Forge_Ref ref;
-		
-	ref = lv2_atom_forge_frame_time(forge, frames);
-	if(ref)
-		ref = lv2_atom_forge_atom(forge, len, handle->uris.midi_MidiEvent);
-	if(ref)
-		ref = lv2_atom_forge_raw(forge, m, len);
-	if(ref)
-		lv2_atom_forge_pad(forge, len);
-
-	return ref;
-}
-
 static targetO_t *
 _midi_get(plughandle_t *handle, uint8_t chan, uint8_t key, xpress_uuid_t *uuid)
 {

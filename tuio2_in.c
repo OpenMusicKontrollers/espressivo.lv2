@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <espressivo.h>
 #include <osc.lv2/util.h>
@@ -286,7 +287,7 @@ _tuio2_frm(const char *path, const LV2_Atom_Tuple *args,
 		if(last < handle->tuio2.last)
 		{
 			if(handle->log)
-				lv2_log_trace(&handle->logger, "time warp: %08lx must not be smaller than %08lx",
+				lv2_log_trace(&handle->logger, "time warp: %08"PRIx64" must not be smaller than %08"PRIx64,
 					last, handle->tuio2.last);
 		}
 
@@ -296,7 +297,7 @@ _tuio2_frm(const char *path, const LV2_Atom_Tuple *args,
 			handle->tuio2.missed += fid - 1 - handle->tuio2.fid;
 
 			if(handle->log)
-				lv2_log_trace(&handle->logger, "missed events: %u .. %u (missing: %i)",
+				lv2_log_trace(&handle->logger, "missed events: %"PRIu32" .. %"PRIu32" (missing: %"PRIi32")",
 					handle->tuio2.fid + 1, fid - 1, handle->tuio2.missed);
 		}
 
@@ -348,7 +349,7 @@ _tuio2_frm(const char *path, const LV2_Atom_Tuple *args,
 		handle->tuio2.missed -= 1;
 
 		if(handle->log)
-			lv2_log_trace(&handle->logger, "found event: %u (missing: %i)",
+			lv2_log_trace(&handle->logger, "found event: %"PRIu32" (missing: %"PRIi32")",
 				fid, handle->tuio2.missed);
 
 		if(handle->tuio2.missed < 0)
