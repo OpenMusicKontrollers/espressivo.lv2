@@ -15,6 +15,7 @@ clone = [cp, '@INPUT@', '@OUTPUT@']
 
 m_dep = cc.find_library('m')
 lv2_dep = dependency('lv2', version : '>=1.14.0')
+deps = [m_dep, lv2_dep]
 
 props_inc = include_directories('props.lv2')
 osc_inc = include_directories('osc.lv2')
@@ -44,11 +45,16 @@ dsp_srcs = ['espressivo.c',
 c_args = ['-fvisibility=hidden',
 	'-ffast-math']
 
+if host_machine.system() == 'linux'
+	rt_dep = cc.find_library('rt')
+	deps += rt_dep
+endif
+
 mod = shared_module('espressivo', dsp_srcs,
 	c_args : c_args,
 	include_directories : inc_dir,
 	name_prefix : '',
-	dependencies : [m_dep, lv2_dep],
+	dependencies : deps,
 	install : true,
 	install_dir : inst_dir)
 
