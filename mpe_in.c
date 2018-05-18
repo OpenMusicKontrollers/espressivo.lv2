@@ -213,6 +213,7 @@ _slot_voice(slot_t *slot, uint8_t chan)
 	return chan - slot->master_channel - 1;
 }
 
+#if 0
 static inline void
 _zone_dump(plughandle_t *handle)
 {
@@ -227,6 +228,7 @@ _zone_dump(plughandle_t *handle)
 	}
 	printf("\n");
 }
+#endif
 
 static inline void
 _zone_notify(plughandle_t *handle, int64_t frames)
