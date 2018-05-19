@@ -45,7 +45,11 @@ dsp_srcs = ['espressivo.c',
 c_args = ['-fvisibility=hidden',
 	'-ffast-math']
 
-if host_machine.system() == 'linux'
+if host_machine.system() == 'windows'
+	# nothing
+elif host_machine.system() == 'darwin'
+	# nothing
+else
 	rt_dep = cc.find_library('rt')
 	deps += rt_dep
 endif
