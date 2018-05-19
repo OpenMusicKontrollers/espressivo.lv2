@@ -29,7 +29,8 @@
 #include <canvas.lv2/forge.h>
 #include <canvas.lv2/forge.h>
 
-#define MAX_NPROPS 0
+#define MAX_GRAPH 0x20000 //FIXME actually measure this
+#define MAX_NPROPS 2
 
 typedef struct _targetI_t targetI_t;
 typedef struct _plugstate_t plugstate_t;
@@ -40,6 +41,8 @@ struct _targetI_t {
 };
 
 struct _plugstate_t {
+	float aspect_ratio;
+	uint8_t graph [MAX_GRAPH];
 };
 
 struct _plughandle_t {
@@ -72,7 +75,18 @@ struct _plughandle_t {
 };
 
 static const props_def_t defs [MAX_NPROPS] = {
-	// empty
+	{
+		.access = LV2_PATCH__readable,
+		.property = CANVAS__graph,
+		.offset = offsetof(plugstate_t, graph),
+		.type = LV2_ATOM__Tuple,
+		.max_size = MAX_GRAPH
+	},
+	{
+		.property = CANVAS__aspectRatio,
+		.offset = offsetof(plugstate_t, aspect_ratio),
+		.type = LV2_ATOM__Float
+	}
 };
 
 static void
@@ -224,7 +238,7 @@ _render(plughandle_t *handle, uint32_t frames)
 		{
 			// draw background
 			if(ref)
-				ref = lv2_canvas_forge_style(forge, canvas_urid, 0x222222ff);
+				ref = lv2_canvas_forge_style(forge, canvas_urid, 0x0000003f);
 			if(ref)
 				ref = lv2_canvas_forge_rectangle(forge, canvas_urid, 0.f, 0.f, 1.f, 1.f);
 			if(ref)

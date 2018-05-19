@@ -34,6 +34,7 @@
 @prefix proj:	<http://open-music-kontrollers.ch/lv2/> .
 @prefix esp:	<http://open-music-kontrollers.ch/lv2/espressivo#> .
 @prefix osc:	<http://open-music-kontrollers.ch/lv2/osc#> .
+@prefix canvas:	<http://open-music-kontrollers.ch/lv2/canvas#> .
 @prefix xpress:	<http://open-music-kontrollers.ch/lv2/xpress#> .
 
 osc:schedule
@@ -83,6 +84,20 @@ proj:espressivo
 	a doap:Project ;
 	doap:maintainer omk:me ;
 	doap:name "Espressivo Bundle" .
+
+# Parameters
+canvas:graph
+	a lv2:Parameter ;
+	rdfs:label "Graph" ;
+	rdfs:comment "set canvas graph" ;
+	rdfs:range atom:Tuple .
+canvas:aspectRatio
+	a lv2:Parameter ;
+	rdfs:label "Aspect ratio" ;
+	rdfs:comment "set aspect ratio" ;
+	rdfs:range atom:Float ;
+	lv2:minimum 0.25 ;
+	lv2:maximum 4.0 .
 
 esp:mpe_zones
 	a lv2:Parameter ;
@@ -1635,5 +1650,11 @@ esp:monitor_out
 		lv2:designation lv2:control ;
 	] ;
 
+	patch:readable
+		canvas:graph ;
+	patch:writable
+		canvas:aspectRatio ;
+
 	state:state [
+		canvas:aspectRatio "1.0"^^xsd:float ;
 	] .
