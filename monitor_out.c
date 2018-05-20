@@ -245,7 +245,7 @@ _render(plughandle_t *handle, uint32_t frames)
 				ref = lv2_canvas_forge_fill(forge, canvas_urid);
 
 			if(ref)
-				ref = lv2_canvas_forge_lineWidth(forge, canvas_urid, 0.002f);
+				ref = lv2_canvas_forge_lineWidth(forge, canvas_urid, 0.005f);
 
 			XPRESS_VOICE_FOREACH(&handle->xpressI, voice)
 			{

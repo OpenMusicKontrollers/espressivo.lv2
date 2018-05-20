@@ -143,6 +143,8 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 	plughandle_t *handle = data;
 	targetI_t *src = target;
 
+	xpress_create(&handle->xpressO, &src->uuid);
+
 	_upd(handle, frames, state, src);
 }
 
