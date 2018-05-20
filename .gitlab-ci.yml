@@ -6,6 +6,7 @@ stages:
 .variables_template: &variables_definition
   variables:
     BASE_NAME: "espressivo.lv2"
+    PATH: "/opt/lv2/bin:${PATH}"
     PKG_CONFIG_PATH: "/opt/lv2/lib/pkgconfig:/opt/${CI_BUILD_NAME}/lib/pkgconfig:/usr/lib/${CI_BUILD_NAME}/pkgconfig"
 
 .common_template: &common_definition
@@ -22,6 +23,7 @@ stages:
     - meson --prefix="/opt/${CI_BUILD_NAME}" --libdir="lib" --cross-file "${CI_BUILD_NAME}" build
     - ninja -C build
     - ninja -C build install
+    - ninja -C build test
     - mkdir -p "${BASE_NAME}-$(cat VERSION)/${CI_BUILD_NAME}/${BASE_NAME}"
     - cp -r "/opt/${CI_BUILD_NAME}/lib/lv2/${BASE_NAME}/" "${BASE_NAME}-$(cat VERSION)/${CI_BUILD_NAME}/"
 

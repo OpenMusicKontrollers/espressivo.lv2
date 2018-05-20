@@ -11,6 +11,7 @@ conf_data = configuration_data()
 cc = meson.get_compiler('c')
 
 cp = find_program('cp')
+lv2_validate = find_program('lv2_validate', native : true, required : false)
 clone = [cp, '@INPUT@', '@OUTPUT@']
 
 m_dep = cc.find_library('m')
@@ -70,13 +71,19 @@ conf_data.set('MICRO_VERSION', version[2])
 suffix = mod.full_path().strip().split('.')[-1]
 conf_data.set('MODULE_SUFFIX', '.' + suffix)
 
-configure_file(input : 'manifest.ttl.in', output : 'manifest.ttl',
+manifest_ttl = configure_file(input : 'manifest.ttl.in', output : 'manifest.ttl',
 	configuration : conf_data,
 	install : true,
 	install_dir : inst_dir)
-custom_target('espressivo_ttl',
+dsp_ttl = custom_target('espressivo_ttl',
 	input : 'espressivo.ttl',
 	output : 'espressivo.ttl',
 	command : clone,
 	install : true,
 	install_dir : inst_dir)
+
+if lv2_validate.found()
+	test('LV2 Validation',
+		lv2_validate,
+		args : [manifest_ttl, dsp_ttl])
+endif
