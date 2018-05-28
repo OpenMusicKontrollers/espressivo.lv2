@@ -692,111 +692,392 @@ esp:tuio2_out
 		esp:tuio2_timestampOffset "2.0"^^xsd:float ;	
 	] .
 
-esp:midi_range
+esp:midi_range_1
 	a lv2:Parameter ;
-	rdfs:label "Bend Range" ;
-	rdfs:comment "MIDI pitch bend range" ;
-	rdfs:range atom:Int ;
-	units:unit units:cent ;
-	lv2:minimum 100 ;
-	lv2:maximum 1200 .
+	rdfs:label "Bend Range 1" ;
+	rdfs:comment "MIDI pitch bend range for channel 1" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_2
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 2" ;
+	rdfs:comment "MIDI pitch bend range for channel 2" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_3
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 3" ;
+	rdfs:comment "MIDI pitch bend range for channel 3" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_4
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 4" ;
+	rdfs:comment "MIDI pitch bend range for channel 4" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_5
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 5" ;
+	rdfs:comment "MIDI pitch bend range for channel 5" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_6
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 6" ;
+	rdfs:comment "MIDI pitch bend range for channel 6" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_7
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 7" ;
+	rdfs:comment "MIDI pitch bend range for channel 7" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_8
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 8" ;
+	rdfs:comment "MIDI pitch bend range for channel 8" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_9
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 9" ;
+	rdfs:comment "MIDI pitch bend range for channel 9" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_10
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 10" ;
+	rdfs:comment "MIDI pitch bend range for channel 10" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_11
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 11" ;
+	rdfs:comment "MIDI pitch bend range for channel 11" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_12
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 12" ;
+	rdfs:comment "MIDI pitch bend range for channel 12" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_13
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 13" ;
+	rdfs:comment "MIDI pitch bend range for channel 13" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_14
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 14" ;
+	rdfs:comment "MIDI pitch bend range for channel 14" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_15
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 15" ;
+	rdfs:comment "MIDI pitch bend range for channel 15" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
+esp:midi_range_16
+	a lv2:Parameter ;
+	rdfs:label "Bend Range 16" ;
+	rdfs:comment "MIDI pitch bend range for channel 16" ;
+	rdfs:range atom:Float ;
+	units:unit units:semitone12TET;
+	lv2:minimum 0.0 ;
+	lv2:maximum 96.0 .
 
-esp:midi_cents_1
+esp:midi_pressure_controller_1
 	a lv2:Parameter ;
-	rdfs:label "Note 1 Offset" ;
-	rdfs:comment "pitch offset for note 1" ;
+	rdfs:label "Pressure Controller 1" ;
+	rdfs:comment "MIDI Controller for channel 1" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_2
+	lv2:maximum 127 .
+esp:midi_pressure_controller_2
 	a lv2:Parameter ;
-	rdfs:label "Note 2 Offset" ;
-	rdfs:comment "pitch offset for note 2" ;
+	rdfs:label "Pressure Controller 2" ;
+	rdfs:comment "MIDI Controller for channel 2" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_3
+	lv2:maximum 127 .
+esp:midi_pressure_controller_3
 	a lv2:Parameter ;
-	rdfs:label "Note 3 Offset" ;
-	rdfs:comment "pitch offset for note 3" ;
+	rdfs:label "Pressure Controller 3" ;
+	rdfs:comment "MIDI Controller for channel 3" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_4
+	lv2:maximum 127 .
+esp:midi_pressure_controller_4
 	a lv2:Parameter ;
-	rdfs:label "Note 4 Offset" ;
-	rdfs:comment "pitch offset for note 4" ;
+	rdfs:label "Pressure Controller 4" ;
+	rdfs:comment "MIDI Controller for channel 4" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_5
+	lv2:maximum 127 .
+esp:midi_pressure_controller_5
 	a lv2:Parameter ;
-	rdfs:label "Note 5 Offset" ;
-	rdfs:comment "pitch offset for note 5" ;
+	rdfs:label "Pressure Controller 5" ;
+	rdfs:comment "MIDI Controller for channel 5" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_6
+	lv2:maximum 127 .
+esp:midi_pressure_controller_6
 	a lv2:Parameter ;
-	rdfs:label "Note 6 Offset" ;
-	rdfs:comment "pitch offset for note 6" ;
+	rdfs:label "Pressure Controller 6" ;
+	rdfs:comment "MIDI Controller for channel 6" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_7
+	lv2:maximum 127 .
+esp:midi_pressure_controller_7
 	a lv2:Parameter ;
-	rdfs:label "Note 7 Offset" ;
-	rdfs:comment "pitch offset for note 7" ;
+	rdfs:label "Pressure Controller 7" ;
+	rdfs:comment "MIDI Controller for channel 7" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_8
+	lv2:maximum 127 .
+esp:midi_pressure_controller_8
 	a lv2:Parameter ;
-	rdfs:label "Note 8 Offset" ;
-	rdfs:comment "pitch offset for note 8" ;
+	rdfs:label "Pressure Controller 8" ;
+	rdfs:comment "MIDI Controller for channel 8" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_9
+	lv2:maximum 127 .
+esp:midi_pressure_controller_9
 	a lv2:Parameter ;
-	rdfs:label "Note 9 Offset" ;
-	rdfs:comment "pitch offset for note 9" ;
+	rdfs:label "Pressure Controller 9" ;
+	rdfs:comment "MIDI Controller for channel 9" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_10
+	lv2:maximum 127 .
+esp:midi_pressure_controller_10
 	a lv2:Parameter ;
-	rdfs:label "Note 10 Offset" ;
-	rdfs:comment "pitch offset for note 10" ;
+	rdfs:label "Pressure Controller 10" ;
+	rdfs:comment "MIDI Controller for channel 10" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_11
+	lv2:maximum 127 .
+esp:midi_pressure_controller_11
 	a lv2:Parameter ;
-	rdfs:label "Note 11 Offset" ;
-	rdfs:comment "pitch offset for note 11" ;
+	rdfs:label "Pressure Controller 11" ;
+	rdfs:comment "MIDI Controller for channel 11" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
-esp:midi_cents_12
+	lv2:maximum 127 .
+esp:midi_pressure_controller_12
 	a lv2:Parameter ;
-	rdfs:label "Note 12 Offset" ;
-	rdfs:comment "pitch offset for note 12" ;
+	rdfs:label "Pressure Controller 12" ;
+	rdfs:comment "MIDI Controller for channel 12" ;
 	rdfs:range atom:Int ;
-	units:unit units:cent ;
+	units:unit units:midiController ;
 	lv2:minimum 0 ;
-	lv2:maximum 1200 .
+	lv2:maximum 127 .
+esp:midi_pressure_controller_13
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 13" ;
+	rdfs:comment "MIDI Controller for channel 13" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_pressure_controller_14
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 14" ;
+	rdfs:comment "MIDI Controller for channel 14" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_pressure_controller_15
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 15" ;
+	rdfs:comment "MIDI Controller for channel 15" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_pressure_controller_16
+	a lv2:Parameter ;
+	rdfs:label "Pressure Controller 16" ;
+	rdfs:comment "MIDI Controller for channel 16" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+
+esp:midi_timbre_controller_1
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 1" ;
+	rdfs:comment "MIDI Controller for channel 1" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_2
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 2" ;
+	rdfs:comment "MIDI Controller for channel 2" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_3
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 3" ;
+	rdfs:comment "MIDI Controller for channel 3" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_4
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 4" ;
+	rdfs:comment "MIDI Controller for channel 4" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_5
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 5" ;
+	rdfs:comment "MIDI Controller for channel 5" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_6
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 6" ;
+	rdfs:comment "MIDI Controller for channel 6" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_7
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 7" ;
+	rdfs:comment "MIDI Controller for channel 7" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_8
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 8" ;
+	rdfs:comment "MIDI Controller for channel 8" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_9
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 9" ;
+	rdfs:comment "MIDI Controller for channel 9" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_10
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 10" ;
+	rdfs:comment "MIDI Controller for channel 10" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_11
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 11" ;
+	rdfs:comment "MIDI Controller for channel 11" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_12
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 12" ;
+	rdfs:comment "MIDI Controller for channel 12" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_13
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 13" ;
+	rdfs:comment "MIDI Controller for channel 13" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_14
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 14" ;
+	rdfs:comment "MIDI Controller for channel 14" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_15
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 15" ;
+	rdfs:comment "MIDI Controller for channel 15" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
+esp:midi_timbre_controller_16
+	a lv2:Parameter ;
+	rdfs:label "Timbre Controller 16" ;
+	rdfs:comment "MIDI Controller for channel 16" ;
+	rdfs:range atom:Int ;
+	units:unit units:midiController ;
+	lv2:minimum 0 ;
+	lv2:maximum 127 .
 
 # MIDI Input Plugin
 esp:midi_in
@@ -832,34 +1113,108 @@ esp:midi_in
 	] ;
 
 	patch:writable
-		esp:midi_range ,
-		esp:midi_cents_1 ,
-		esp:midi_cents_2 ,
-		esp:midi_cents_3 ,
-		esp:midi_cents_4 ,
-		esp:midi_cents_5 ,
-		esp:midi_cents_6 ,
-		esp:midi_cents_7 ,
-		esp:midi_cents_8 ,
-		esp:midi_cents_9 ,
-		esp:midi_cents_10 ,
-		esp:midi_cents_11 ,
-		esp:midi_cents_12 ;
+		esp:midi_range_1 ,
+		esp:midi_range_2 ,
+		esp:midi_range_3 ,
+		esp:midi_range_4 ,
+		esp:midi_range_5 ,
+		esp:midi_range_6 ,
+		esp:midi_range_7 ,
+		esp:midi_range_8 ,
+		esp:midi_range_9 ,
+		esp:midi_range_10 ,
+		esp:midi_range_11 ,
+		esp:midi_range_12 ,
+		esp:midi_range_13 ,
+		esp:midi_range_14 ,
+		esp:midi_range_15 ,
+		esp:midi_range_16 ,
+
+		esp:midi_pressure_controller_1 ,
+		esp:midi_pressure_controller_2 ,
+		esp:midi_pressure_controller_3 ,
+		esp:midi_pressure_controller_4 ,
+		esp:midi_pressure_controller_5 ,
+		esp:midi_pressure_controller_6 ,
+		esp:midi_pressure_controller_7 ,
+		esp:midi_pressure_controller_8 ,
+		esp:midi_pressure_controller_9 ,
+		esp:midi_pressure_controller_10 ,
+		esp:midi_pressure_controller_11 ,
+		esp:midi_pressure_controller_12 ,
+		esp:midi_pressure_controller_13 ,
+		esp:midi_pressure_controller_14 ,
+		esp:midi_pressure_controller_15 ,
+		esp:midi_pressure_controller_16 ,
+
+		esp:midi_timbre_controller_1 ,
+		esp:midi_timbre_controller_2 ,
+		esp:midi_timbre_controller_3 ,
+		esp:midi_timbre_controller_4 ,
+		esp:midi_timbre_controller_5 ,
+		esp:midi_timbre_controller_6 ,
+		esp:midi_timbre_controller_7 ,
+		esp:midi_timbre_controller_8 ,
+		esp:midi_timbre_controller_9 ,
+		esp:midi_timbre_controller_10 ,
+		esp:midi_timbre_controller_11 ,
+		esp:midi_timbre_controller_12 ,
+		esp:midi_timbre_controller_13 ,
+		esp:midi_timbre_controller_14 ,
+		esp:midi_timbre_controller_15 ,
+		esp:midi_timbre_controller_16 ;
 	
 	state:state [
-		esp:midi_range 200 ;
-		esp:midi_cents_1 0 ;
-		esp:midi_cents_2 100 ;
-		esp:midi_cents_3 200 ;
-		esp:midi_cents_4 300 ;
-		esp:midi_cents_5 400 ;
-		esp:midi_cents_6 500 ;
-		esp:midi_cents_7 600 ;
-		esp:midi_cents_8 700 ;
-		esp:midi_cents_9 800 ;
-		esp:midi_cents_10 900 ;
-		esp:midi_cents_11 1000 ;
-		esp:midi_cents_12 1100 ;
+		esp:midi_range_1 2.0 ;
+		esp:midi_range_2 2.0 ;
+		esp:midi_range_3 2.0 ;
+		esp:midi_range_4 2.0 ;
+		esp:midi_range_5 2.0 ;
+		esp:midi_range_6 2.0 ;
+		esp:midi_range_7 2.0 ;
+		esp:midi_range_8 2.0 ;
+		esp:midi_range_9 2.0 ;
+		esp:midi_range_10 2.0 ;
+		esp:midi_range_11 2.0 ;
+		esp:midi_range_12 2.0 ;
+		esp:midi_range_13 2.0 ;
+		esp:midi_range_14 2.0 ;
+		esp:midi_range_15 2.0 ;
+		esp:midi_range_16 2.0 ;
+
+		esp:midi_pressure_controller_1 70 ;
+		esp:midi_pressure_controller_2 70 ;
+		esp:midi_pressure_controller_3 70 ;
+		esp:midi_pressure_controller_4 70 ;
+		esp:midi_pressure_controller_5 70 ;
+		esp:midi_pressure_controller_6 70 ;
+		esp:midi_pressure_controller_7 70 ;
+		esp:midi_pressure_controller_8 70 ;
+		esp:midi_pressure_controller_9 70 ;
+		esp:midi_pressure_controller_10 70 ;
+		esp:midi_pressure_controller_11 70 ;
+		esp:midi_pressure_controller_12 70 ;
+		esp:midi_pressure_controller_13 70 ;
+		esp:midi_pressure_controller_14 70 ;
+		esp:midi_pressure_controller_15 70 ;
+		esp:midi_pressure_controller_16 70 ;
+
+		esp:midi_timbre_controller_1 74 ;
+		esp:midi_timbre_controller_2 74 ;
+		esp:midi_timbre_controller_3 74 ;
+		esp:midi_timbre_controller_4 74 ;
+		esp:midi_timbre_controller_5 74 ;
+		esp:midi_timbre_controller_6 74 ;
+		esp:midi_timbre_controller_7 74 ;
+		esp:midi_timbre_controller_8 74 ;
+		esp:midi_timbre_controller_9 74 ;
+		esp:midi_timbre_controller_10 74 ;
+		esp:midi_timbre_controller_11 74 ;
+		esp:midi_timbre_controller_12 74 ;
+		esp:midi_timbre_controller_13 74 ;
+		esp:midi_timbre_controller_14 74 ;
+		esp:midi_timbre_controller_15 74 ;
+		esp:midi_timbre_controller_16 74 ;
 	] .
 
 esp:snh_sample

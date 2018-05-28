@@ -12,6 +12,7 @@ cc = meson.get_compiler('c')
 
 cp = find_program('cp')
 lv2_validate = find_program('lv2_validate', native : true, required : false)
+lv2lint = find_program('lv2lint', required : false)
 clone = [cp, '@INPUT@', '@OUTPUT@']
 
 m_dep = cc.find_library('m')
@@ -83,7 +84,26 @@ dsp_ttl = custom_target('espressivo_ttl',
 	install_dir : inst_dir)
 
 if lv2_validate.found()
-	test('LV2 Validation',
-		lv2_validate,
+	test('LV2 validate', lv2_validate,
 		args : [manifest_ttl, dsp_ttl])
+endif
+
+if lv2lint.found()
+	test('LV2 lint', lv2lint,
+		args : ['-Ewarn',
+			'http://open-music-kontrollers.ch/lv2/espressivo#chord',
+			'http://open-music-kontrollers.ch/lv2/espressivo#discreto',
+			'http://open-music-kontrollers.ch/lv2/espressivo#midi_in',
+			'http://open-music-kontrollers.ch/lv2/espressivo#modulator',
+			'http://open-music-kontrollers.ch/lv2/espressivo#monitor_out',
+			'http://open-music-kontrollers.ch/lv2/espressivo#mpe_in',
+			'http://open-music-kontrollers.ch/lv2/espressivo#mpe_out',
+			'http://open-music-kontrollers.ch/lv2/espressivo#redirector',
+			'http://open-music-kontrollers.ch/lv2/espressivo#reducto',
+			'http://open-music-kontrollers.ch/lv2/espressivo#sc_out',
+			'http://open-music-kontrollers.ch/lv2/espressivo#snh',
+			'http://open-music-kontrollers.ch/lv2/espressivo#sqew',
+			'http://open-music-kontrollers.ch/lv2/espressivo#through',
+			'http://open-music-kontrollers.ch/lv2/espressivo#tuio2_in',
+			'http://open-music-kontrollers.ch/lv2/espressivo#tuio2_out'])
 endif
