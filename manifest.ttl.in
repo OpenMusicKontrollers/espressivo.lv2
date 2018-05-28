@@ -41,6 +41,13 @@ esp:midi_in
 	lv2:binary <espressivo@MODULE_SUFFIX@> ;
 	rdfs:seeAlso <espressivo.ttl> .
 
+esp:midi_out
+	a lv2:Plugin ;
+	lv2:minorVersion @MINOR_VERSION@ ;
+	lv2:microVersion @MICRO_VERSION@ ;
+	lv2:binary <espressivo@MODULE_SUFFIX@> ;
+	rdfs:seeAlso <espressivo.ttl> .
+
 esp:mpe_in
 	a lv2:Plugin ;
 	lv2:minorVersion @MINOR_VERSION@ ;

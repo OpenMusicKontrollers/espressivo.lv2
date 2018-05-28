@@ -57,6 +57,8 @@ lv2_descriptor(uint32_t index)
 			return &modulator;
 		case 14:
 			return &redirector;
+		case 15:
+			return &midi_out;
 		default:
 			return NULL;
 	}
