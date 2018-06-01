@@ -24,21 +24,35 @@
 
 #include <mpe.h>
 
-#define MAX_NPROPS (3*0x10)
+#define MAX_NPROPS (4*0x10)
 
 typedef struct _targetI_t targetI_t;
 typedef struct _plugstate_t plugstate_t;
 typedef struct _plughandle_t plughandle_t;
 
+typedef enum _pressure_mode_t
+{
+	MODE_CONTROLLER       = 0,
+	MODE_NOTE_PRESSURE    = 1,
+	MODE_CHANNEL_PRESSURE = 2,
+	MODE_NOTE_VELOCITY    = 3
+} pressure_mode_t;
+
 struct _targetI_t {
 	uint8_t chan;
 	uint8_t key;
+
+	float range; //FIXME use this
+	uint8_t pressure; //FIXME use this
+	uint8_t timbre; //FIXME use this
+	pressure_mode_t mode; //FIXME use this
 };
 
 struct _plugstate_t {
 	float range [0x10];
 	int32_t pressure [0x10];
 	int32_t timbre [0x10];
+	int32_t mode [0x10];
 };
 
 struct _plughandle_t {
@@ -147,6 +161,13 @@ _intercept_midi_range(void *data, int64_t frames, props_impl_t *impl)
 	.type = LV2_ATOM__Int, \
 }
 
+#define MODE(NUM) \
+{ \
+	.property = ESPRESSIVO_URI"#midi_pressure_mode_"#NUM, \
+	.offset = offsetof(plugstate_t, mode) + (NUM-1)*sizeof(int32_t), \
+	.type = LV2_ATOM__Int, \
+}
+
 static const props_def_t defs [MAX_NPROPS] = {
 	RANGE(1),
 	RANGE(2),
@@ -197,7 +218,24 @@ static const props_def_t defs [MAX_NPROPS] = {
 	TIMBRE(13),
 	TIMBRE(14),
 	TIMBRE(15),
-	TIMBRE(16)
+	TIMBRE(16),
+
+	MODE(1),
+	MODE(2),
+	MODE(3),
+	MODE(4),
+	MODE(5),
+	MODE(6),
+	MODE(7),
+	MODE(8),
+	MODE(9),
+	MODE(10),
+	MODE(11),
+	MODE(12),
+	MODE(13),
+	MODE(14),
+	MODE(15),
+	MODE(16)
 };
 
 static inline void
@@ -206,7 +244,7 @@ _upd(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 {
 	// bender
 	{
-		const uint16_t bnd = (val - src->key) * handle->state.range[src->chan] * 0x1fff + 0x2000;
+		const uint16_t bnd = (val - src->key) * src->range * 0x1fff + 0x2000;
 		const uint8_t bnd_msb = bnd >> 7;
 		const uint8_t bnd_lsb = bnd & 0x7f;
 
@@ -221,51 +259,76 @@ _upd(plughandle_t *handle, int64_t frames, const xpress_state_t *state,
 	}
 
 	// pressure
-	if(handle->state.pressure[src->chan] >= 0)
 	{
 		const uint16_t z = state->pressure * 0x3fff;
 		const uint8_t z_msb = z >> 7;
 		const uint8_t z_lsb = z & 0x7f;
 
-		const uint8_t pressure_lsb [3] = {
-			LV2_MIDI_MSG_CONTROLLER | src->chan,
-			handle->state.pressure[src->chan] | 0x20,
-			z_lsb
-		};
+		switch(src->mode)
+		{
+			case MODE_NOTE_PRESSURE:
+			{
+				const uint8_t note_pressure [3] = {
+					LV2_MIDI_MSG_NOTE_PRESSURE | src->chan,
+					src->key,
+					z_msb
+				};
 
-		const uint8_t pressure_msb [3] = {
-			LV2_MIDI_MSG_CONTROLLER | src->chan,
-			handle->state.pressure[src->chan],
-			z_msb
-		};
+				if(handle->ref)
+					handle->ref = _midi_event(handle, frames, note_pressure, 3);
+			} break;
+			case MODE_CHANNEL_PRESSURE:
+			{
+				const uint8_t channel_pressure [2] = {
+					LV2_MIDI_MSG_CHANNEL_PRESSURE | src->chan,
+					z_msb
+				};
 
-		if(handle->ref)
-			handle->ref = _midi_event(handle, frames, pressure_lsb, 3);
-		if(handle->ref)
-			handle->ref = _midi_event(handle, frames, pressure_msb, 3);
+				if(handle->ref)
+					handle->ref = _midi_event(handle, frames, channel_pressure, 2);
+			} break;
+			case MODE_CONTROLLER:
+			{
+				const uint8_t pressure_lsb [3] = {
+					LV2_MIDI_MSG_CONTROLLER | src->chan,
+					src->pressure | 0x20,
+					z_lsb
+				};
+
+				const uint8_t pressure_msb [3] = {
+					LV2_MIDI_MSG_CONTROLLER | src->chan,
+					src->pressure,
+					z_msb
+				};
+
+				if(handle->ref)
+					handle->ref = _midi_event(handle, frames, pressure_lsb, 3);
+				if(handle->ref)
+					handle->ref = _midi_event(handle, frames, pressure_msb, 3);
+			} break;
+			case MODE_NOTE_VELOCITY:
+			{
+				// nothing to do
+			} break;
+		}
 	}
 
 	// timbre
-	if(handle->state.timbre[src->chan] >= 0)
 	{
-		//FIXME whey [-1, 1] ???
-		float pos2 = state->timbre;
-		if(pos2 < -1.f) pos2 = -1.f;
-		else if(pos2 > 1.f) pos2 = 1.f;
-		const uint16_t vx = (pos2 * 0x2000) + 0x1fff;
-		const uint8_t vx_msb = vx >> 7;
-		const uint8_t vx_lsb = vx & 0x7f;
+		const uint16_t z = state->timbre * 0x3fff;
+		const uint8_t z_msb = z >> 7;
+		const uint8_t z_lsb = z & 0x7f;
 
 		const uint8_t timbre_lsb [3] = {
 			LV2_MIDI_MSG_CONTROLLER | src->chan,
-			handle->state.timbre[src->chan] | 0x20,
-			vx_lsb
+			src->timbre | 0x20,
+			z_lsb
 		};
 
 		const uint8_t timbre_msb [3] = {
 			LV2_MIDI_MSG_CONTROLLER | src->chan,
-			handle->state.timbre[src->chan],
-			vx_msb
+			src->timbre,
+			z_msb
 		};
 
 		if(handle->ref)
@@ -286,10 +349,17 @@ _add(void *data, int64_t frames, const xpress_state_t *state,
 
 	const float val = state->pitch * 0x7f;
 
+	// these will remain fixed per note
 	src->chan = state->zone;
 	src->key = floorf(val);
+	src->mode = handle->state.mode[state->zone];
+	src->range = handle->state.range[state->zone];
+	src->pressure = handle->state.pressure[state->zone];
+	src->timbre = handle->state.timbre[state->zone];
 
-	const uint8_t vel = state->pressure * 0x7f;
+	const uint8_t vel = (src->mode == MODE_NOTE_VELOCITY)
+		? state->pressure * 0x7f
+		: 0x7f; //FIXME make this configurable
 
 	const uint8_t note_on [3] = {
 		LV2_MIDI_MSG_NOTE_ON | src->chan,
@@ -322,7 +392,7 @@ _del(void *data, int64_t frames,
 	plughandle_t *handle = data;
 	targetI_t *src = target;
 
-	const uint8_t vel = 0x0;
+	const uint8_t vel = 0x0; //FIXME maybe we want src->pressure here ?
 
 	const uint8_t note_off [3] = {
 		LV2_MIDI_MSG_NOTE_OFF | src->chan,

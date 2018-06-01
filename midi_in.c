@@ -22,11 +22,19 @@
 #include <espressivo.h>
 #include <props.h>
 
-#define MAX_NPROPS (3*0x10)
+#define MAX_NPROPS (4*0x10)
 
 typedef struct _targetO_t targetO_t;
 typedef struct _plugstate_t plugstate_t;
 typedef struct _plughandle_t plughandle_t;
+
+typedef enum _pressure_mode_t
+{
+	MODE_CONTROLLER       = 0,
+	MODE_NOTE_PRESSURE    = 1,
+	MODE_CHANNEL_PRESSURE = 2,
+	MODE_NOTE_VELOCITY    = 3
+} pressure_mode_t;
 
 struct _targetO_t {
 	uint8_t chan;
@@ -34,6 +42,11 @@ struct _targetO_t {
 	xpress_uuid_t uuid;
 
 	xpress_state_t state;
+
+	float range;
+	uint8_t pressure;
+	uint8_t timbre;
+	pressure_mode_t mode;
 
 	uint8_t pressure_lsb;
 	uint8_t timbre_lsb;
@@ -43,6 +56,7 @@ struct _plugstate_t {
 	float range [0x10];
 	int32_t pressure [0x10];
 	int32_t timbre [0x10];
+	int32_t mode [0x10];
 };
 
 struct _plughandle_t {
@@ -68,53 +82,16 @@ struct _plughandle_t {
 	uint16_t midi_rpn [0x10];
 	uint16_t midi_data [0x10];
 	int16_t midi_bender [0x10];
-	float midi_offset [0x10];
 };
 
 static const targetO_t targetO_vanilla;
 
-static inline void
-_update_offset(plughandle_t *handle, uint8_t chan)
-{
-	handle->midi_offset[chan] = handle->midi_bender[chan] / 0x1fff * handle->state.range[chan];
-}
-
 static inline float
-_get_pitch(plughandle_t *handle, uint8_t chan, uint8_t key)
+_get_pitch(plughandle_t *handle, targetO_t *target)
 {
-	return ((float)key + handle->midi_offset[chan]) / 0x7f;
-}
+	const float offset = handle->midi_bender[target->chan] / 0x1fff * target->range;
 
-static void
-_handle_midi_bender_internal(plughandle_t *handle, LV2_Atom_Forge *forge, int64_t frames,
-	uint8_t chan)
-{
-	XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
-	{
-		targetO_t *target = voice->target;
-
-		if(target->chan != chan)
-			continue; // channel not matching
-
-		target->state.pitch = _get_pitch(handle, target->chan, target->key);
-
-		if(handle->ref)
-			handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
-	}
-}
-
-static void
-_intercept_midi_range(void *data, int64_t frames, props_impl_t *impl)
-{
-	plughandle_t *handle = data;
-
-	const size_t chan = (float *)impl->value.body - handle->state.range;
-
-	if( (chan >= 0x0) && (chan < 0xf) )
-	{
-		_update_offset(handle, chan);
-		_handle_midi_bender_internal(handle, &handle->forge, frames, chan);
-	}
+	return ((float)target->key + offset) / 0x7f;
 }
 
 #define RANGE(NUM) \
@@ -122,7 +99,6 @@ _intercept_midi_range(void *data, int64_t frames, props_impl_t *impl)
 	.property = ESPRESSIVO_URI"#midi_range_"#NUM, \
 	.offset = offsetof(plugstate_t, range) + (NUM-1)*sizeof(float), \
 	.type = LV2_ATOM__Float, \
-	.event_cb = _intercept_midi_range \
 }
 
 #define PRESSURE(NUM) \
@@ -136,6 +112,13 @@ _intercept_midi_range(void *data, int64_t frames, props_impl_t *impl)
 { \
 	.property = ESPRESSIVO_URI"#midi_timbre_controller_"#NUM, \
 	.offset = offsetof(plugstate_t, timbre) + (NUM-1)*sizeof(int32_t), \
+	.type = LV2_ATOM__Int, \
+}
+
+#define MODE(NUM) \
+{ \
+	.property = ESPRESSIVO_URI"#midi_pressure_mode_"#NUM, \
+	.offset = offsetof(plugstate_t, mode) + (NUM-1)*sizeof(int32_t), \
 	.type = LV2_ATOM__Int, \
 }
 
@@ -189,7 +172,24 @@ static const props_def_t defs [MAX_NPROPS] = {
 	TIMBRE(13),
 	TIMBRE(14),
 	TIMBRE(15),
-	TIMBRE(16)
+	TIMBRE(16),
+
+	MODE(1),
+	MODE(2),
+	MODE(3),
+	MODE(4),
+	MODE(5),
+	MODE(6),
+	MODE(7),
+	MODE(8),
+	MODE(9),
+	MODE(10),
+	MODE(11),
+	MODE(12),
+	MODE(13),
+	MODE(14),
+	MODE(15),
+	MODE(16)
 };
 
 static const xpress_iface_t ifaceO = {
@@ -307,14 +307,23 @@ _handle_midi_note_on(plughandle_t *handle, LV2_Atom_Forge *forge, int64_t frames
 	targetO_t *target = xpress_create(&handle->xpressO, &uuid);
 	if(target)
 	{
-		const float pressure = (float)m[2] / 0x7f;
-
 		*target = targetO_vanilla;
+
+		// these will remain fixed per note
 		target->chan = chan;
 		target->key = key;
 		target->uuid = uuid;
+		target->range = handle->state.range[chan];
+		target->mode = handle->state.mode[chan];
+		target->pressure = handle->state.pressure[chan];
+		target->timbre = handle->state.timbre[chan];
+
+		const float pressure = (target->mode == MODE_NOTE_VELOCITY)
+			? (float)m[2] / 0x7f
+			: 0.f; //FIXME make this configurable
+
 		target->state.zone = chan;
-		target->state.pitch = _get_pitch(handle, target->chan, target->key);
+		target->state.pitch = _get_pitch(handle, target);
 		target->state.pressure = pressure;
 
 		if(handle->ref)
@@ -349,13 +358,35 @@ _handle_midi_note_pressure(plughandle_t *handle, LV2_Atom_Forge *forge, int64_t 
 
 	xpress_uuid_t uuid;
 	targetO_t *target = _midi_get(handle, chan, key, &uuid);
-	if(target)
+	if(target && (target->mode == MODE_NOTE_PRESSURE))
 	{
 		const float pressure = (float)m[2] / 0x7f;
 		target->state.pressure = pressure;
 
 		if(handle->ref)
 			handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
+	}
+}
+
+static void
+_handle_midi_channel_pressure(plughandle_t *handle, LV2_Atom_Forge *forge, int64_t frames,
+	const uint8_t *m)
+{
+	const uint8_t chan = m[0] & 0x0f;
+
+	// set pressure on all notes with matching channel
+	XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
+	{
+		targetO_t *target = voice->target;
+
+		if(target && (target->chan == chan) && (target->mode == MODE_CHANNEL_PRESSURE) )
+		{
+			const float pressure = (float)m[1] / 0x7f;
+			target->state.pressure = pressure;
+
+			if(handle->ref)
+				handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
+		}
 	}
 }
 
@@ -367,8 +398,18 @@ _handle_midi_bender(plughandle_t *handle, LV2_Atom_Forge *forge, int64_t frames,
 
 	handle->midi_bender[chan] = (((int16_t)m[2] << 7) | m[1]) - 0x2000;
 
-	_update_offset(handle, chan);
-	_handle_midi_bender_internal(handle, forge, frames, chan);
+	XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
+	{
+		targetO_t *target = voice->target;
+
+		if(target->chan != chan)
+			continue; // channel not matching
+
+		target->state.pitch = _get_pitch(handle, target);
+
+		if(handle->ref)
+			handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
+	}
 }
 
 static void
@@ -411,8 +452,6 @@ _handle_midi_controller(plughandle_t *handle, LV2_Atom_Forge *forge, int64_t fra
 
 					handle->state.range[chan] = (float)semi + cent*0.01f;
 
-					_update_offset(handle, chan);
-					_handle_midi_bender_internal(handle, forge, frames, chan);
 					props_set(&handle->props, &handle->forge, frames,
 						handle->uris.range[chan], &handle->ref);
 				} break;
@@ -421,43 +460,39 @@ _handle_midi_controller(plughandle_t *handle, LV2_Atom_Forge *forge, int64_t fra
 
 		default:
 		{
-			if(  (controller == handle->state.pressure[chan])
-				|| (controller == (handle->state.pressure[chan] | 0x20))
-				|| (controller == handle->state.timbre[chan])
-				|| (controller == (handle->state.timbre[chan] | 0x20)) )
+			XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
 			{
-				XPRESS_VOICE_FOREACH(&handle->xpressO, voice)
+				targetO_t *target = voice->target;
+				bool put = false;
+
+				if( (target->chan != chan) || (target->mode != MODE_CONTROLLER) )
 				{
-					targetO_t *target = voice->target;
-					bool put = false;
+					continue; // channel and/or mode not matching
+				}
 
-					if(target->chan != chan)
-						continue; // channel not matching
+				if(controller == (target->pressure | 0x20))
+				{
+					target->pressure_lsb = value;
+				}
+				else if(controller == target->pressure)
+				{
+					target->state.pressure = (float)( (value << 7) | target->pressure_lsb) / 0x3fff;
+					put = true;
+				}
+				else if(controller == (target->timbre | 0x20))
+				{
+					target->timbre_lsb = value;
+				}
+				else if(controller == target->timbre)
+				{
+					target->state.timbre = (float)( (value << 7) | target->timbre_lsb) / 0x3fff;
+					put = true;
+				}
 
-					if(controller == (handle->state.pressure[chan] | 0x20))
-					{
-						target->pressure_lsb = value;
-					}
-					else if(controller == handle->state.pressure[chan])
-					{
-						target->state.pressure = (float)( (value << 7) | target->pressure_lsb) / 0x3fff;
-						put = true;
-					}
-					else if(controller == (handle->state.timbre[chan] | 0x20))
-					{
-						target->timbre_lsb = value;
-					}
-					else if(controller == handle->state.timbre[chan])
-					{
-						target->state.timbre = (float)( (value << 7) | target->timbre_lsb) / 0x3fff;
-						put = true;
-					}
-
-					if(put)
-					{
-						if(handle->ref)
-							handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
-					}
+				if(put)
+				{
+					if(handle->ref)
+						handle->ref = xpress_token(&handle->xpressO, forge, frames, target->uuid, &target->state);
 				}
 			}
 		} break;
@@ -480,9 +515,13 @@ _handle_midi(plughandle_t *handle, LV2_Atom_Forge *forge, int64_t frames,
 		{
 			_handle_midi_note_off(handle, forge, frames, m);
 		} break;
-		case LV2_MIDI_MSG_NOTE_PRESSURE: //FIXME make this configurable
+		case LV2_MIDI_MSG_NOTE_PRESSURE:
 		{
 			_handle_midi_note_pressure(handle, forge, frames, m);
+		} break;
+		case LV2_MIDI_MSG_CHANNEL_PRESSURE:
+		{
+			_handle_midi_channel_pressure(handle, forge, frames, m);
 		} break;
 		case LV2_MIDI_MSG_BENDER:
 		{
