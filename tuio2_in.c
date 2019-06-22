@@ -336,7 +336,7 @@ _tuio2_frm(const char *path, const LV2_Atom_Tuple *args,
 		ptr = lv2_osc_string_get(osc_urid, ptr, &source);
 		if(ptr && strcmp(handle->state.device_name, source))
 		{
-			strncpy(handle->state.device_name, source, MAX_STRLEN);
+			strncpy(handle->state.device_name, source, MAX_STRLEN - 1);
 			props_set(&handle->props, forge, handle->frames, handle->urid.device_name, &handle->ref);
 		}
 
