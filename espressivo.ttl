@@ -1359,22 +1359,22 @@ esp:midi_in
 		esp:midi_pressure_mode_16 ;
 	
 	state:state [
-		esp:midi_range_1 2.0 ;
-		esp:midi_range_2 2.0 ;
-		esp:midi_range_3 2.0 ;
-		esp:midi_range_4 2.0 ;
-		esp:midi_range_5 2.0 ;
-		esp:midi_range_6 2.0 ;
-		esp:midi_range_7 2.0 ;
-		esp:midi_range_8 2.0 ;
-		esp:midi_range_9 2.0 ;
-		esp:midi_range_10 2.0 ;
-		esp:midi_range_11 2.0 ;
-		esp:midi_range_12 2.0 ;
-		esp:midi_range_13 2.0 ;
-		esp:midi_range_14 2.0 ;
-		esp:midi_range_15 2.0 ;
-		esp:midi_range_16 2.0 ;
+		esp:midi_range_1 "2.0"^^xsd:float ;
+		esp:midi_range_2 "2.0"^^xsd:float ;
+		esp:midi_range_3 "2.0"^^xsd:float ;
+		esp:midi_range_4 "2.0"^^xsd:float ;
+		esp:midi_range_5 "2.0"^^xsd:float ;
+		esp:midi_range_6 "2.0"^^xsd:float ;
+		esp:midi_range_7 "2.0"^^xsd:float ;
+		esp:midi_range_8 "2.0"^^xsd:float ;
+		esp:midi_range_9 "2.0"^^xsd:float ;
+		esp:midi_range_10 "2.0"^^xsd:float ;
+		esp:midi_range_11 "2.0"^^xsd:float ;
+		esp:midi_range_12 "2.0"^^xsd:float ;
+		esp:midi_range_13 "2.0"^^xsd:float ;
+		esp:midi_range_14 "2.0"^^xsd:float ;
+		esp:midi_range_15 "2.0"^^xsd:float ;
+		esp:midi_range_16 "2.0"^^xsd:float ;
 
 		esp:midi_pressure_controller_1 70 ;
 		esp:midi_pressure_controller_2 70 ;
@@ -1531,22 +1531,22 @@ esp:midi_out
 		esp:midi_pressure_mode_16 ;
 	
 	state:state [
-		esp:midi_range_1 2.0 ;
-		esp:midi_range_2 2.0 ;
-		esp:midi_range_3 2.0 ;
-		esp:midi_range_4 2.0 ;
-		esp:midi_range_5 2.0 ;
-		esp:midi_range_6 2.0 ;
-		esp:midi_range_7 2.0 ;
-		esp:midi_range_8 2.0 ;
-		esp:midi_range_9 2.0 ;
-		esp:midi_range_10 2.0 ;
-		esp:midi_range_11 2.0 ;
-		esp:midi_range_12 2.0 ;
-		esp:midi_range_13 2.0 ;
-		esp:midi_range_14 2.0 ;
-		esp:midi_range_15 2.0 ;
-		esp:midi_range_16 2.0 ;
+		esp:midi_range_1 "2.0"^^xsd:float ;
+		esp:midi_range_2 "2.0"^^xsd:float ;
+		esp:midi_range_3 "2.0"^^xsd:float ;
+		esp:midi_range_4 "2.0"^^xsd:float ;
+		esp:midi_range_5 "2.0"^^xsd:float ;
+		esp:midi_range_6 "2.0"^^xsd:float ;
+		esp:midi_range_7 "2.0"^^xsd:float ;
+		esp:midi_range_8 "2.0"^^xsd:float ;
+		esp:midi_range_9 "2.0"^^xsd:float ;
+		esp:midi_range_10 "2.0"^^xsd:float ;
+		esp:midi_range_11 "2.0"^^xsd:float ;
+		esp:midi_range_12 "2.0"^^xsd:float ;
+		esp:midi_range_13 "2.0"^^xsd:float ;
+		esp:midi_range_14 "2.0"^^xsd:float ;
+		esp:midi_range_15 "2.0"^^xsd:float ;
+		esp:midi_range_16 "2.0"^^xsd:float ;
 
 		esp:midi_pressure_controller_1 70 ;
 		esp:midi_pressure_controller_2 70 ;
@@ -1900,8 +1900,8 @@ esp:modulator
 		esp:modulator_enum_src 0 ;
 		esp:modulator_enum_mod 0 ;
 		esp:modulator_zone_offset 0 ;	
-		esp:modulator_multiplier 1.0 ;
-		esp:modulator_adder 0.0 ;	
+		esp:modulator_multiplier "1.0"^^xsd:float ;
+		esp:modulator_adder "0.0"^^xsd:float ;	
 		esp:modulator_op 0 ;	
 		esp:modulator_reset false ;
 	] .
