@@ -5,6 +5,7 @@ project('espressivo.lv2', 'c', default_options : [
 	'b_lto=true',
 	'c_std=c11'])
 
+build_root = meson.build_root()
 add_project_arguments('-D_GNU_SOURCE', language : 'c')
 
 conf_data = configuration_data()
@@ -91,7 +92,7 @@ endif
 
 if lv2lint.found()
 	test('LV2 lint', lv2lint,
-		args : ['-Ewarn',
+		args : ['-Ewarn', '-I', join_paths(build_root, ''),
 			'http://open-music-kontrollers.ch/lv2/espressivo#chord',
 			'http://open-music-kontrollers.ch/lv2/espressivo#discreto',
 			'http://open-music-kontrollers.ch/lv2/espressivo#midi_in',
