@@ -2,7 +2,7 @@ project('osc.lv2', 'c', default_options : [
 	'buildtype=release',
 	'warning_level=3',
 	'werror=true',
-	'b_lto=true',
+	'b_lto=false',
 	'c_std=c11'])
 
 version = run_command('cat', 'VERSION').stdout().strip()
@@ -30,5 +30,7 @@ osc_test = executable('osc_test',
 	dependencies : deps,
 	install : false)
 
+# FIXME start virautl serial pair before test
+# socat -d -d pty,raw,echo=0 pty,raw,echo=0
 test('Test', osc_test,
 	timeout : 240)
