@@ -186,7 +186,7 @@ struct _xpress_t {
 
 // non rt-safe
 static inline int
-xpress_init(xpress_t *xpress, const size_t max_nvoices, LV2_URID_Map *map,
+xpress_init(xpress_t *xpress, unsigned max_nvoices, LV2_URID_Map *map,
 	xpress_map_t *voice_map, xpress_event_t event_mask, const xpress_iface_t *iface,
 	void *target, void *data);
 
@@ -413,7 +413,7 @@ _xpress_shm_deinit(xpress_shm_t *xpress_shm)
 }
 
 static inline int
-xpress_init(xpress_t *xpress, const size_t max_nvoices, LV2_URID_Map *map,
+xpress_init(xpress_t *xpress, unsigned max_nvoices, LV2_URID_Map *map,
 	xpress_map_t *voice_map, xpress_event_t event_mask, const xpress_iface_t *iface,
 	void *target, void *data)
 {
