@@ -29,7 +29,6 @@
 @prefix log:	<http://lv2plug.in/ns/ext/log#> .
 @prefix units: <http://lv2plug.in/ns/extensions/units#> .
 
-@prefix lic:	<http://opensource.org/licenses/> .
 @prefix omk:	<http://open-music-kontrollers.ch/ventosus#> .
 @prefix proj:	<http://open-music-kontrollers.ch/lv2/> .
 @prefix esp:	<http://open-music-kontrollers.ch/lv2/espressivo#> .
@@ -380,7 +379,7 @@ esp:mpe_out
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo MPE Out" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -486,7 +485,7 @@ esp:mpe_in
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo MPE In" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -589,7 +588,7 @@ esp:tuio2_in
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo TUIO2 In" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -647,7 +646,7 @@ esp:tuio2_out
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo TUIO2 Out" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, osc:schedule, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -1261,7 +1260,7 @@ esp:midi_in
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo MIDI In" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -1433,7 +1432,7 @@ esp:midi_out
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo MIDI Out" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -1631,7 +1630,7 @@ esp:snh
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo Sample and Hold" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -1695,7 +1694,7 @@ esp:through
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo Through" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -1737,7 +1736,7 @@ esp:redirector
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo Redirector" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -1855,7 +1854,7 @@ esp:modulator
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo Modulator" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -1944,7 +1943,7 @@ esp:chord
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo Chord" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -2006,7 +2005,7 @@ esp:reducto
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo Reducto" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -2063,7 +2062,7 @@ esp:discreto
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo Discreto" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -2197,7 +2196,7 @@ esp:sc_out
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo SuperCollider Out" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, osc:schedule, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -2310,7 +2309,7 @@ esp:sqew
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo Sqew" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
@@ -2360,7 +2359,7 @@ esp:monitor_out
 	a lv2:Plugin ,
 		lv2:ConverterPlugin ;
 	doap:name "Espressivo Monitor Out" ;
-	doap:license lic:Artistic-2.0 ;
+	doap:license <https://spdx.org/licenses/Artistic-2.0> ;
 	lv2:project proj:espressivo ;
 	lv2:optionalFeature lv2:isLive, lv2:hardRTCapable, log:log, xpress:voiceMap, state:threadSafeRestore ;
 	lv2:requiredFeature urid:map, state:loadDefaultState ;
